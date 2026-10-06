@@ -1,0 +1,5 @@
+# GitHub owners to index: one per line. `./scripts/sync-registry.sh` (in the
+# cockpit repo) regenerates `registry/repos.generated.yaml` from these via the
+# GitHub API — the generated file is gitignored and never hand-edited, because
+# an index that can be regenerated must be, or it drifts.
+zatzk
