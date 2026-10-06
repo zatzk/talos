@@ -51,6 +51,7 @@ pub mod editor;
 pub mod extensions;
 pub mod home;
 pub mod identity;
+pub mod jev;
 pub mod messages;
 pub mod notify;
 pub mod output;
@@ -241,6 +242,12 @@ pub enum Command {
     Task {
         #[command(subcommand)]
         action: tasks::Action,
+    },
+    /// The Jev decision engine: typed System-1 decisions for the agent
+    /// lifecycle (sizing, routing, guardrails, audits, triage).
+    Jev {
+        #[command(subcommand)]
+        action: jev::Action,
     },
     /// Send/read inter-session messages (the mailbox queue).
     #[command(alias = "msg")]
@@ -526,6 +533,7 @@ fn dispatch(
         Command::Session { action } => sessions::run(action, db, backends)?,
         Command::Automation { action } => automations::run(action, db, backends)?,
         Command::Task { action } => tasks::run(action, db, backends)?,
+        Command::Jev { action } => jev::run(action)?,
         Command::Message { action } => messages::run(action, db)?,
         Command::Config { action } => config::run(action, db)?,
         Command::Extension { action } => extensions::run(action, db, backends)?,
