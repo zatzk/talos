@@ -189,8 +189,17 @@ return {
   order = 80,
   focusable = true,
 
+  -- Offered in the action band so the pane is discoverable by click too, and
+  -- ctrl+h / ctrl+l cycle it into view (the kernel's focus movement).
+  pills = {
+    { action = "kanban.open", label = "board", priority = 10 },
+  },
+
   keys = {
-    { key = "f6", action = "kanban.open", desc = "board", scope = "global", group = "Talos" },
+    -- alt+1, not an F-key: f6 is settings, f8 is the shell, and f2/f3/f5/f7 are
+    -- held for panes that have not returned. A free, non-deferred chord is the
+    -- only kind a global binding may take here (see tests/keymap.rs).
+    { key = "alt+1", action = "kanban.open", desc = "board", scope = "global", group = "Talos" },
     { key = "j", action = "kanban.down", desc = "next card", group = "Talos" },
     { key = "k", action = "kanban.up", desc = "previous card", group = "Talos" },
     { key = "h", action = "kanban.left", desc = "column left", group = "Talos" },

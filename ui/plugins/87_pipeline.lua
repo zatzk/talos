@@ -127,8 +127,14 @@ return {
   order = 82,
   focusable = true,
 
+  -- alt+3 and an action-band pill; ctrl+h / ctrl+l also cycle here.
+  pills = {
+    { action = "pipeline.open", label = "fleet", priority = 12 },
+  },
+
   keys = {
-    { key = "f8", action = "pipeline.open", desc = "fleet", scope = "global", group = "Talos" },
+    -- alt+3: f8 is the shell pane, and no F-key is free (tests/keymap.rs).
+    { key = "alt+3", action = "pipeline.open", desc = "fleet", scope = "global", group = "Talos" },
     { key = "j", action = "pipeline.down", desc = "next session", group = "Talos" },
     { key = "k", action = "pipeline.up", desc = "previous session", group = "Talos" },
     { key = "enter", action = "pipeline.open_session", desc = "open session", group = "Talos" },

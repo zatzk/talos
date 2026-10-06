@@ -135,8 +135,14 @@ return {
   order = 81,
   focusable = true,
 
+  -- alt+2 and an action-band pill; ctrl+h / ctrl+l also cycle here.
+  pills = {
+    { action = "attention.open", label = "attention", priority = 11 },
+  },
+
   keys = {
-    { key = "f7", action = "attention.open", desc = "attention", scope = "global", group = "Talos" },
+    -- alt+2: f7 is held for a pane that has not returned (tests/keymap.rs).
+    { key = "alt+2", action = "attention.open", desc = "attention", scope = "global", group = "Talos" },
     { key = "j", action = "attention.down", desc = "next", group = "Talos" },
     { key = "k", action = "attention.up", desc = "previous", group = "Talos" },
     { key = "enter", action = "attention.open_session", desc = "open session", group = "Talos" },
