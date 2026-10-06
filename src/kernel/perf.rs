@@ -294,6 +294,7 @@ pub struct Startup {
     pub theme_activate_ms: u64,
     pub extension_heal_ms: u64,
     pub harness_sync_ms: u64,
+    pub lead_ensure_ms: u64,
     pub heartbeat_ms: u64,
     pub ui_build_ms: u64,
     /// Process start to first painted frame; filled in by the loop.
@@ -308,6 +309,7 @@ impl Startup {
             "theme_activate_ms": self.theme_activate_ms,
             "extension_heal_ms": self.extension_heal_ms,
             "harness_sync_ms": self.harness_sync_ms,
+            "lead_ensure_ms": self.lead_ensure_ms,
             "heartbeat_ms": self.heartbeat_ms,
             "ui_build_ms": self.ui_build_ms,
             "first_frame_ms": self.first_frame_ms,

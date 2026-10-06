@@ -9,6 +9,7 @@ pub mod harness;
 pub mod jev;
 pub mod kernel;
 pub mod notifications;
+pub mod orchestrator;
 pub mod paths;
 pub mod session;
 pub mod session_ops;

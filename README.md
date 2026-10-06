@@ -99,6 +99,22 @@ talos-cli harness status        # where it is, and whether a sync is pending
 The harness's `plugs/aton` is a private corporate plug and stays uninitialised
 by default; the public harness works without it.
 
+## The lead (orchestrator)
+
+Talos's orchestration is the control-plane pattern: a long-lived **lead**
+session — **📡 Talos Mission Control** — over a control-plane checkout
+(default `~/Code/code-documentation`: `registry/` + `orchestration/` playbooks,
+run logs, session profiles). You talk to the lead; it dispatches **workers**,
+each in its own git worktree, and coordinates them through the mailbox.
+
+**The lead is ensured on every start**, before the interface takes the terminal:
+if the control-plane checkout or the session is missing, talos seeds/spawns it,
+and pins the row above the rest of the fleet. So `talos` always opens with the
+orchestrator present.
+
+`Ctrl+N` is *not* the orchestration flow — it is thurbox's "attach one agent to
+one session" primitive. Orchestration happens through the lead, not by hand.
+
 ## The interface
 
 Every pane is a Lua file under `~/.config/talos/ui/` you can edit, and **F10**

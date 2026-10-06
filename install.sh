@@ -57,6 +57,15 @@ if [[ -d "$here/spec-harness-kit/agents" ]]; then
   rm -rf "$data/harness/.git" "$data/harness/plugs/aton"
 fi
 
+# Stage the control-plane template too, so a first run without this checkout
+# can still seed a control plane (the startup lead-ensure looks in
+# <data>/control-plane-template).
+if [[ -d "$here/control-plane" ]]; then
+  data="${XDG_DATA_HOME:-$HOME/.local/share}/talos"
+  rm -rf "$data/control-plane-template"
+  cp -r "$here/control-plane" "$data/control-plane-template"
+fi
+
 # --- 3. control plane -----------------------------------------------------------
 
 control_plane="${TALOS_CONTROL_PLANE:-$HOME/Code/code-documentation}"

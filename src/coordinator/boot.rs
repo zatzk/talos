@@ -184,6 +184,18 @@ pub(crate) async fn run() -> Result<(), Box<dyn Error>> {
     startup_notices.extend(talos::harness::sync_on_startup());
     startup.harness_sync_ms = phase.elapsed().as_millis() as u64;
 
+    // The lead, before the interface takes the terminal. Talos's orchestration
+    // is the control-plane pattern — a long-lived lead session dispatching
+    // workers — so the lead must be present for the model to be legible at all.
+    // Seeds the control plane and starts Mission Control if either is missing,
+    // and pins the row to the top of the fleet. Best-effort; a failure is a
+    // notice, never a reason not to start.
+    let phase = Instant::now();
+    if let Some(db) = snapshots_db() {
+        startup_notices.extend(talos::orchestrator::ensure_lead_on_startup(&db, &backends));
+    }
+    startup.lead_ensure_ms = phase.elapsed().as_millis() as u64;
+
     // The heartbeat, kept by this machine's backend, so a schedule keeps
     // firing after this exits —
     // and, while it runs, at the keeper's 60s cadence rather than not at all.
