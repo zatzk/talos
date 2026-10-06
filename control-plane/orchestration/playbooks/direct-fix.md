@@ -22,4 +22,4 @@ Repo: <repo>. Branch: created for this task. The ticket is `<TASK-nnn>` in
 - The diff is limited to the ticket's module scope
 
 # Report
-thurbox-cli message send --kind result --body '<one-line verdict: what changed, test result>'
+talos-cli message send --kind result --body '<one-line verdict: what changed, test result>'

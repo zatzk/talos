@@ -1,4 +1,4 @@
-# VHS tape — Thurbox session-creation workflow feature clip.
+# VHS tape — Talos session-creation workflow feature clip.
 #
 # Do NOT run directly — run `scripts/demo/record.sh session-creation`,
 # which builds the dev binary, sets up the isolated env, seeds one session per
@@ -9,8 +9,8 @@
 # modals. Steps: host (skipped with no hosts.toml) -> repositories (multi-select,
 # `w` per repo for a worktree) -> base branch -> name -> branch name -> agent.
 
-Output media/thurbox-session-creation.gif
-Output media/thurbox-session-creation.mp4
+Output media/talos-session-creation.gif
+Output media/talos-session-creation.mp4
 
 Set Shell "bash"
 Set FontSize 18
@@ -38,10 +38,10 @@ Sleep 2200ms
 
 # The repository step, and the row the cursor starts on is NOT the demo repo.
 #
-# The flow offers the INTERFACE DIRECTORY first — "Thurbox interface — edit your
+# The flow offers the INTERFACE DIRECTORY first — "Talos interface — edit your
 # panes" — because editing a pane is work every user can do without cloning
 # anything. So `space` here selected that instead: the session was created in
-# `~/.config/thurbox-dev/ui`, the flow diverged (it is not a git repository, so `w`
+# `~/.config/talos-dev/ui`, the flow diverged (it is not a git repository, so `w`
 # was refused), and the rest of this tape's keystrokes went into the agent's PTY.
 # The damage outlived the clip, because every tape in one `record.sh` run shares the
 # sandbox and the tmux session: `add-plugin-docs` was still sitting in the agent

@@ -31,4 +31,4 @@ The PRD must contain:
 - The ASRs section is non-empty
 
 # Report
-thurbox-cli message send --kind result --body 'PRD ready: prds/prd-<slug>.md (ASRs: N)'
+talos-cli message send --kind result --body 'PRD ready: prds/prd-<slug>.md (ASRs: N)'

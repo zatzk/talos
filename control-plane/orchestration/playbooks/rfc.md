@@ -30,4 +30,4 @@ The RFC must contain:
 - Every ASR has a section
 
 # Report
-thurbox-cli message send --kind result --body 'RFC ready: rfcs/rfc-<slug>.md'
+talos-cli message send --kind result --body 'RFC ready: rfcs/rfc-<slug>.md'

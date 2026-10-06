@@ -1,4 +1,4 @@
-# VHS tape for the Thurbox search demo.
+# VHS tape for the Talos search demo.
 #
 # Do NOT run this directly — run `scripts/demo/record.sh search`, which builds the
 # dev binary, sets up an isolated environment, seeds one session per real agent CLI,
@@ -27,7 +27,7 @@ Set Padding 16
 Set Theme "Catppuccin Mocha"
 Set PlaybackSpeed 1.0
 
-# Launch the dev binary (isolated thurbox-dev socket + XDG dirs from the runner).
+# Launch the dev binary (isolated talos-dev socket + XDG dirs from the runner).
 Hide
 Type `exec "$THURBOX_BIN"`
 Enter

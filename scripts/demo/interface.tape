@@ -5,7 +5,7 @@
 # installs the `examples/` demo (layout + tasks + top), trusts the pane that
 # runs a program, and exports $THURBOX_BIN.
 #
-# This is the clip that shows what makes thurbox thurbox, and the demo interface is
+# This is the clip that shows what makes talos talos, and the demo interface is
 # what makes it land: two of the four panes on screen came from `examples/panes/`,
 # so the inventory lists them as **yours** next to the bundled ones, and
 # `layout.lua` as **edited** because the demo replaced it. Those two words are the
@@ -14,7 +14,7 @@
 #
 # The toggle is deliberately one of YOUR panes rather than a bundled one. Turning
 # off the session list proves the arrangement closes up; turning off a pane you
-# added proves the same machinery applies to a file thurbox never shipped, which is
+# added proves the same machinery applies to a file talos never shipped, which is
 # the actual claim.
 #
 # Chords: record.sh rebinds `settings.open` to Ctrl+B for the recording (really F6
@@ -32,10 +32,10 @@
 #   4  plugins/85_top.lua         on screen   yours
 #
 # Movement is `j`/`k`, as the modal's own hint line says; arrows are not bound for
-# up. Verify with `thurbox-cli plugin list` after changing anything here.
+# up. Verify with `talos-cli plugin list` after changing anything here.
 
-Output media/thurbox-interface.gif
-Output media/thurbox-interface.mp4
+Output media/talos-interface.gif
+Output media/talos-interface.mp4
 
 Set Shell "bash"
 Set FontSize 18

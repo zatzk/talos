@@ -22,4 +22,4 @@ a diff that applies. "Done" is what the lead greps for; write it greppable.>
 
 # Report
 When finished, mail the lead:
-    thurbox-cli message send --kind result --body '<PR url or one-line verdict>'
+    talos-cli message send --kind result --body '<PR url or one-line verdict>'

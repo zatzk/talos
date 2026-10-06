@@ -1,12 +1,12 @@
-// Managed by thurbox `extension install` (the built-in "hooks" extension).
+// Managed by talos `extension install` (the built-in "hooks" extension).
 // Reinstalling or updating overwrites this file — do not edit; uninstalling
-// removes it. Reports pi's lifecycle state to thurbox. Identity comes from the
+// removes it. Reports pi's lifecycle state to talos. Identity comes from the
 // inherited $THURBOX_SESSION env var; every call is best-effort so it can never
-// break a session running outside thurbox.
+// break a session running outside talos.
 //
 // This is a pi extension (TypeScript), auto-discovered from
 // ~/.pi/agent/extensions/*.ts by the pi.dev CLI. It subscribes to pi's
-// lifecycle events and reports them to thurbox's status reporter:
+// lifecycle events and reports them to talos's status reporter:
 //   session_start → idle, agent_start + tool_execution_start +
 //   tool_execution_end → working
 //   (a tool call to ask_user_question → blocked), agent_end → done.
@@ -14,9 +14,9 @@ import { exec } from "node:child_process";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 // Exact marker prefix kept on one line so the remote (SSH/WSL) rewrite can swap
-// this command for a tmux pane-option setter (there is no thurbox-cli on a
+// this command for a tmux pane-option setter (there is no talos-cli on a
 // remote host). Do not split the words across lines or reorder the flags.
-const SIGNAL = "thurbox-cli session signal --state ";
+const SIGNAL = "talos-cli session signal --state ";
 
 // Fire-and-forget; the callback swallows errors so a hook never surfaces into
 // the agent. exec inherits the pi process env, so $THURBOX_SESSION travels.

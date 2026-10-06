@@ -6,7 +6,7 @@
 // nonsense rather than refused. record-doom.sh pins asciinema 2.x for that reason.
 //
 // Used by record-doom.sh to cut the Doom window out of a recording that also
-// contains thurbox booting and Doom's own title screen and first attract demo.
+// contains talos booting and Doom's own title screen and first attract demo.
 // Everything before `start` is collapsed into one instant chunk at t=0, so frame
 // 1 already shows the fully painted screen instead of replaying the boot.
 

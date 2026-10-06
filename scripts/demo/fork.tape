@@ -1,4 +1,4 @@
-# VHS tape — Thurbox session forking (parent sessions) feature clip.
+# VHS tape — Talos session forking (parent sessions) feature clip.
 #
 # Do NOT run directly — run `scripts/demo/record.sh fork`, which builds the
 # dev binary, sets up the isolated env, seeds one session per real agent CLI
@@ -9,8 +9,8 @@
 # session list nests children under their parent with a `└` tree prefix, and
 # the info panel (Ctrl+B) shows a `Parent:` row.
 
-Output media/thurbox-fork.gif
-Output media/thurbox-fork.mp4
+Output media/talos-fork.gif
+Output media/talos-fork.mp4
 
 Set Shell "bash"
 Set FontSize 18

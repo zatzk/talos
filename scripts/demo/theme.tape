@@ -1,4 +1,4 @@
-# VHS tape — Thurbox theme switcher feature clip.
+# VHS tape — Talos theme switcher feature clip.
 #
 # Do NOT run directly — run `scripts/demo/record.sh theme`, which builds
 # the dev binary, sets up the isolated env, seeds one session per real agent CLI
@@ -12,8 +12,8 @@
 # fresh demo profile is `Default` (the first entry), so stepping up would go
 # nowhere. 36 palettes are listed, grouped under Dark and Light headers.
 
-Output media/thurbox-theme.gif
-Output media/thurbox-theme.mp4
+Output media/talos-theme.gif
+Output media/talos-theme.mp4
 
 Set Shell "bash"
 Set FontSize 18

@@ -1,10 +1,10 @@
 # Maintainer: LeTuR <https://github.com/LeTuR>
-pkgname=thurbox
+pkgname=talos
 pkgver=0.79.46
 pkgrel=1
 pkgdesc="TUI for orchestrating multiple coding-agent CLI sessions in persistent tmux panels"
 arch=('x86_64' 'aarch64')
-url="https://github.com/Thurbeen/thurbox"
+url="https://github.com/Thurbeen/talos"
 license=('MIT')
 # tmux/git are required at runtime. sqlite/glibc are the shared libraries
 # the binary links (verified with readelf; gcc-libs is implicitly satisfied).
@@ -14,9 +14,9 @@ makedepends=('cargo')
 optdepends=('claude-code: Claude Code agent CLI'
             'aider-chat: aider agent CLI'
             'opencode-bin: opencode agent CLI')
-provides=('thurbox')
-conflicts=('thurbox-bin')
-source=("$pkgname-$pkgver.tar.gz::https://github.com/Thurbeen/thurbox/archive/refs/tags/v$pkgver.tar.gz")
+provides=('talos')
+conflicts=('talos-bin')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/Thurbeen/talos/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('b34a151d9e6909748acffdb6da2094cd323c7b1a3f5ffffc5e21c7360342109b')
 
 prepare() {
@@ -40,14 +40,14 @@ build() {
     # build.rs reads the real version from this env var; without it the
     # binary reports 0.0.0-dev (Cargo.toml is a static dev marker).
     export THURBOX_RELEASE_VERSION="v$pkgver"
-    cargo build --offline --release --bin thurbox --bin thurbox-cli
+    cargo build --offline --release --bin talos --bin talos-cli
 }
 
 package() {
     cd "$pkgname-$pkgver"
     install -Dm0755 -t "$pkgdir/usr/bin/" \
-        target/release/thurbox \
-        target/release/thurbox-cli
+        target/release/talos \
+        target/release/talos-cli
     install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
     install -Dm0644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
 }

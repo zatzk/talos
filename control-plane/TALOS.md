@@ -47,20 +47,20 @@ is a dispatch, not a conversation:
 ## The rules that make it work
 
 - **Completion is the mailbox.** A worker that finishes mails you:
-  `thurbox-cli message send --kind result --body '<PR url or verdict>'`. You
-  drain with `thurbox-cli message inbox --claim --json`. A `done` state is a
+  `talos-cli message send --kind result --body '<PR url or verdict>'`. You
+  drain with `talos-cli message inbox --claim --json`. A `done` state is a
   supervision signal, not a completion signal — poll it and you will wait
   forever on a worker that finished an hour ago.
 - **Worktree per worker.** Workers are spawned with `--worktree-branch` and
   `--parent "$THURBOX_SESSION"` so the tree is recorded, not remembered:
-  `thurbox-cli session list --parent <uuid> --json` finds the workers of a run,
+  `talos-cli session list --parent <uuid> --json` finds the workers of a run,
   including the ones that never reported.
 - **Fast-forward the base before spawning.** A worktree inherits the *local*
   base branch. A stale local main produces a worker that does perfectly correct
   work against a month-old tree and opens a conflicting PR. Fetch and
   fast-forward, and verify `git rev-list --count main..origin/main` is `0`.
 - **Read the exit status before parsing output.** Errors are structured
-  documents on stdout. `thurbox-cli ... --json | jq -r '.field'` exits 0 with
+  documents on stdout. `talos-cli ... --json | jq -r '.field'` exits 0 with
   empty output when the command failed. Capture first, branch on the status.
 - **Sizing and guardrails are `talos jev`.** Before dispatching, classify the
   work: `talos-cli jev sizing --title ... --description ...` (size, pipeline,
@@ -71,7 +71,7 @@ is a dispatch, not a conversation:
 
 ## The board
 
-Tasks live in thurbox's own task list; the kanban pane reads it. The statuses
+Tasks live in talos's own task list; the kanban pane reads it. The statuses
 are the workflow: `backlog`, `planned`, `in_progress`, `human_review`, `pr`,
 `done`. Move a card when the fact it describes changes — a task is `planned`
 when it has a prompt ready to dispatch, `human_review` when its worker reported

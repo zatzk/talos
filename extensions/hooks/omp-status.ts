@@ -1,12 +1,12 @@
-// Managed by thurbox `extension install` (the built-in "hooks" extension).
+// Managed by talos `extension install` (the built-in "hooks" extension).
 // Reinstalling or updating overwrites this file — do not edit; uninstalling
-// removes it. Reports Oh My Pi's lifecycle state to thurbox. Identity comes
+// removes it. Reports Oh My Pi's lifecycle state to talos. Identity comes
 // from the inherited $THURBOX_SESSION env var; every call is best-effort so it
-// can never break a session running outside thurbox.
+// can never break a session running outside talos.
 //
 // This is an OMP (Oh My Pi, https://github.com/can1357/oh-my-pi) extension
 // (TypeScript), auto-discovered from ~/.omp/agent/extensions/*.ts by the omp
-// CLI. It subscribes to OMP's lifecycle events and reports them to thurbox's
+// CLI. It subscribes to OMP's lifecycle events and reports them to talos's
 // status reporter:
 //   session_start → idle, agent_start + tool_execution_start +
 //   tool_execution_end → working
@@ -22,9 +22,9 @@ import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 const BLOCKING_TOOLS = new Set(["ask", "ask_user_question"]);
 
 // Exact marker prefix kept on one line so the remote (SSH/WSL) rewrite can swap
-// this command for a tmux pane-option setter (there is no thurbox-cli on a
+// this command for a tmux pane-option setter (there is no talos-cli on a
 // remote host). Do not split the words across lines or reorder the flags.
-const SIGNAL = "thurbox-cli session signal --state ";
+const SIGNAL = "talos-cli session signal --state ";
 
 // Fire-and-forget; the callback swallows errors so a hook never surfaces into
 // the agent. exec inherits the OMP process env, so $THURBOX_SESSION travels.
