@@ -30,12 +30,32 @@ command -v cargo >/dev/null 2>&1 || fail "cargo not found — install Rust from 
 
 # --- 2. binaries -----------------------------------------------------------------
 
+step "initialising the spec-harness-kit submodule"
+# Non-recursive on purpose: the harness's own plugs/aton submodule points at a
+# private corporate repo that a talos user has no access to. The public harness
+# (agents, skills, rules, plugs/personal) works without it, and the harness
+# installer skips a plug it cannot find.
+git submodule update --init --depth 1 spec-harness-kit || true
+
 step "building talos"
 cargo build --release
 mkdir -p "$HOME/.local/bin"
 install -m755 target/release/talos "$HOME/.local/bin/talos"
 install -m755 target/release/talos-cli "$HOME/.local/bin/talos-cli"
 export PATH="$HOME/.local/bin:$PATH"
+
+# Stage the harness beside the data, so a binary installed without this
+# checkout can still find it (the startup sync looks in <data>/harness).
+if [[ -d "$here/spec-harness-kit/agents" ]]; then
+  step "staging the harness for the startup sync"
+  data="${XDG_DATA_HOME:-$HOME/.local/share}/talos"
+  mkdir -p "$data"
+  rm -rf "$data/harness"
+  cp -r "$here/spec-harness-kit" "$data/harness"
+  # The staged copy is content, not a checkout: drop the git metadata and the
+  # private plug's empty placeholder.
+  rm -rf "$data/harness/.git" "$data/harness/plugs/aton"
+fi
 
 # --- 3. control plane -----------------------------------------------------------
 

@@ -174,6 +174,16 @@ pub(crate) async fn run() -> Result<(), Box<dyn Error>> {
     }
     startup.extension_heal_ms = phase.elapsed().as_millis() as u64;
 
+    // The harness, before the interface takes the terminal. spec-harness-kit is
+    // the source of truth for agents, skills and rules; this re-installs it into
+    // the CLI agent directories when its contents changed since the last start,
+    // so a `git submodule update` reaches every coding CLI with no manual step.
+    // Best-effort and stamp-gated: an unchanged harness does not shell out, and
+    // a failure is a notice rather than a reason not to start.
+    let phase = Instant::now();
+    startup_notices.extend(talos::harness::sync_on_startup());
+    startup.harness_sync_ms = phase.elapsed().as_millis() as u64;
+
     // The heartbeat, kept by this machine's backend, so a schedule keeps
     // firing after this exits —
     // and, while it runs, at the keeper's 60s cadence rather than not at all.

@@ -76,6 +76,29 @@ Talos launches the CLI unmodified — Claude Code, Codex, **antigravity** (`agy`
 wired per agent. 9Router / OpenRouter / Anthropic are backends those CLIs are
 configured to use; talos is neutral about which.
 
+## The harness (spec-harness-kit)
+
+Agents, skills and rules come from
+[spec-harness-kit](https://github.com/zatzk/spec-harness-kit), vendored as a
+submodule at `spec-harness-kit/`. **Every time talos starts, it re-installs the
+harness into each CLI's agent/skill/rule directories if its contents changed** —
+so a `git submodule update` reaches every coding CLI with no manual step.
+
+- Gated on a content stamp (`<data>/harness.stamp`): an unchanged harness costs
+  one directory walk, not an install.
+- The installer is the harness's own `scripts/install.sh`, so the harness owns
+  how it is laid down.
+- Run it by hand, or check what it would do:
+
+```bash
+talos-cli harness sync          # install if changed
+talos-cli harness sync --force  # reinstall regardless
+talos-cli harness status        # where it is, and whether a sync is pending
+```
+
+The harness's `plugs/aton` is a private corporate plug and stays uninitialised
+by default; the public harness works without it.
+
 ## The interface
 
 Every pane is a Lua file under `~/.config/talos/ui/` you can edit, and **F10**

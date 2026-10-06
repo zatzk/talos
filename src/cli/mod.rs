@@ -49,6 +49,7 @@ pub(crate) mod delivery;
 pub mod doctor;
 pub mod editor;
 pub mod extensions;
+pub mod harness;
 pub mod home;
 pub mod identity;
 pub mod jev;
@@ -248,6 +249,11 @@ pub enum Command {
     Jev {
         #[command(subcommand)]
         action: jev::Action,
+    },
+    /// Sync spec-harness-kit (agents, skills, rules) into the CLI agent dirs.
+    Harness {
+        #[command(subcommand)]
+        action: harness::Action,
     },
     /// Send/read inter-session messages (the mailbox queue).
     #[command(alias = "msg")]
@@ -534,6 +540,7 @@ fn dispatch(
         Command::Automation { action } => automations::run(action, db, backends)?,
         Command::Task { action } => tasks::run(action, db, backends)?,
         Command::Jev { action } => jev::run(action)?,
+        Command::Harness { action } => harness::run(action)?,
         Command::Message { action } => messages::run(action, db)?,
         Command::Config { action } => config::run(action, db)?,
         Command::Extension { action } => extensions::run(action, db, backends)?,
