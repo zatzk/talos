@@ -5,6 +5,7 @@ pub mod backend;
 pub mod cli;
 pub mod clipboard;
 pub mod git;
+pub mod jev;
 pub mod kernel;
 pub mod notifications;
 pub mod paths;

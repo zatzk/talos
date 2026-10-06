@@ -83,6 +83,7 @@ arboard = { version = "3", default-features = false }
 
 # JSON (session metadata, keybindings, agent config)
 serde_json = "1"
+reqwest = { version = "0.12", features = ["blocking", "json", "rustls-tls"], default-features = false }
 
 # CLI argument parsing (talos-cli)
 clap = { version = "4", features = ["derive"] }
