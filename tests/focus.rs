@@ -20,12 +20,12 @@
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use thurbox::kernel::host::LuaHost;
-use thurbox::kernel::modals::chrome::Chrome;
-use thurbox::kernel::modals::interface::Files;
-use thurbox::kernel::modals::settings::{SettingsModal, Tab};
-use thurbox::kernel::modals::{ModalKind, Modals};
-use thurbox::kernel::registry::Registry;
+use talos::kernel::host::LuaHost;
+use talos::kernel::modals::chrome::Chrome;
+use talos::kernel::modals::interface::Files;
+use talos::kernel::modals::settings::{SettingsModal, Tab};
+use talos::kernel::modals::{ModalKind, Modals};
+use talos::kernel::registry::Registry;
 
 fn host() -> LuaHost {
     let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui");
@@ -68,7 +68,7 @@ fn clicking_a_tab_heading_switches_to_it() {
     // The bug this closes: the settings half recorded its footer pills by
     // *assigning* the button list, which wiped the tab hitboxes recorded a few
     // lines earlier. The headings drew, and clicking one did nothing.
-    let palette = thurbox::session::theme_config::ThemePreset::Default.palette();
+    let palette = talos::session::theme_config::ThemePreset::Default.palette();
     let mut modal = SettingsModal::default();
     let mut terminal =
         ratatui::Terminal::new(ratatui::backend::TestBackend::new(90, 26)).expect("terminal");
@@ -108,7 +108,7 @@ fn the_tab_keys_are_offered_where_they_can_be_seen() {
     // A key that only works if you already know it is a key nobody uses. Both
     // halves say so on their own footer, since a modal's keys are not in the
     // registry and so cannot reach help by declaration.
-    let palette = thurbox::session::theme_config::ThemePreset::Default.palette();
+    let palette = talos::session::theme_config::ThemePreset::Default.palette();
     for tab in [Tab::Settings, Tab::Interface] {
         let mut modal = SettingsModal::default();
         if tab == Tab::Interface {
@@ -192,7 +192,7 @@ fn the_centre_is_still_a_switch_slot() {
     let host = host();
     assert!(matches!(
         host.slot_mode("center"),
-        thurbox::kernel::layout::SlotMode::Switch
+        talos::kernel::layout::SlotMode::Switch
     ));
 }
 

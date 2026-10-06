@@ -19,9 +19,9 @@
 //! malformed remote file degrades to a warning (surfaced on the session as
 //! `hook_wiring`) — it never fails the spawn.
 //!
-//! **Remote cleanup is deliberately out of scope** (thurbox never uninstalls
+//! **Remote cleanup is deliberately out of scope** (talos never uninstalls
 //! anything from a host — same policy as remote worktrees). The shipped
-//! entries carry two prune markers (`thurbox-cli session signal` pre-rewrite,
+//! entries carry two prune markers (`talos-cli session signal` pre-rewrite,
 //! the backend's hook command post-rewrite), so a future remote prune needs no
 //! schema knowledge.
 //!
@@ -44,7 +44,7 @@ enum RemoteAssetKind {
     MergeJson,
     /// The same, for an agent whose shared config is TOML (kimi).
     MergeToml,
-    /// Write a standalone thurbox-managed file (refused if a user-owned file
+    /// Write a standalone talos-managed file (refused if a user-owned file
     /// — one without [`MANAGED_MARKER`] — already sits there).
     WriteFile,
 }
@@ -80,7 +80,7 @@ fn remote_asset_for(agent: &str) -> Option<RemoteHookAsset> {
         }),
         "opencode" => Some(RemoteHookAsset {
             kind: RemoteAssetKind::WriteFile,
-            remote_path: "~/.config/opencode/plugin/thurbox-status.js",
+            remote_path: "~/.config/opencode/plugin/talos-status.js",
             requires_dir: "~/.config/opencode",
             payload: builtin_hooks::OPENCODE_PLUGIN,
         }),
@@ -92,25 +92,25 @@ fn remote_asset_for(agent: &str) -> Option<RemoteHookAsset> {
         }),
         "copilot" => Some(RemoteHookAsset {
             kind: RemoteAssetKind::WriteFile,
-            remote_path: "~/.copilot/hooks/thurbox-status.json",
+            remote_path: "~/.copilot/hooks/talos-status.json",
             requires_dir: "~/.copilot",
             payload: builtin_hooks::COPILOT_HOOKS,
         }),
         "pi" => Some(RemoteHookAsset {
             kind: RemoteAssetKind::WriteFile,
-            remote_path: "~/.pi/agent/extensions/thurbox-status.ts",
+            remote_path: "~/.pi/agent/extensions/talos-status.ts",
             requires_dir: "~/.pi/agent",
             payload: builtin_hooks::PI_STATUS,
         }),
         "omp" => Some(RemoteHookAsset {
             kind: RemoteAssetKind::WriteFile,
-            remote_path: "~/.omp/agent/extensions/thurbox-status.ts",
+            remote_path: "~/.omp/agent/extensions/talos-status.ts",
             requires_dir: "~/.omp/agent",
             payload: builtin_hooks::OMP_STATUS,
         }),
         "grok" => Some(RemoteHookAsset {
             kind: RemoteAssetKind::WriteFile,
-            remote_path: "~/.grok/hooks/thurbox-status.json",
+            remote_path: "~/.grok/hooks/talos-status.json",
             requires_dir: "~/.grok",
             payload: builtin_hooks::GROK_HOOKS,
         }),
@@ -408,7 +408,7 @@ fn merged_remote_doc(
 
     let mut doc = before.clone();
     // Prune both command forms: the pre-rewrite local marker (a stale entry
-    // from an older thurbox that shipped the un-rewritten payload) and the
+    // from an older talos that shipped the un-rewritten payload) and the
     // backend's hook command (our own previous version).
     crate::agent::json_merge::prune_marked(&mut doc, HOOK_SIGNAL_MARKER);
     crate::agent::json_merge::prune_marked(&mut doc, signal);
@@ -571,7 +571,7 @@ mod tests {
     use super::*;
 
     /// A tmux-protocol backend's hook command, as one answers it.
-    const SIGNAL: &str = "tmux set-option -p @thurbox_state ";
+    const SIGNAL: &str = "tmux set-option -p @talos_state ";
 
     #[test]
     fn in_flight_guard_releases_on_unwind() {
@@ -705,8 +705,8 @@ mod tests {
         let merged = merged_remote_doc("", &payload, SIGNAL)
             .expect("merges")
             .expect("writes");
-        assert!(merged.contains("tmux set-option -p @thurbox_state"));
-        assert!(!merged.contains("thurbox-cli"));
+        assert!(merged.contains("tmux set-option -p @talos_state"));
+        assert!(!merged.contains("talos-cli"));
         // Idempotent: merging into the just-written doc is a no-op.
         assert_eq!(merged_remote_doc(&merged, &payload, SIGNAL).unwrap(), None);
     }
@@ -715,31 +715,31 @@ mod tests {
     fn merged_toml_doc_preserves_the_remote_users_config_and_replaces_stale_entries() {
         let payload = builtin_hooks::rewrite_hook_signals(builtin_hooks::KIMI_HOOKS, SIGNAL);
         // The host's file carries the remote user's own settings and hook, plus
-        // a *stale* thurbox entry an older thurbox shipped in the un-rewritten
+        // a *stale* talos entry an older talos shipped in the un-rewritten
         // local command form. Ownership is the comment, so that entry is
         // recognised as ours whichever command form it holds — which is why one
         // prune call replaces the two the JSON sibling needs.
         let existing = "# theirs\nmodel = \"kimi-code/k3\"\n\n\
                         [[hooks]]\nevent = \"Stop\"\n\
-                        command = \"notify-send hi; thurbox-cli session signal --state done\"\n\n\
-                        # managed by thurbox `extension install`\n\
+                        command = \"notify-send hi; talos-cli session signal --state done\"\n\n\
+                        # managed by talos `extension install`\n\
                         [[hooks]]\nevent = \"Retired\"\n\
-                        command = \"thurbox-cli session signal --state done || true\"\n";
+                        command = \"talos-cli session signal --state done || true\"\n";
         let merged = merged_remote_toml_doc(existing, &payload)
             .expect("merges")
             .expect("writes");
 
         // The remote user's config and their own hook survive untouched — even
-        // though that hook calls `thurbox-cli session signal` itself.
+        // though that hook calls `talos-cli session signal` itself.
         assert!(merged.contains("# theirs"));
-        assert!(merged.contains("notify-send hi; thurbox-cli session signal --state done"));
+        assert!(merged.contains("notify-send hi; talos-cli session signal --state done"));
         // The stale entry is gone rather than sitting beside the new one, and
         // ours now reports through the pane option.
         assert!(
             !merged.contains("Retired"),
             "stale entry replaced: {merged}"
         );
-        assert!(merged.contains("tmux set-option -p @thurbox_state done"));
+        assert!(merged.contains("tmux set-option -p @talos_state done"));
 
         // Every command we ship reports remotely; the only one still naming the
         // local CLI is the user's own.
@@ -747,7 +747,7 @@ mod tests {
         for hook in doc["hooks"].as_array().expect("[[hooks]]") {
             let command = hook["command"].as_str().expect("hook has a command");
             assert!(
-                !command.contains("thurbox-cli") || command.starts_with("notify-send hi"),
+                !command.contains("talos-cli") || command.starts_with("notify-send hi"),
                 "a shipped command still calls the local CLI: {command}"
             );
         }
@@ -757,15 +757,15 @@ mod tests {
     }
 
     #[test]
-    fn merged_doc_preserves_user_entries_and_replaces_stale_thurbox_ones() {
+    fn merged_doc_preserves_user_entries_and_replaces_stale_talos_ones() {
         // The remote file carries a user hook plus a stale *un-rewritten*
-        // thurbox entry (an older thurbox shipped the local command form).
+        // talos entry (an older talos shipped the local command form).
         let existing = serde_json::json!({
             "hooks": {
                 "SessionStart": [
                     { "hooks": [{ "type": "command", "command": "echo user-hook" }] },
                     { "hooks": [{ "type": "command",
-                        "command": "thurbox-cli session signal --state idle || true" }] }
+                        "command": "talos-cli session signal --state idle || true" }] }
                 ]
             },
             "userSetting": true
@@ -779,8 +779,8 @@ mod tests {
         // rewritten one, not accumulated next to it.
         assert!(merged.contains("echo user-hook"));
         assert!(merged.contains("\"userSetting\": true"));
-        assert!(!merged.contains("thurbox-cli"));
-        assert!(merged.contains("tmux set-option -p @thurbox_state idle"));
+        assert!(!merged.contains("talos-cli"));
+        assert!(merged.contains("tmux set-option -p @talos_state idle"));
     }
 
     #[test]

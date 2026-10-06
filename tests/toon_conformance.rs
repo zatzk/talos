@@ -16,7 +16,7 @@
 //! encoding rather than about key order, which the spec leaves to the encoder.
 
 use serde_json::Value;
-use thurbox::cli::toon;
+use talos::cli::toon;
 
 #[test]
 fn matches_the_reference_encoder_on_the_spec_suite() {

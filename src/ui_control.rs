@@ -156,7 +156,7 @@ fn audit_worker() -> Result<SyncSender<AuditJob>, String> {
         .get_or_init(|| {
             let (tx, rx) = mpsc::sync_channel::<AuditJob>(64);
             std::thread::Builder::new()
-                .name("thurbox-ui-audit".into())
+                .name("talos-ui-audit".into())
                 .spawn(move || {
                     while let Ok(job) = rx.recv() {
                         let result = write_audit(
@@ -838,7 +838,7 @@ mod windows {
             let acl = OwnerAcl::new()?;
             acl.protect(&dir)?;
             let id = uuid::Uuid::new_v4().to_string();
-            let endpoint = PathBuf::from(format!(r"\\.\pipe\thurbox-ui-{id}"));
+            let endpoint = PathBuf::from(format!(r"\\.\pipe\talos-ui-{id}"));
             let record = dir.join(format!("{id}.json"));
             let staged = dir.join(format!("{id}.tmp"));
             let instance = Instance {
@@ -1010,7 +1010,7 @@ mod windows {
             };
             if uuid::Uuid::parse_str(&instance.id).is_err()
                 || path != dir.join(format!("{}.json", instance.id))
-                || instance.endpoint != format!(r"\\.\pipe\thurbox-ui-{}", instance.id)
+                || instance.endpoint != format!(r"\\.\pipe\talos-ui-{}", instance.id)
             {
                 let _ = fs::remove_file(&path);
                 continue;

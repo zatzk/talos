@@ -165,7 +165,7 @@ pub struct VisibleRun<'a> {
 }
 
 /// Opening half of an OSC 8 hyperlink: everything printed until
-/// [`OSC8_CLOSE`] becomes a link to `url` in the terminal thurbox itself runs
+/// [`OSC8_CLOSE`] becomes a link to `url` in the terminal talos itself runs
 /// in.
 ///
 /// Control characters are stripped. The URL is **agent-controlled text being

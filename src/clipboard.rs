@@ -4,7 +4,7 @@
 //! the config knob that forces one):
 //!
 //! 1. **Native** ([`arboard`]) — talks to the local display server. Verifiable:
-//!    it reports real success or a real error. Unavailable the moment thurbox
+//!    it reports real success or a real error. Unavailable the moment talos
 //!    runs anywhere but the machine holding the clipboard.
 //! 2. **OSC 52** — an escape sequence the *terminal emulator* interprets, so it
 //!    reaches the clipboard of whoever is looking at the screen no matter how
@@ -16,7 +16,7 @@
 //! Sniffing `$SSH_TTY` to pick a transport is a trap, and the ecosystem has
 //! already walked out of it. Neovim shipped exactly that in 0.10 and **removed
 //! it as a breaking change** in 0.11 (PR #31730); nothing modern branches on
-//! SSH for a clipboard *write*. thurbox has an extra reason to distrust the
+//! SSH for a clipboard *write*. talos has an extra reason to distrust the
 //! env: the tmux server daemonizes with the environment of its **first**
 //! client, so panes routinely carry stale or missing `SSH_*`.
 //!
@@ -129,7 +129,7 @@ impl std::fmt::Display for CopyError {
 /// this is spelled out here rather than delegated to it.)
 ///
 /// Emitted raw, *not* wrapped in tmux's DCS passthrough. This goes to the
-/// terminal thurbox itself runs in, never into thurbox's own tmux server; when
+/// terminal talos itself runs in, never into talos's own tmux server; when
 /// that terminal is a tmux of the user's, the raw form is handled by its OSC 52
 /// handler, which needs `set-clipboard on` in *their* config, while the DCS
 /// form would instead require `allow-passthrough`, which is off by default.
@@ -138,7 +138,7 @@ pub fn osc52_sequence(text: &str) -> String {
     format!("\x1b]52;c;{encoded}\x07")
 }
 
-/// The text an app's OSC 52 write carries, if it is one thurbox puts on the
+/// The text an app's OSC 52 write carries, if it is one talos puts on the
 /// user's clipboard: aimed at the clipboard (`c`, not only the primary
 /// selection or a cut buffer), valid base64, UTF-8 text, not empty — an
 /// empty write would wipe the clipboard, which no app means by a copy — and
@@ -274,12 +274,12 @@ pub const PASTE_UNAVAILABLE_HINT: &str =
 /// (measured on WSLg, Ubuntu: `Clipboard::get_text` returned an IP address
 /// copied minutes earlier while Windows held a 1594x535 PNG). So `Ctrl+V` on a
 /// copied image does not paste nothing, it pastes something *stale*, which is
-/// worse. arboard cannot tell us either: thurbox builds it with
+/// worse. arboard cannot tell us either: talos builds it with
 /// `default-features = false`, which is the build without `get_image`.
 ///
 /// ## Why the answer is worth waiting for
 ///
-/// thurbox cannot paste an image — but the agent in the pane can fetch one
+/// talos cannot paste an image — but the agent in the pane can fetch one
 /// itself when it sees the paste chord (Claude Code shells out to
 /// `xclip`/`wl-paste`, and under WSL to this same PowerShell). So the only
 /// thing the question decides is who handles the press, and getting it wrong
@@ -311,7 +311,7 @@ const POWERSHELL_FALLBACK: &str = "/mnt/c/Windows/System32/WindowsPowerShell/v1.
 /// The `PATH` search goes through [`crate::paths::resolve_on_path`] rather than
 /// through `Command::new`'s own: the OS search treats an **empty** entry in
 /// `PATH` (a stray leading, trailing or doubled `:`) as the current directory,
-/// so a file named `powershell.exe` sitting in whatever repository thurbox was
+/// so a file named `powershell.exe` sitting in whatever repository talos was
 /// launched from would answer this question on every `Ctrl+V`. `resolve_on_path`
 /// keeps absolute entries only, which is the rule #1100 landed for agent
 /// spawns; there is no reason for this path to hold a weaker one.
@@ -329,7 +329,7 @@ pub enum Verdict {
     /// A picture and nothing else — the press belongs to the agent, which can
     /// fetch it.
     Image,
-    /// Something thurbox can paste itself, or nothing at all.
+    /// Something talos can paste itself, or nothing at all.
     NotImage,
     /// Windows could not be asked. Deliberately **not** folded into
     /// [`Verdict::NotImage`]: WSL interop wedges intermittently (this machine
@@ -575,7 +575,7 @@ mod tests {
     ///
     /// An empty entry in `PATH` — a stray leading, trailing or doubled `:` —
     /// means "here" to the OS search, and a relative entry is resolved against
-    /// wherever thurbox was launched from, so a file of that name in a
+    /// wherever talos was launched from, so a file of that name in a
     /// repository would answer every `Ctrl+V` on a WSL box. #1100 closed the
     /// same hole for agent spawns; this is that rule holding on the clipboard
     /// path. Planted where a relative `PATH` entry really does find it, since

@@ -21,7 +21,7 @@ you actually launched last Tuesday and what came back.
 
 In practice that state ends up in a chat transcript, which is not
 durable, not diffable, and not readable by the next session. The
-question is not "how do I run agents in parallel" — thurbox already does
+question is not "how do I run agents in parallel" — talos already does
 that. It is **where does the plan live, and what reads it?**
 
 ---
@@ -45,7 +45,7 @@ The defining rule is what the control plane *doesn't* hold:
 > **The control plane holds the plan and the log. It never holds the
 > workers' branches.**
 
-Each unit of work becomes one thurbox worker session, targeting a real
+Each unit of work becomes one talos worker session, targeting a real
 repo in its own git worktree, driven by a single self-contained prompt.
 Workers share no context with the control plane and none with each
 other, so every prompt restates the goal, the constraints, and what
@@ -84,9 +84,9 @@ it.
 
 ---
 
-## Why this is a thurbox pattern
+## Why this is a talos pattern
 
-The shape above isn't invented; it's what falls out of thurbox's
+The shape above isn't invented; it's what falls out of talos's
 primitives once you use them at more than one repo. Each piece is doing
 load-bearing work.
 
@@ -113,7 +113,7 @@ plane.
 
 And because it *is* a real session rather than an ad-hoc terminal, it
 can be addressed. Workers can mail it. It has a UUID to hand out as
-`--parent`. It gets `THURBOX_SESSION` in its environment like any other
+`--parent`. It gets `TALOS_SESSION` in its environment like any other
 session. The lead being a first-class session is the precondition for
 everything in the next two sections.
 
@@ -122,17 +122,17 @@ everything in the next two sections.
 Workers report by mailing the lead:
 
 ```sh
-thurbox-cli message send --to <lead> --kind result --body '<PR url>'
+talos-cli message send --to <lead> --kind result --body '<PR url>'
 ```
 
 The lead drains its inbox exactly once:
 
 ```sh
-thurbox-cli message inbox --for <lead> --claim --json
+talos-cli message inbox --for <lead> --claim --json
 ```
 
 `send` **wakes** the recipient by default, so the lead never polls.
-thurbox injects `THURBOX_SESSION` into each session's environment, and
+talos injects `TALOS_SESSION` into each session's environment, and
 both `--from` and `inbox --for` default to it, so a worker needs no ids
 to mail home and the lead needs none to read its own mail.
 
@@ -154,12 +154,12 @@ that matters:
 
 ### `watch`, for everything that is not a report
 
-The mailbox is how a worker says it finished. `thurbox-cli watch` is how a
+The mailbox is how a worker says it finished. `talos-cli watch` is how a
 driver learns everything the worker was never going to mail — that it went
 blocked on a permission, that its pane died, that somebody deleted it:
 
 ```sh
-thurbox-cli watch --json --initial | while read -r line; do …; done
+talos-cli watch --json --initial | while read -r line; do …; done
 ```
 
 It streams an **append-only log**, not a sampled diff. Every writer that
@@ -190,14 +190,14 @@ its owner.
 
 ### `--parent`
 
-Spawn workers with `--parent "$THURBOX_SESSION"` and the lead/worker
+Spawn workers with `--parent "$TALOS_SESSION"` and the lead/worker
 tree is recorded rather than remembered. `session list --parent <uuid>
 --json` enumerates a run's workers afterwards — including the ones that
 never reported, which are exactly the ones you need to find.
 
 ### Deliberately no automations
 
-thurbox has `[[automations]]` (ADR-8b), and this pattern does not use
+talos has `[[automations]]` (ADR-8b), and this pattern does not use
 them.
 
 The one scheduled candidate is the registry sync. It regenerates the
@@ -214,7 +214,7 @@ system, and the whole point of the run log is that there is one.
 
 ## Constraints worth stating
 
-Five facts shape any headless orchestration built on thurbox. Each
+Five facts shape any headless orchestration built on talos. Each
 costs real time to rediscover.
 
 ### The status field is not a completion signal
@@ -248,7 +248,7 @@ gone — and each one comes with what it takes to judge it:
 | `reports_as` | the agent the hook fields were read against, when a driver declared one |
 
 `state` is always a word, and one of `SessionState`'s — the single
-vocabulary `session get`, `session list`, `thurbox-cli watch` and the
+vocabulary `session get`, `session list`, `talos-cli watch` and the
 interface all derive through, so no two of them answer differently for
 one row. Besides the four an agent can signal it can read `unreported`
 (nothing has reported for this session), `uncovered` (its agent is wired
@@ -291,18 +291,18 @@ happen. `session signal` against a parked session fails rather than silently
 doing nothing, and says to `session start` it first.
 
 There is deliberately **no staleness timeout**. A turn may legitimately
-run for an hour, so any bound thurbox picked would report live work as
+run for an hour, so any bound talos picked would report live work as
 finished; the age is published instead and the policy is yours.
 
 `session get` checks the pane by default (one multiplexer query plus one
 `ps`); `session list` does not unless you pass `--verify`, since that
 cost is per session. A remote session answers `unavailable` — its pane
-lives on its own host's multiplexer. `thurbox-cli session doctor` is the
+lives on its own host's multiplexer. `talos-cli session doctor` is the
 same information as a verdict, plus whether the wiring is installed at
 all; it exits non-zero when a session's wiring is broken. An agent
-thurbox ships no hooks for but which is signalling anyway — a driver
+talos ships no hooks for but which is signalling anyway — a driver
 calling `session signal` itself — is a warning, not a failure, and a
-`--command` session is "no hooks expected": thurbox never had an agent
+`--command` session is "no hooks expected": talos never had an agent
 there to wire, so there is nothing to find broken.
 
 If your driver launches an agent *inside* such a session, say so with
@@ -321,30 +321,30 @@ is actually in the foreground.
 
 ### A driver that launches its own agent can still report state
 
-thurbox wires status hooks at launch, for an agent it knows from
+talos wires status hooks at launch, for an agent it knows from
 `agents.toml`. A harness that must own the agent launch itself — asking
-thurbox for a bare interactive shell and starting the agent inside that
+talos for a bare interactive shell and starting the agent inside that
 pane — therefore gets no hooks, and its sessions would read as never
 having reported anything.
 
 Three things close that, and all are **stable contract**:
 
-- **`thurbox-cli agent launch-args <name>` reports what to launch.**
+- **`talos-cli agent launch-args <name>` reports what to launch.**
   The hooks are *arguments* — the `hooks` extension installs them by
   appending to the agent's `args` in `agents.toml` (`--settings
   <hooks>.json` for claude) — so an agent started any other way simply
-  has none. This prints the `command`, `args` and `env` thurbox itself
+  has none. This prints the `command`, `args` and `env` talos itself
   would use; pass the args through and the hooks are there. With
   `--session <ref>` it resolves for that session: the conversation id is
   pinned to the row's, the host adapts the args, and the environment
-  carries the `THURBOX_SESSION` its `session signal` will report under.
-- **`THURBOX_SESSION` is in the pane's environment**, and every child
+  carries the `TALOS_SESSION` its `session signal` will report under.
+- **`TALOS_SESSION` is in the pane's environment**, and every child
   process inherits it. So anything running in the pane — the driver, the
   agent, one of the agent's own hooks — can call
-  `thurbox-cli session signal --state <working|blocked|done|idle>` with
+  `talos-cli session signal --state <working|blocked|done|idle>` with
   **no arguments**: identity resolves from the environment. From outside
   the pane, pass `--session <uuid>`. This is the supported way to report
-  state for an agent thurbox did not launch. `session exec` carries the
+  state for an agent talos did not launch. `session exec` carries the
   *target* session's identity, not the calling driver's, so a signal run
   through it lands on the session it names.
 - **Failing that, the pane is read anyway.** A session that never
@@ -363,15 +363,15 @@ stderr is one it has to be told to capture. The exit code carries the
 verdict: `0` success, `1` the command ran and failed, `2` the invocation
 was wrong, `3` a session reference matched more than one session.
 
-The consequence is a trap worth naming. `thurbox-cli … --json | jq -r
+The consequence is a trap worth naming. `talos-cli … --json | jq -r
 '.field'` exits **0 with empty output** when the command failed: `jq`
 parsed the error object perfectly well, found no such field, and the
-pipeline reports `jq`'s status rather than thurbox's. Capture first and
+pipeline reports `jq`'s status rather than talos's. Capture first and
 branch on the status, or read `.error`:
 
 ```bash
-out=$(thurbox-cli session get "$ref" --json) || {
-  printf 'thurbox: %s\n' "$(jq -r .error <<<"$out")" >&2
+out=$(talos-cli session get "$ref" --json) || {
+  printf 'talos: %s\n' "$(jq -r .error <<<"$out")" >&2
   exit 1
 }
 id=$(jq -r .id <<<"$out")
@@ -384,11 +384,11 @@ id=$(jq -r .id <<<"$out")
 
 `session exec <ref> -- <cmd>` runs in the session's directory, on the
 machine it lives on, and under the session's own environment: whatever
-`session create --env` recorded for it, plus the `THURBOX_*` identity
-its pane carries. The calling process's own `THURBOX_*` variables are
+`session create --env` recorded for it, plus the `TALOS_*` identity
+its pane carries. The calling process's own `TALOS_*` variables are
 **scrubbed** — a driver running inside one session must not lend the
 child that session's identity, which is what made
-`session exec <worker> -- thurbox-cli session signal --state done`
+`session exec <worker> -- talos-cli session signal --state done`
 record for the *driver* and exit 0. The environment actually used is in
 the result's `env`.
 
@@ -408,8 +408,8 @@ Fetch and fast-forward before `session create`, and verify
 
 Everything above, as a public GitHub template: **the `fleet` repository**,
 <https://github.com/Thurbeen/fleet>. It is also the worked example of a
-thurbox extension — the one the rest of the documentation points at, since
-`extensions/` in the thurbox repo holds only the two built-ins.
+talos extension — the one the rest of the documentation points at, since
+`extensions/` in the talos repo holds only the two built-ins.
 
 ```text
 registry/
@@ -452,14 +452,14 @@ cp registry/owners.example.txt registry/owners.txt   # then edit: you + your org
 ./scripts/install-extension.sh
 ```
 
-It needs `gh` (authenticated), `jq`, and **thurbox 2.19.0 or newer** —
+It needs `gh` (authenticated), `jq`, and **talos 2.19.0 or newer** —
 `extension.toml.in` records why the floor sits exactly there.
 
 That leaves you with a working control-plane session, and a manifest
 that registers exactly two things: a `fleet` agent in `agents.toml`, and
 one long-lived `fleet` session opened on the checkout.
 
-It is a template, not a thurbox feature: nothing in thurbox knows it
+It is a template, not a talos feature: nothing in talos knows it
 exists, and your clone is yours to diverge from immediately. The part
 worth copying is the arrangement, not the files. Two of its choices are
 that arrangement rather than its own taste.

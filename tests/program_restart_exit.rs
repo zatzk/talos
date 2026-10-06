@@ -23,7 +23,7 @@
 use std::process::Command;
 use std::time::{Duration, Instant};
 
-use thurbox::kernel::terminal::{ProgramKey, ProgramTransition, Terminals};
+use talos::kernel::terminal::{ProgramKey, ProgramTransition, Terminals};
 
 /// The guard every tmux server in this file is reaped by — see its own doc.
 #[path = "support/tmux_server.rs"]
@@ -31,7 +31,7 @@ mod tmux_server;
 
 use tmux_server::TmuxServer;
 
-const SOCKET: &str = "thurbox-program-restart-e2e";
+const SOCKET: &str = "talos-program-restart-e2e";
 
 /// Generous next to the exit itself: the budget is for a loaded machine starting
 /// a tmux server, not for the notification.
@@ -54,11 +54,11 @@ async fn restarting_a_finished_program_still_reports_the_ending() {
 
     let dir = tempfile::tempdir().expect("tempdir");
     let _server = TmuxServer::pin(SOCKET);
-    thurbox::paths::set_test_dir(dir.path());
+    talos::paths::set_test_dir(dir.path());
 
     let key = ProgramKey::new("plugins/90_files.lua", "editor_opts");
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
 
     // Lives for a moment, then ends on its own — an editor being quit. Not

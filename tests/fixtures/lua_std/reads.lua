@@ -1,22 +1,22 @@
--- A pane that reads EVERY field `thurbox.yml` declares on the injected tables no
--- bundled pane reads in a form selene can see — `thurbox.granted`, `.platform`,
+-- A pane that reads EVERY field `talos.yml` declares on the injected tables no
+-- bundled pane reads in a form selene can see — `talos.granted`, `.platform`,
 -- `.metrics`, `.hover`, `.preflight.mux`, `.settings`, `.theme.roles`, the four
 -- creation-flow reads and `.runs` — each as a plain dotted path.
 --
 -- Every field, not a sample: a declaration this file does not name is one that
--- can be deleted from `thurbox.yml` with nothing failing. The counts in the
+-- can be deleted from `talos.yml` with nothing failing. The counts in the
 -- section comments are the whole declared set for that table, so a field added
 -- there and not here is visible as a count that no longer matches.
 --
 -- It ends with the stdlib names in the same position: `_VERSION`, and the five
--- `math` functions Lua 5.4 has that `thurbox.yml` did not list. They are not
+-- `math` functions Lua 5.4 has that `talos.yml` did not list. They are not
 -- published by anything, but they are reachable in the VM and were rejected for
 -- the same reason the tables above were — nothing in `ui/` happens to name them
 -- — so they would go unnoticed the same way.
 --
 -- Expected to lint CLEAN, and that is the whole assertion here; `typos/` holds
 -- the other direction, one pane per table. selene checks a dotted path against
--- `thurbox.yml` one segment at a time, so a table declared as a bare property
+-- `talos.yml` one segment at a time, so a table declared as a bare property
 -- rejects the exact expression `ui/README.md` and `docs/PLUGINS.md` tell an
 -- author to write. Each of these was, and CI stayed green because nothing in
 -- `ui/` or `examples/` reads them in a form selene can see.
@@ -25,101 +25,101 @@ return {
   render = function()
     local read = {
       -- granted (2)
-      tostring(thurbox.granted.run),
-      tostring(thurbox.granted.program),
+      tostring(talos.granted.run),
+      tostring(talos.granted.program),
       -- platform (2)
-      tostring(thurbox.platform.os),
-      tostring(thurbox.platform.arch),
+      tostring(talos.platform.os),
+      tostring(talos.platform.arch),
       -- metrics.system (3)
-      tostring(thurbox.metrics.system.cpu_percent),
-      tostring(thurbox.metrics.system.memory_used),
-      tostring(thurbox.metrics.system.memory_total),
+      tostring(talos.metrics.system.cpu_percent),
+      tostring(talos.metrics.system.memory_used),
+      tostring(talos.metrics.system.memory_total),
       -- hover (2)
-      tostring(thurbox.hover.id),
-      tostring(thurbox.hover.role),
+      tostring(talos.hover.id),
+      tostring(talos.hover.role),
       -- preflight.mux (3)
-      tostring(thurbox.preflight.mux.binary),
-      tostring(thurbox.preflight.mux.presence),
-      tostring(thurbox.preflight.mux.advice),
+      tostring(talos.preflight.mux.binary),
+      tostring(talos.preflight.mux.presence),
+      tostring(talos.preflight.mux.advice),
       -- settings.features (13)
-      tostring(thurbox.settings.features.tasks),
-      tostring(thurbox.settings.features.automations),
-      tostring(thurbox.settings.features.file_viewer),
-      tostring(thurbox.settings.features.global_search),
-      tostring(thurbox.settings.features.info_panel),
-      tostring(thurbox.settings.features.shell_pane),
-      tostring(thurbox.settings.features.code_review),
-      tostring(thurbox.settings.features.perf_hud),
-      tostring(thurbox.settings.features.mouse),
-      tostring(thurbox.settings.features.notifications),
-      tostring(thurbox.settings.features.soft_delete),
-      tostring(thurbox.settings.features.version_check),
-      tostring(thurbox.settings.features.auto_update),
+      tostring(talos.settings.features.tasks),
+      tostring(talos.settings.features.automations),
+      tostring(talos.settings.features.file_viewer),
+      tostring(talos.settings.features.global_search),
+      tostring(talos.settings.features.info_panel),
+      tostring(talos.settings.features.shell_pane),
+      tostring(talos.settings.features.code_review),
+      tostring(talos.settings.features.perf_hud),
+      tostring(talos.settings.features.mouse),
+      tostring(talos.settings.features.notifications),
+      tostring(talos.settings.features.soft_delete),
+      tostring(talos.settings.features.version_check),
+      tostring(talos.settings.features.auto_update),
       -- bookmarks (3)
-      tostring(thurbox.bookmarks.host),
-      tostring(thurbox.bookmarks.loading),
-      tostring(thurbox.bookmarks.rows),
+      tostring(talos.bookmarks.host),
+      tostring(talos.bookmarks.loading),
+      tostring(talos.bookmarks.rows),
       -- browse (5)
-      tostring(thurbox.browse.host),
-      tostring(thurbox.browse.dir),
-      tostring(thurbox.browse.loading),
-      tostring(thurbox.browse.error),
-      tostring(thurbox.browse.entries),
+      tostring(talos.browse.host),
+      tostring(talos.browse.dir),
+      tostring(talos.browse.loading),
+      tostring(talos.browse.error),
+      tostring(talos.browse.entries),
       -- branches (5)
-      tostring(thurbox.branches.host),
-      tostring(thurbox.branches.repo),
-      tostring(thurbox.branches.loading),
-      tostring(thurbox.branches.error),
-      tostring(thurbox.branches.list),
+      tostring(talos.branches.host),
+      tostring(talos.branches.repo),
+      tostring(talos.branches.loading),
+      tostring(talos.branches.error),
+      tostring(talos.branches.list),
       -- worktrees (5)
-      tostring(thurbox.worktrees.host),
-      tostring(thurbox.worktrees.repo),
-      tostring(thurbox.worktrees.loading),
-      tostring(thurbox.worktrees.error),
-      tostring(thurbox.worktrees.list),
+      tostring(talos.worktrees.host),
+      tostring(talos.worktrees.repo),
+      tostring(talos.worktrees.loading),
+      tostring(talos.worktrees.error),
+      tostring(talos.worktrees.list),
       -- theme.roles (33)
-      tostring(thurbox.theme.roles.accent),
-      tostring(thurbox.theme.roles.accent_bright),
-      tostring(thurbox.theme.roles.app_bg),
-      tostring(thurbox.theme.roles.border_focused),
-      tostring(thurbox.theme.roles.border_unfocused),
-      tostring(thurbox.theme.roles.branch_name),
-      tostring(thurbox.theme.roles.danger),
-      tostring(thurbox.theme.roles.diff_added),
-      tostring(thurbox.theme.roles.diff_added_bg),
-      tostring(thurbox.theme.roles.diff_removed),
-      tostring(thurbox.theme.roles.diff_removed_bg),
-      tostring(thurbox.theme.roles.inverted_fg),
-      tostring(thurbox.theme.roles.keybind_hint),
-      tostring(thurbox.theme.roles.modal_bg),
-      tostring(thurbox.theme.roles.modal_border),
-      tostring(thurbox.theme.roles.modal_dim_bg),
-      tostring(thurbox.theme.roles.role_name),
-      tostring(thurbox.theme.roles.search_bar),
-      tostring(thurbox.theme.roles.selection_bg),
-      tostring(thurbox.theme.roles.selection_fg),
-      tostring(thurbox.theme.roles.status_blocked),
-      tostring(thurbox.theme.roles.status_done),
-      tostring(thurbox.theme.roles.status_error),
-      tostring(thurbox.theme.roles.status_idle),
-      tostring(thurbox.theme.roles.status_running),
-      tostring(thurbox.theme.roles.status_unknown),
-      tostring(thurbox.theme.roles.status_unreachable),
-      tostring(thurbox.theme.roles.status_working),
-      tostring(thurbox.theme.roles.text_muted),
-      tostring(thurbox.theme.roles.text_primary),
-      tostring(thurbox.theme.roles.text_secondary),
-      tostring(thurbox.theme.roles.tool_allowed),
-      tostring(thurbox.theme.roles.tool_disallowed),
+      tostring(talos.theme.roles.accent),
+      tostring(talos.theme.roles.accent_bright),
+      tostring(talos.theme.roles.app_bg),
+      tostring(talos.theme.roles.border_focused),
+      tostring(talos.theme.roles.border_unfocused),
+      tostring(talos.theme.roles.branch_name),
+      tostring(talos.theme.roles.danger),
+      tostring(talos.theme.roles.diff_added),
+      tostring(talos.theme.roles.diff_added_bg),
+      tostring(talos.theme.roles.diff_removed),
+      tostring(talos.theme.roles.diff_removed_bg),
+      tostring(talos.theme.roles.inverted_fg),
+      tostring(talos.theme.roles.keybind_hint),
+      tostring(talos.theme.roles.modal_bg),
+      tostring(talos.theme.roles.modal_border),
+      tostring(talos.theme.roles.modal_dim_bg),
+      tostring(talos.theme.roles.role_name),
+      tostring(talos.theme.roles.search_bar),
+      tostring(talos.theme.roles.selection_bg),
+      tostring(talos.theme.roles.selection_fg),
+      tostring(talos.theme.roles.status_blocked),
+      tostring(talos.theme.roles.status_done),
+      tostring(talos.theme.roles.status_error),
+      tostring(talos.theme.roles.status_idle),
+      tostring(talos.theme.roles.status_running),
+      tostring(talos.theme.roles.status_unknown),
+      tostring(talos.theme.roles.status_unreachable),
+      tostring(talos.theme.roles.status_working),
+      tostring(talos.theme.roles.text_muted),
+      tostring(talos.theme.roles.text_primary),
+      tostring(talos.theme.roles.text_secondary),
+      tostring(talos.theme.roles.tool_allowed),
+      tostring(talos.theme.roles.tool_disallowed),
       -- settings scalars (3), and the one map left at the table
-      tostring(thurbox.settings.two_panel_min_cols),
-      tostring(thurbox.settings.three_panel_min_cols),
-      tostring(thurbox.settings.scrollback_lines),
-      tostring(thurbox.metrics.sessions),
+      tostring(talos.settings.two_panel_min_cols),
+      tostring(talos.settings.three_panel_min_cols),
+      tostring(talos.settings.scrollback_lines),
+      tostring(talos.metrics.sessions),
       -- Keyed by the key this plugin passed to `run`, so a literal is a
       -- dotted path where every other map is reached through a variable.
-      tostring(thurbox.runs.cpu),
-      tostring(thurbox.runs.cpu.state),
+      tostring(talos.runs.cpu),
+      tostring(talos.runs.cpu.state),
       -- The stdlib names this change declares.
       _VERSION,
       tostring(math.acos(0)),

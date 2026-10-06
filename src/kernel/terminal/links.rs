@@ -220,7 +220,7 @@ impl Terminals {
 
     /// Every visible link on a surface, as cells already drawn into `buf`.
     ///
-    /// The outer terminal is the only thing that can open a link when thurbox
+    /// The outer terminal is the only thing that can open a link when talos
     /// runs over ssh, and it knows nothing of ratatui's buffer — so v1 learned
     /// to re-print the runs it just painted wrapped in the escape
     /// ([`paint_hyperlinks`]). Reading the glyphs back out of the frame rather
@@ -232,11 +232,11 @@ impl Terminals {
     /// parser callbacks keep, which costs nothing to consult. **Plain-text
     /// URLs** — what an agent prints far more often than it emits an escape —
     /// come in as `scanned`, the list the caller already maintains for
-    /// `thurbox.links`: it is the same `Self::links` walk, paced by its own
+    /// `talos.links`: it is the same `Self::links` walk, paced by its own
     /// stamp and age, so serving this leg from it adds no scan to the frame.
     /// Handing them over matters as much as the runs do: with only the runs
     /// linked, a remote agent that printed a bare URL left the local terminal
-    /// nothing to open, and `Ctrl+Click` — which thurbox itself answers — can
+    /// nothing to open, and `Ctrl+Click` — which talos itself answers — can
     /// only copy on a host with no browser.
     ///
     /// `scanned` is not fresh. Its age is bounded by the link-scan interval
@@ -323,7 +323,7 @@ impl Terminals {
             // printed URL text leaves the bare text in `scanned` starting to
             // its left, so comparing only the first cell let the plain leg
             // print over a run's cells — and, printed second, win. Whichever
-            // link the escape declared is the one thurbox's own click resolves,
+            // link the escape declared is the one talos's own click resolves,
             // so the outer terminal must not be told a different one.
             if paints[..claimed].iter().any(|paint| {
                 paint.y == y && paint.overlaps(x, UnicodeWidthStr::width(url.as_str()))
@@ -568,7 +568,7 @@ pub fn drawn_link_paints(buf: &Buffer, rect: Rect, url: &str) -> Vec<HyperlinkPa
     paints
 }
 
-/// Re-print each run wrapped in OSC 8, so the terminal thurbox itself runs in
+/// Re-print each run wrapped in OSC 8, so the terminal talos itself runs in
 /// can open it.
 ///
 /// Written straight to stdout *after* the backend has flushed the frame, so it

@@ -1,4 +1,4 @@
-//! Two thurbox instances on one tmux server must not fight over a pane's size.
+//! Two talos instances on one tmux server must not fight over a pane's size.
 //!
 //! Each instance matches a pane to the rect it paints it into, and both used to
 //! do it unconditionally: whichever painted last — including a toast appearing
@@ -21,7 +21,7 @@
 //! - an instance left alone sizes freely again, with no flap on the way.
 //!
 //! Two `TmuxBackend`s in one process are two control-mode clients, which is
-//! exactly what two thurbox instances are to the tmux server. Skipped when tmux
+//! exactly what two talos instances are to the tmux server. Skipped when tmux
 //! is absent.
 
 #![cfg(unix)]
@@ -34,20 +34,20 @@ use ratatui::backend::TestBackend;
 use ratatui::layout::Rect;
 use ratatui::Terminal;
 
-use thurbox::backend::pane::ProgramPane;
-use thurbox::backend::tmux::TmuxBackend;
-use thurbox::backend::SessionBackend;
-use thurbox::kernel::paint::SurfaceProvider;
-use thurbox::kernel::snapshot::{SessionRow, Snapshot};
-use thurbox::kernel::terminal::Terminals;
-use thurbox::session::SessionState;
+use talos::backend::pane::ProgramPane;
+use talos::backend::tmux::TmuxBackend;
+use talos::backend::SessionBackend;
+use talos::kernel::paint::SurfaceProvider;
+use talos::kernel::snapshot::{SessionRow, Snapshot};
+use talos::kernel::terminal::Terminals;
+use talos::session::SessionState;
 
 #[path = "support/tmux_server.rs"]
 mod tmux_server;
 
 use tmux_server::TmuxServer;
 
-const SOCKET: &str = "thurbox-shared-size-e2e";
+const SOCKET: &str = "talos-shared-size-e2e";
 
 /// For a loaded machine starting a server; the notifications themselves arrive
 /// within milliseconds.
@@ -108,7 +108,7 @@ async fn sizes_over_settle(server: &TmuxServer, pane: &str) -> Vec<(u16, u16)> {
 }
 
 fn start(server: &TmuxServer) -> bool {
-    let started = server.tmux(&["new-session", "-d", "-s", "thurbox", "-x", "80", "-y", "24"]);
+    let started = server.tmux(&["new-session", "-d", "-s", "talos", "-x", "80", "-y", "24"]);
     if !started.status.success() {
         eprintln!(
             "skipping: tmux would not start a server: {}",
@@ -142,7 +142,7 @@ async fn two_instances_painting_different_rects_leave_the_pane_alone() {
     }
     let dir = tempfile::tempdir().expect("tempdir");
     let server = TmuxServer::pin(SOCKET);
-    thurbox::paths::set_test_dir(dir.path());
+    talos::paths::set_test_dir(dir.path());
     if !start(&server) {
         return;
     }
@@ -255,7 +255,7 @@ async fn a_lone_instance_still_resizes_to_every_rect() {
     }
     let dir = tempfile::tempdir().expect("tempdir");
     let server = TmuxServer::pin(SOCKET);
-    thurbox::paths::set_test_dir(dir.path());
+    talos::paths::set_test_dir(dir.path());
     if !start(&server) {
         return;
     }
@@ -287,7 +287,7 @@ async fn a_lone_instance_still_resizes_to_every_rect() {
 /// `backend::tmux_compat::server::TMUX_SESSION` in a test build — see
 /// `tests/attach_by_name.rs`. A session row is attached by finding its pane
 /// there.
-const INTERFACE_SESSION: &str = "thurbox-dev";
+const INTERFACE_SESSION: &str = "talos-dev";
 
 const ID: &str = "33333333-3333-3333-3333-333333333333";
 
@@ -426,7 +426,7 @@ async fn focusing_a_pane_another_instance_sizes_takes_its_size_before_any_keystr
     let id = session_window(&server);
 
     // This instance shows the session without the focus, and sizes the pane.
-    let mut here = Terminals::with_registry(Arc::new(thurbox::backend::wiring::configured().0));
+    let mut here = Terminals::with_registry(Arc::new(talos::backend::wiring::configured().0));
     attach(&mut here, &id, here_rect).await;
     frame(&mut here, here_rect, false);
     until("this instance's rect to reach the pane", || {
@@ -529,7 +529,7 @@ async fn a_focused_session_whose_pane_is_replaced_takes_the_new_panes_size() {
         return;
     }
     let first = session_window(&server);
-    let mut here = Terminals::with_registry(Arc::new(thurbox::backend::wiring::configured().0));
+    let mut here = Terminals::with_registry(Arc::new(talos::backend::wiring::configured().0));
     attach(&mut here, &first, here_rect).await;
     frame(&mut here, here_rect, true);
     until("this instance's rect to reach the pane", || {

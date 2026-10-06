@@ -1945,7 +1945,7 @@ mod tests {
     /// Property/regression tests for the reader-loop UTF-8 carry: feeding the
     /// vt100 parser through `utf8_ready_prefix_len`-bounded chunks must render
     /// identically to feeding the whole stream, for any chunking — proving
-    /// thurbox's read boundaries can never glitch valid agent output. vt100 on
+    /// talos's read boundaries can never glitch valid agent output. vt100 on
     /// its own does NOT have this property (it can swallow a newline that
     /// follows a mid-codepoint chunk boundary); the carry is what restores it.
     mod utf8_chunking {
@@ -2047,7 +2047,7 @@ mod tests {
         proptest! {
             /// For valid UTF-8, the carry makes vt100 rendering independent of how
             /// the byte stream is chunked across reads — the core guarantee that
-            /// thurbox's transport/read boundaries never corrupt agent output.
+            /// talos's transport/read boundaries never corrupt agent output.
             #[test]
             fn carry_makes_chunking_invariant(
                 bytes in valid_utf8_output(),

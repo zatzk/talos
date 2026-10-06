@@ -13,12 +13,12 @@ use std::time::{Duration, Instant};
 use ratatui::layout::Rect;
 use ratatui::{DefaultTerminal, Frame};
 
-use thurbox::kernel::bands::{Band, BandState, Level};
-use thurbox::kernel::host::RenderContext;
-use thurbox::kernel::layout::{resolve, SlotMode};
-use thurbox::kernel::node::{Axis, Identity};
-use thurbox::kernel::perf::Counters;
-use thurbox::kernel::{bands, paint};
+use talos::kernel::bands::{Band, BandState, Level};
+use talos::kernel::host::RenderContext;
+use talos::kernel::layout::{resolve, SlotMode};
+use talos::kernel::node::{Axis, Identity};
+use talos::kernel::perf::Counters;
+use talos::kernel::{bands, paint};
 
 use super::{
     clamp_span, error_area, hud_area, plugin_hud_area, read_cells, render_hud, render_plugin_hud,
@@ -68,7 +68,7 @@ impl App {
             }
         }
         // Published HERE rather than every iteration: a plugin only reads
-        // `thurbox.*` while it renders, so rebuilding those tables on a tick
+        // `talos.*` while it renders, so rebuilding those tables on a tick
         // that paints nothing is pure waste. At `drain_input`'s 10ms poll that
         // was 100 rebuilds a second to feed a screen that redraws four times.
         let timing = self.perf_timing_active();
@@ -185,7 +185,7 @@ impl App {
             frame.buffer_mut().content.clone_from_slice(&kept.content);
             // `render_session` answers `false` only for a surface with nothing
             // live behind it, which `last_rect` has already ruled out.
-            let _ = thurbox::kernel::paint::SurfaceProvider::render_session(
+            let _ = talos::kernel::paint::SurfaceProvider::render_session(
                 &self.terminals,
                 frame,
                 rect,
@@ -278,7 +278,7 @@ impl App {
                 self.layout_error = Some(e);
                 // A broken arrangement must not take the plugins with it, so
                 // fall back to giving everything to the centre.
-                std::rc::Rc::new(thurbox::kernel::layout::Region {
+                std::rc::Rc::new(talos::kernel::layout::Region {
                     slot: Some("center".to_string()),
                     ..Default::default()
                 })
@@ -360,7 +360,7 @@ impl App {
                 &self.registry,
                 &self.themes,
                 self.config.on_disk(),
-                thurbox::kernel::modals::interface::Files {
+                talos::kernel::modals::interface::Files {
                     rows: &inventory,
                     dir: &ui_dir,
                 },
@@ -399,7 +399,7 @@ impl App {
             // per span and matched no theme; naming the roles means the
             // selection looks the same everywhere and follows every palette.
             let style = self.themes.selection_style();
-            thurbox::kernel::selection::highlight_buffer(frame.buffer_mut(), &selection, style);
+            talos::kernel::selection::highlight_buffer(frame.buffer_mut(), &selection, style);
             // Deliberately NOT a change, for the reason the system modals below
             // are not: the highlight is already in this frame's buffer, and it is
             // re-applied on every later paint. Moving it takes a mouse event, which
@@ -411,7 +411,7 @@ impl App {
             // shared with the mid-batch refresh — see `grid_selection_text`.
             let from_grid = self.grid_selection_text(&selection);
             let text = from_grid.unwrap_or_else(|| {
-                thurbox::kernel::selection::extract_text_from_buffer(frame.buffer_mut(), &selection)
+                talos::kernel::selection::extract_text_from_buffer(frame.buffer_mut(), &selection)
             });
             self.selected_text = (!text.trim().is_empty()).then_some(text);
         } else {
@@ -487,7 +487,7 @@ impl App {
     pub(crate) fn draw_slots(
         &mut self,
         frame: &mut Frame,
-        placed: &[thurbox::kernel::layout::SlotRect],
+        placed: &[talos::kernel::layout::SlotRect],
         focused_plugin: Option<usize>,
     ) {
         for slot in placed {
@@ -519,7 +519,7 @@ impl App {
     pub(crate) fn draw_switch_slot(
         &mut self,
         frame: &mut Frame,
-        slot: &thurbox::kernel::layout::SlotRect,
+        slot: &talos::kernel::layout::SlotRect,
         members: &[usize],
         focused_plugin: Option<usize>,
     ) {
@@ -543,12 +543,12 @@ impl App {
     pub(crate) fn draw_stack_slot(
         &mut self,
         frame: &mut Frame,
-        slot: &thurbox::kernel::layout::SlotRect,
+        slot: &talos::kernel::layout::SlotRect,
         members: &[usize],
         focused_plugin: Option<usize>,
     ) {
         let sizes: Vec<_> = members.iter().map(|i| self.host.plugins[*i].size).collect();
-        let rects = thurbox::kernel::layout::divide_slot(slot.rect, Axis::Vertical, &sizes, 0);
+        let rects = talos::kernel::layout::divide_slot(slot.rect, Axis::Vertical, &sizes, 0);
         for (nth, &index) in members.iter().enumerate() {
             let Some(&rect) = rects.get(nth) else {
                 continue;
@@ -735,9 +735,9 @@ impl App {
     pub(crate) fn decorate_tree(
         &mut self,
         index: usize,
-        node: &thurbox::kernel::node::Node,
+        node: &talos::kernel::node::Node,
         ctx: RenderContext,
-    ) -> Option<thurbox::kernel::node::Node> {
+    ) -> Option<talos::kernel::node::Node> {
         let slot = &self.host.plugins[index].slot;
         let decorators = self.host.decorators_of(slot);
         if decorators.is_empty() {
@@ -756,7 +756,7 @@ impl App {
     }
 
     /// Place a float in `area`: centred, or opened at its `at` point.
-    pub(crate) fn float_rect(area: Rect, float: thurbox::kernel::host::Float) -> Rect {
+    pub(crate) fn float_rect(area: Rect, float: talos::kernel::host::Float) -> Rect {
         // Cells when the plugin knows them, else a share of the screen. A modal
         // whose height follows its content — v1's pickers, all of them — can only
         // say so in cells; clamping keeps an over-ambitious one on screen.
@@ -874,7 +874,7 @@ impl App {
             .map(|(text, level, _)| (text.as_str(), *level));
 
         let state = BandState {
-            version: env!("THURBOX_VERSION"),
+            version: env!("TALOS_VERSION"),
             theme_label: &self.themes.active().display_name,
             update_available: self.updates.available(),
             session: session.as_deref(),
@@ -923,7 +923,7 @@ impl App {
     pub(crate) fn content_area(
         &self,
         area: Rect,
-        placed: &[thurbox::kernel::layout::SlotRect],
+        placed: &[talos::kernel::layout::SlotRect],
     ) -> Rect {
         let mut top = area.y;
         let mut bottom = area.y.saturating_add(area.height);
@@ -965,7 +965,7 @@ impl App {
     /// what lets a screen with a live terminal on it idle at the redraw floor
     /// instead of repainting at the frame cap forever. v1 gates the same way, off
     /// the same atomic (`detect_output_redraw`).
-    pub(crate) fn surface_moved(&mut self, node: &thurbox::kernel::node::Node) -> bool {
+    pub(crate) fn surface_moved(&mut self, node: &talos::kernel::node::Node) -> bool {
         let Some(surface) = node.first_session_surface() else {
             return false;
         };

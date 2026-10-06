@@ -12,41 +12,41 @@ use std::time::Instant;
 
 use ratatui::layout::Rect;
 
-use thurbox::kernel::command::CommandBus;
-use thurbox::kernel::diff::DiffStore;
-use thurbox::kernel::host::LuaHost;
-use thurbox::kernel::metrics::Metrics;
-use thurbox::kernel::modals::Modals;
-use thurbox::kernel::notify::Notifier;
-use thurbox::kernel::perf::Counters;
-use thurbox::kernel::registry::Registry;
-use thurbox::kernel::snapshot::SnapshotStore;
-use thurbox::kernel::terminal::Terminals;
-use thurbox::kernel::theme::Themes;
-use thurbox::kernel::watch::Watcher;
+use talos::kernel::command::CommandBus;
+use talos::kernel::diff::DiffStore;
+use talos::kernel::host::LuaHost;
+use talos::kernel::metrics::Metrics;
+use talos::kernel::modals::Modals;
+use talos::kernel::notify::Notifier;
+use talos::kernel::perf::Counters;
+use talos::kernel::registry::Registry;
+use talos::kernel::snapshot::SnapshotStore;
+use talos::kernel::terminal::Terminals;
+use talos::kernel::theme::Themes;
+use talos::kernel::watch::Watcher;
 
 use super::{enable_mouse_clicks, push_keyboard_enhancement, restore_terminal, snapshots_db};
 use crate::App;
 
-/// Days of `thurbox.log.<date>` kept by the rolling appender.
+/// Days of `talos.log.<date>` kept by the rolling appender.
 const LOG_FILES_KEPT: usize = 30;
 
 /// The log appender: one file per day in `dir`, the newest
 /// [`LOG_FILES_KEPT`] kept and the rest deleted as it is built.
 ///
 /// Capped because `rolling::daily` never deletes anything — it opened a new
-/// `thurbox.log.<date>` every day and left every earlier one in the data dir
-/// for good, which on a machine thurbox runs on daily is an unbounded disk
+/// `talos.log.<date>` every day and left every earlier one in the data dir
+/// for good, which on a machine talos runs on daily is an unbounded disk
 /// leak. A month still holds the log of whatever a user is reporting.
 ///
-/// The name has to stay `thurbox.log.<date>`: that spelling is what
+/// The name has to stay `talos.log.<date>`: that spelling is what
 /// `docs/PERFORMANCE.md` tells a reader to open, and it is also what the
 /// pruning above matches on, so a different prefix would silently orphan every
 /// file written by an earlier release instead of retiring it.
 fn log_appender(dir: PathBuf) -> tracing_appender::rolling::RollingFileAppender {
     tracing_appender::rolling::Builder::new()
         .rotation(tracing_appender::rolling::Rotation::DAILY)
-        .filename_prefix("thurbox.log")
+        .filename_prefix("talos.log")
         .max_log_files(LOG_FILES_KEPT)
         .build(dir)
         .expect("a daily log appender in the data dir")
@@ -103,7 +103,7 @@ pub(crate) async fn run() -> Result<(), Box<dyn Error>> {
     // leave no trace anywhere. The guard is deliberately leaked: the appender's
     // worker must outlive every later log call, including the panic hook's, and
     // this runs once per process.
-    let log_dir = thurbox::paths::log_directory().unwrap_or_else(|| std::path::PathBuf::from("."));
+    let log_dir = talos::paths::log_directory().unwrap_or_else(|| std::path::PathBuf::from("."));
     let create = log_dir.clone();
     tokio::task::spawn_blocking(move || std::fs::create_dir_all(create))
         .await
@@ -113,7 +113,7 @@ pub(crate) async fn run() -> Result<(), Box<dyn Error>> {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive("thurbox=debug".parse().unwrap_or_default()),
+                .add_directive("talos=debug".parse().unwrap_or_default()),
         )
         .with_writer(writer)
         .with_ansi(false)
@@ -123,7 +123,7 @@ pub(crate) async fn run() -> Result<(), Box<dyn Error>> {
     // `Instant` reads per phase cost nothing measurable, and the numbers are
     // only *reported* when timing is active.
     let process_start = Instant::now();
-    let mut startup = thurbox::kernel::perf::Startup::default();
+    let mut startup = talos::kernel::perf::Startup::default();
 
     // The user's settings, published process-wide BEFORE anything reads one.
     // `Database::open` below reads a restart-only value — it prunes the audit log
@@ -133,15 +133,15 @@ pub(crate) async fn run() -> Result<(), Box<dyn Error>> {
     let phase = Instant::now();
     // Before the load, so a key v2.32.0 wrote is noted once here rather than
     // reported as unknown on every start.
-    let layout_note = thurbox::agent::settings_config::retire_layout_preset();
-    let (config, config_warnings) = thurbox::kernel::config::Config::load();
+    let layout_note = talos::agent::settings_config::retire_layout_preset();
+    let (config, config_warnings) = talos::kernel::config::Config::load();
     startup.config_init_ms = phase.elapsed().as_millis() as u64;
 
     // The one registry this process drives every backend through, built here
     // and handed to each consumer: attach, the command workers and the startup
     // self-heal all see the same set of backends. Registration only — nothing
     // is connected until a session on a backend is attached or acted on.
-    let (backends, _hosts, _host_warnings) = thurbox::backend::wiring::configured();
+    let (backends, _hosts, _host_warnings) = talos::backend::wiring::configured();
     let backends = std::sync::Arc::new(backends);
 
     // Extensions, before the interface takes the terminal.
@@ -153,21 +153,21 @@ pub(crate) async fn run() -> Result<(), Box<dyn Error>> {
     // agent reports working/blocked/done at all, so without it a fresh profile
     // shows every session as permanently idle. Run here for the same reason v1
     // runs it here: tmux spawn output would otherwise land on the alternate
-    // screen. Opt out with `thurbox-cli extension deactivate hooks`.
+    // screen. Opt out with `talos-cli extension deactivate hooks`.
     let mut startup_notices: Vec<String> = layout_note.into_iter().collect();
     startup_notices.extend(config_warnings);
     let phase = Instant::now();
     if let Some(db) = snapshots_db() {
-        startup_notices.extend(thurbox::session_ops::heal_active_extensions(&db, &backends));
-        startup_notices.extend(thurbox::session_ops::ensure_builtin_extensions(
+        startup_notices.extend(talos::session_ops::heal_active_extensions(&db, &backends));
+        startup_notices.extend(talos::session_ops::ensure_builtin_extensions(
             &db, &backends,
         ));
         // The one-time repair schema v47 marked as owed: rows a loopback WSL
         // host recorded as remote. Here because it needs both the host
         // registry and the database, and the migration that marked it has only
-        // the second; `thurbox-cli` runs it too, since the mark is written by
+        // the second; `talos-cli` runs it too, since the mark is written by
         // whichever binary opens the database first.
-        startup_notices.extend(thurbox::session_ops::repair_wsl_loopback_rows(&db));
+        startup_notices.extend(talos::session_ops::repair_wsl_loopback_rows(&db));
         for notice in &startup_notices {
             tracing::info!("{notice}");
         }
@@ -183,9 +183,9 @@ pub(crate) async fn run() -> Result<(), Box<dyn Error>> {
     // Where a peer sharing sessions with this machine looks for its CLI: a
     // pointer to this build's own, so a dev checkout is found before a release
     // install on PATH (ADR-24).
-    thurbox::session_ops::host_cli::advertise_running_cli();
-    if thurbox::session::settings::global().features.automations {
-        if let Err(e) = thurbox::session_ops::arm_heartbeat(&backends) {
+    talos::session_ops::host_cli::advertise_running_cli();
+    if talos::session::settings::global().features.automations {
+        if let Err(e) = talos::session_ops::arm_heartbeat(&backends) {
             tracing::warn!("could not arm the automation heartbeat: {e}");
         }
     }
@@ -198,8 +198,8 @@ pub(crate) async fn run() -> Result<(), Box<dyn Error>> {
     // to build. Declining cannot load v1 (it is not in this binary), so it turns
     // auto-update off and says how to reinstall the 1.x line.
     if let Some(db) = snapshots_db() {
-        if thurbox::kernel::consent::consent_gate(&db)?
-            == thurbox::kernel::consent::Decision::Declined
+        if talos::kernel::consent::consent_gate(&db)?
+            == talos::kernel::consent::Decision::Declined
         {
             return Ok(());
         }
@@ -228,7 +228,7 @@ pub(crate) async fn run() -> Result<(), Box<dyn Error>> {
     let themes = Themes::load(snapshots_db().as_ref());
     startup.theme_activate_ms = phase.elapsed().as_millis() as u64;
 
-    let control = match thurbox::ui_control::Server::start() {
+    let control = match talos::ui_control::Server::start() {
         Ok(control) => Some(control),
         Err(error) => {
             tracing::warn!("local UI control unavailable: {error}");
@@ -249,24 +249,24 @@ pub(crate) async fn run() -> Result<(), Box<dyn Error>> {
         control_focus: 0,
         control_modal: (None, None, None),
         host,
-        sources: thurbox::kernel::bundled::sources(&ui_dir),
+        sources: talos::kernel::bundled::sources(&ui_dir),
         watcher: Watcher::new(&ui_dir)?,
         ui_dir,
         snapshots,
         terminals: Terminals::with_registry(std::sync::Arc::clone(&backends)),
         commands: CommandBus::new(std::sync::Arc::clone(&backends)),
         diffs: DiffStore::new(),
-        repos: thurbox::kernel::repos::RepoStore::new(),
+        repos: talos::kernel::repos::RepoStore::new(),
         metrics: Metrics::new(),
         clipboard: arboard::Clipboard::new().ok(),
-        image_probe: thurbox::clipboard::ImageProbe::default(),
+        image_probe: talos::clipboard::ImageProbe::default(),
         paste_targets: Vec::new(),
         probed_presses: 0,
         perf: Counters::default(),
-        timings: thurbox::kernel::perf::Timings::default(),
+        timings: talos::kernel::perf::Timings::default(),
         startup,
-        perf_log: std::env::var_os("THURBOX_PERF_LOG").is_some(),
-        perf_window_base: thurbox::kernel::perf::Snapshot::default(),
+        perf_log: std::env::var_os("TALOS_PERF_LOG").is_some(),
+        perf_window_base: talos::kernel::perf::Snapshot::default(),
         perf_window_tick: 0,
         perf_published_at: None,
         first_frame_logged: false,
@@ -284,11 +284,11 @@ pub(crate) async fn run() -> Result<(), Box<dyn Error>> {
         wheel_notch: crate::coordinator::mouse::WheelNotch::default(),
         click_train: crate::coordinator::mouse::ClickTrain::default(),
         notifier: {
-            let settings = thurbox::session::settings::global();
+            let settings = talos::session::settings::global();
             Notifier::new(settings.features.notifications, settings.notifications)
         },
         themes,
-        updates: thurbox::kernel::updates::Updates::start(config.features()),
+        updates: talos::kernel::updates::Updates::start(config.features()),
         slot_selection: std::collections::HashMap::new(),
         visible_slots: std::collections::HashSet::new(),
         pending_focus: None,
@@ -315,7 +315,7 @@ pub(crate) async fn run() -> Result<(), Box<dyn Error>> {
         link_stamps: std::collections::HashMap::new(),
         link_scans: std::collections::HashMap::new(),
         last_link_paints: Vec::new(),
-        search: thurbox::kernel::search::SearchStore::new(),
+        search: talos::kernel::search::SearchStore::new(),
         trust: std::collections::HashMap::new(),
         trust_stale: true,
         layout_error: None,
@@ -345,7 +345,7 @@ pub(crate) async fn run() -> Result<(), Box<dyn Error>> {
         grabbed: None,
         pointer_grab: None,
         pty_pointer: None,
-        runs: thurbox::kernel::runs::RunStore::new(),
+        runs: talos::kernel::runs::RunStore::new(),
         inventory: Vec::new(),
         respawned: std::collections::HashSet::new(),
         // Dated so the first iteration sweeps: a session soft-deleted while
@@ -484,16 +484,16 @@ fn focus_index_of(host: &LuaHost, name: &str) -> usize {
 
 /// Find the plugin directory.
 ///
-/// Two rules, in order: `THURBOX_UI_DIR`, then the user's own copy —
+/// Two rules, in order: `TALOS_UI_DIR`, then the user's own copy —
 /// materialized from the embedded interface on first run, preserving anything
 /// they edited. A missing or unwritable config directory is not fatal: the
 /// embedded copies are written somewhere throwaway and used from there, because
 /// no interface at all is the one outcome worth avoiding.
 fn resolve_ui_dir() -> Result<(PathBuf, Vec<String>), Box<dyn Error>> {
-    // The resolution itself lives in the library, so `thurbox-cli plugin dir`
+    // The resolution itself lives in the library, so `talos-cli plugin dir`
     // reports the directory this will actually load. Writing the user's copy is
     // the interface's business, which is why it asks for it.
-    let (dir, chosen, report) = thurbox::kernel::bundled::resolve(true)?;
+    let (dir, chosen, report) = talos::kernel::bundled::resolve(true)?;
     let mut notices = Vec::new();
     notices.extend(directory_notice(&dir, chosen));
     notices.extend(delivery_notice(&report));
@@ -508,15 +508,15 @@ fn resolve_ui_dir() -> Result<(PathBuf, Vec<String>), Box<dyn Error>> {
 /// likely thing to have been forgotten), when the embedded fallback had to be
 /// used, and on a **dev build** — where "which interface am I running" is a real
 /// question, since the checkout beside you contains one too.
-fn directory_notice(dir: &Path, chosen: thurbox::kernel::bundled::Chosen) -> Option<String> {
-    use thurbox::kernel::bundled::Chosen;
-    let shown = thurbox::paths::display_path(dir);
+fn directory_notice(dir: &Path, chosen: talos::kernel::bundled::Chosen) -> Option<String> {
+    use talos::kernel::bundled::Chosen;
+    let shown = talos::paths::display_path(dir);
     match chosen {
         Chosen::UserCopy if cfg!(dev_build) => Some(format!(
-            "interface from {shown} · set THURBOX_UI_DIR to use a checkout"
+            "interface from {shown} · set TALOS_UI_DIR to use a checkout"
         )),
         Chosen::UserCopy => None,
-        Chosen::Override => Some(format!("interface from {shown} (THURBOX_UI_DIR)")),
+        Chosen::Override => Some(format!("interface from {shown} (TALOS_UI_DIR)")),
         Chosen::Checkout => Some(format!("interface from {shown} (checkout)")),
         // Not a preference: the user's copy could not be written, so the panes
         // are the embedded ones in a directory that will not survive the process.
@@ -532,7 +532,7 @@ fn directory_notice(dir: &Path, chosen: thurbox::kernel::bundled::Chosen) -> Opt
 /// where a newer version was available, and a file taken back because this
 /// binary no longer ships it. Writes and updates are the ordinary case and say
 /// nothing, so this stays a signal rather than a greeting.
-fn delivery_notice(report: &thurbox::kernel::bundled::Report) -> Option<String> {
+fn delivery_notice(report: &talos::kernel::bundled::Report) -> Option<String> {
     let mut parts = Vec::new();
     if !report.preserved.is_empty() {
         parts.push(format!(
@@ -558,7 +558,7 @@ mod tests {
     ///
     /// Both halves are the bug: `rolling::daily` never deleted anything, so the
     /// data dir grew a file per day for good; and the cap only retires a file it
-    /// recognises, so a prefix that stopped spelling `thurbox.log.<date>` would
+    /// recognises, so a prefix that stopped spelling `talos.log.<date>` would
     /// leave every older file orphaned *and* break the path
     /// `docs/PERFORMANCE.md` hands the reader. Pruning happens as the appender
     /// is built, which is what makes this observable without waiting a day.
@@ -581,7 +581,7 @@ mod tests {
             // pruned, failing this test for a reason that is not the
             // behaviour under test.
             let day = format!("2000-{:02}-{:02}", nth / 28 + 1, nth % 28 + 1);
-            std::fs::write(dir.path().join(format!("thurbox.log.{day}")), b"old\n")
+            std::fs::write(dir.path().join(format!("talos.log.{day}")), b"old\n")
                 .expect("seed a day of logs");
         }
         // A file that is not the appender's is not the appender's to delete.
@@ -600,7 +600,7 @@ mod tests {
 
         let logs: Vec<&String> = names
             .iter()
-            .filter(|n| n.starts_with("thurbox.log."))
+            .filter(|n| n.starts_with("talos.log."))
             .collect();
         assert_eq!(
             logs.len(),
@@ -613,21 +613,21 @@ mod tests {
             "the cap deleted a file that was not a log: {names:?}"
         );
 
-        // Today's file is among them, spelled `thurbox.log.<date>` — the name
+        // Today's file is among them, spelled `talos.log.<date>` — the name
         // the docs give and the one the cap matches on.
         // Everything seeded is dated 2000, so the one file that is not is the
         // one the write above went to.
         let today = logs
             .iter()
-            .find(|n| !n.starts_with("thurbox.log.2000-"))
+            .find(|n| !n.starts_with("talos.log.2000-"))
             .unwrap_or_else(|| panic!("the line just written went somewhere else: {logs:?}"));
         let date = today
-            .strip_prefix("thurbox.log.")
+            .strip_prefix("talos.log.")
             .expect("checked by the filter above");
         assert_eq!(
             date.len(),
             "2000-01-01".len(),
-            "the live log is not `thurbox.log.<date>`: {today}"
+            "the live log is not `talos.log.<date>`: {today}"
         );
     }
 
@@ -641,14 +641,14 @@ mod tests {
     /// "which one am I running" is a real question.
     #[test]
     fn the_interface_directory_is_announced_only_when_it_is_in_doubt() {
-        use thurbox::kernel::bundled::Chosen;
-        let dir = Path::new("/home/me/.config/thurbox/ui");
+        use talos::kernel::bundled::Chosen;
+        let dir = Path::new("/home/me/.config/talos/ui");
 
         let own = directory_notice(dir, Chosen::UserCopy);
         if cfg!(dev_build) {
             let said = own.expect("a dev build says which interface it loaded");
             assert!(
-                said.contains("THURBOX_UI_DIR"),
+                said.contains("TALOS_UI_DIR"),
                 "and how to change it: {said}"
             );
         } else {

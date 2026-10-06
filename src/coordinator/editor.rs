@@ -6,7 +6,7 @@
 //! launcher handed a TTY misbehaves, and a terminal editor spawned detached
 //! vanishes.
 
-use thurbox::session::settings::EditorMode;
+use talos::session::settings::EditorMode;
 
 /// Split a configured editor command into `(program, extra_args)`. Whitespace-
 /// split; the program is the first token. Errors on an empty/whitespace-only

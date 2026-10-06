@@ -1,7 +1,7 @@
 //! Remote-host definitions — pure data describing the off-local targets
-//! thurbox can run sessions on: SSH machines and local WSL distros.
+//! talos can run sessions on: SSH machines and local WSL distros.
 //!
-//! Loaded from `~/.config/thurbox/hosts.toml` by
+//! Loaded from `~/.config/talos/hosts.toml` by
 //! [`crate::agent::host_config`] (and, for WSL, auto-discovered there too).
 //! Kept here in `session` (the dependency sink) so both `agent` (which builds
 //! the tmux backend) and `git` (which runs `git` on the host for remote
@@ -23,7 +23,7 @@ use super::{Multiplexer, Platform, Route, Via};
 /// or macOS host.
 pub const WSL_DISTRO_NAME_VAR: &str = "WSL_DISTRO_NAME";
 
-/// The WSL distro thurbox is itself running inside, if any.
+/// The WSL distro talos is itself running inside, if any.
 ///
 /// Read from the environment rather than probed for: `wsl.exe` is on `PATH`
 /// inside a distro (interop), so its presence says a distro is *reachable* and
@@ -72,7 +72,7 @@ impl WslRepairPlan {
     }
 }
 
-/// How thurbox reaches a host: over SSH, or into a local WSL distro.
+/// How talos reaches a host: over SSH, or into a local WSL distro.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum HostKind {
@@ -102,7 +102,7 @@ pub struct HostDef {
     #[serde(default)]
     pub distro: Option<String>,
     /// Optional override for the host's `tmux -L` socket name. Defaults to the
-    /// same socket thurbox uses locally.
+    /// same socket talos uses locally.
     #[serde(default)]
     pub socket: Option<String>,
     /// Optional override for the host's tmux session name.
@@ -114,7 +114,7 @@ pub struct HostDef {
     pub ssh_opts: Vec<String>,
     /// Optional absolute directory (inside the host / distro) under which git
     /// worktrees are created. When unset, the host's
-    /// `$HOME/.local/share/thurbox/worktrees` is resolved at spawn time.
+    /// `$HOME/.local/share/talos/worktrees` is resolved at spawn time.
     #[serde(default)]
     pub worktrees_dir: Option<String>,
     /// Optional multiplexer binary on the host. Defaults to `tmux` (the WSL
@@ -128,16 +128,16 @@ pub struct HostDef {
     /// leaves it unset.
     #[serde(default)]
     pub platform: Option<Platform>,
-    /// Whether the host's own thurbox database is the record of the sessions
-    /// on it (`true`, the default): a remote thurbox mirrors that database and
-    /// delegates create/delete/restart/restore to `thurbox-cli` on the host,
+    /// Whether the host's own talos database is the record of the sessions
+    /// on it (`true`, the default): a remote talos mirrors that database and
+    /// delegates create/delete/restart/restore to `talos-cli` on the host,
     /// provisioning that CLI when the host has none. `false` uses the host
     /// exactly as before sharing existed — worktrees and hooks driven from
     /// here, nothing mirrored, nothing installed on the host.
     #[serde(default = "default_share_sessions")]
     pub share_sessions: bool,
     /// Directories put in front of the agent's `PATH` on the host, ahead of
-    /// the login-shell `PATH` thurbox reads there (`agent::host_path`). For a
+    /// the login-shell `PATH` talos reads there (`agent::host_path`). For a
     /// host whose login shell cannot be run non-interactively. Absolute or
     /// `~`-rooted; anything else is ignored.
     #[serde(default)]
@@ -200,11 +200,11 @@ impl HostDef {
         self.distro.clone().unwrap_or_else(|| self.name.clone())
     }
 
-    /// Whether this host is a **loopback**: the WSL distro thurbox is itself
+    /// Whether this host is a **loopback**: the WSL distro talos is itself
     /// running inside.
     ///
     /// `wsl.exe -d <us>` from inside `<us>` lands back on this same machine —
-    /// the same tmux server, the same worktrees, the same thurbox database — so
+    /// the same tmux server, the same worktrees, the same talos database — so
     /// such a host is not off-local at all, and registering one made every
     /// LOCAL session on this machine remote. A shareable host's own database is
     /// the record of the sessions on it (ADR-24), and here that database *is*
@@ -264,7 +264,7 @@ impl HostDef {
         }
     }
 
-    /// The multiplexer this host's entry prefers, when it names one thurbox
+    /// The multiplexer this host's entry prefers, when it names one talos
     /// knows.
     pub fn multiplexer(&self) -> Option<Multiplexer> {
         self.multiplexer
@@ -351,7 +351,7 @@ impl HostRegistry {
     }
 
     /// `route` with its multiplexer settled against this machine and the host
-    /// it names — [`Route::qualify`] with the inputs a running thurbox has.
+    /// it names — [`Route::qualify`] with the inputs a running talos has.
     pub fn qualify(&self, route: &Route) -> Route {
         route.qualify(
             Multiplexer::platform_default(),

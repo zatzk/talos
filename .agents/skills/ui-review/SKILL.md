@@ -1,23 +1,23 @@
 ---
 name: ui-review
-description: Capture screenshots of the thurbox TUI across its screens and panels, then generate an HTML report with UI/UX feedback. Run from the thurbox repo.
+description: Capture screenshots of the talos TUI across its screens and panels, then generate an HTML report with UI/UX feedback. Run from the talos repo.
 user-invocable: true
 allowed-tools: Read, Write, Bash, Glob, Skill
 ---
 
-# ui-review — screenshot the thurbox TUI and critique its UI/UX
+# ui-review — screenshot the talos TUI and critique its UI/UX
 
-This skill drives the **real** thurbox TUI inside an isolated, throwaway
+This skill drives the **real** talos TUI inside an isolated, throwaway
 environment, takes a PNG screenshot of each major screen/panel, then has Claude
 *look at* every screenshot and write a self-contained **HTML report** with UI/UX
 feedback.
 
 It reuses the proven isolation + seeding model from `scripts/demo/record.sh`, but
 swaps VHS video output for VHS `Screenshot` directives. Nothing it does touches your
-real thurbox sessions, tmux server, or agent accounts — everything runs against the
-`thurbox-dev` dev build in a `mktemp` sandbox that is torn down on exit.
+real talos sessions, tmux server, or agent accounts — everything runs against the
+`talos-dev` dev build in a `mktemp` sandbox that is torn down on exit.
 
-**Run this from the thurbox repo root** (or any subdir of it). The output lands in
+**Run this from the talos repo root** (or any subdir of it). The output lands in
 `target/ui-review/` (git-ignored).
 
 ## Requirements
@@ -36,7 +36,7 @@ per UI state plus a `manifest.json` describing them.
 ```bash
 SKILL_DIR="$(cd "$(dirname "$(readlink -f .agents/skills/ui-review/SKILL.md)")" && pwd)"
 # Default output dir is <repo>/target/ui-review/screenshots. Override with arg 1.
-# Optional flags: --theme <thurbox-theme> (default doom), --width N, --height N.
+# Optional flags: --theme <talos-theme> (default doom), --width N, --height N.
 "$SKILL_DIR/scripts/capture.sh"
 ```
 
@@ -96,8 +96,8 @@ publishes to GitHub Pages.
 
    ```json
    {
-     "title": "thurbox TUI — UI/UX Review",
-     "version": "<thurbox --version>", "theme": "Doom",
+     "title": "talos TUI — UI/UX Review",
+     "version": "<talos --version>", "theme": "Doom",
      "generated_at": "<date -u '+%Y-%m-%d %H:%M UTC'>",
      "recommendations": ["...top cross-screen recs..."],
      "screens": [

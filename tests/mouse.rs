@@ -14,13 +14,13 @@ use ratatui::backend::TestBackend;
 use ratatui::layout::{Position, Rect};
 use ratatui::Terminal;
 
-use thurbox::kernel::host::{LuaHost, Published, RenderContext};
-use thurbox::kernel::node::{ClickVerb, Identity};
-use thurbox::kernel::paint::{render_recording, Hit, PlaceholderSurfaces};
-use thurbox::kernel::registry::Registry;
-use thurbox::kernel::snapshot::{SessionRow, Snapshot};
-use thurbox::kernel::theme::Themes;
-use thurbox::session::SessionState;
+use talos::kernel::host::{LuaHost, Published, RenderContext};
+use talos::kernel::node::{ClickVerb, Identity};
+use talos::kernel::paint::{render_recording, Hit, PlaceholderSurfaces};
+use talos::kernel::registry::Registry;
+use talos::kernel::snapshot::{SessionRow, Snapshot};
+use talos::kernel::theme::Themes;
+use talos::session::SessionState;
 
 fn host() -> LuaHost {
     let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui");
@@ -59,7 +59,7 @@ fn row(name: &str, repo: &str) -> SessionRow {
 
 fn sample() -> Snapshot {
     Snapshot {
-        sessions: vec![row("alpha", "thurbox"), row("beta", "website")],
+        sessions: vec![row("alpha", "talos"), row("beta", "website")],
         ..Snapshot::default()
     }
 }
@@ -71,10 +71,10 @@ fn hits_of(plugin: &str, width: u16, height: u16) -> Vec<Hit> {
     let mut registry = Registry::default();
     let (bindings, settings) = host.declarations();
     registry.declare(bindings, settings);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     host.publish(&Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot: &sample(),
         attach_errors: &Default::default(),
         inflight: &[],
@@ -192,8 +192,8 @@ fn a_verb_is_read_off_the_role_and_nothing_else_is() {
 /// from its glyphs would link the wrong text without either half looking wrong.
 #[test]
 fn a_pane_url_node_becomes_a_link_over_the_cells_it_drew() {
-    use thurbox::kernel::node::{Node, Run, Size};
-    use thurbox::kernel::terminal::drawn_link_paints;
+    use talos::kernel::node::{Node, Run, Size};
+    use talos::kernel::terminal::drawn_link_paints;
 
     let url = "https://example.test/some/page";
     let node = Node::Text {
@@ -283,7 +283,7 @@ fn the_collapse_toggle_is_one_target_covering_its_chevron_and_its_hint() {
 fn hits_for(source: &str, width: u16, height: u16) -> Vec<Hit> {
     let lua = mlua::Lua::new();
     let value: mlua::Value = lua.load(source).eval().expect("the table evaluates");
-    let node = thurbox::kernel::convert::to_node(&value, "plugins/90_test.lua")
+    let node = talos::kernel::convert::to_node(&value, "plugins/90_test.lua")
         .expect("the table converts");
     let mut hits = Vec::new();
     let mut terminal = Terminal::new(TestBackend::new(width, height)).expect("terminal");
@@ -348,7 +348,7 @@ fn a_center_aligned_run_hit_lines_up_with_where_ratatui_paints_it() {
         .load(r#"{ text = { { { text = "x", role = "action:go" } } }, align = "center" }"#)
         .eval()
         .expect("the table evaluates");
-    let node = thurbox::kernel::convert::to_node(&value, "plugins/90_test.lua")
+    let node = talos::kernel::convert::to_node(&value, "plugins/90_test.lua")
         .expect("the table converts");
     let mut hits = Vec::new();
     let mut terminal = Terminal::new(TestBackend::new(4, 1)).expect("terminal");
@@ -403,7 +403,7 @@ fn an_overlay_run_is_a_target_on_the_border_it_paints_on() {
 fn a_parent_is_recorded_before_its_children() {
     // The ordering the whole hit test rests on: reverse scan finds the
     // innermost node, and the pane fallback only when nothing inside matched.
-    use thurbox::kernel::node::{Axis, Node, Size};
+    use talos::kernel::node::{Axis, Node, Size};
 
     let child = Node::Text {
         lines: vec![],
@@ -460,7 +460,7 @@ fn a_parent_is_recorded_before_its_children() {
 fn a_framed_node_is_clickable_on_its_border() {
     // v1 puts the collapse chevron and the tab pills ON the central pane's top
     // border, so a hitbox that stopped at the inner rect could never catch one.
-    use thurbox::kernel::node::{Frame, Node, Size};
+    use talos::kernel::node::{Frame, Node, Size};
 
     let node = Node::Text {
         lines: vec![],
@@ -534,10 +534,10 @@ fn published_sessions_pane() -> (LuaHost, usize, RenderContext) {
     let mut registry = Registry::default();
     let (bindings, settings) = host.declarations();
     registry.declare(bindings, settings);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     host.publish(&Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot: &sample(),
         attach_errors: &Default::default(),
         inflight: &[],
@@ -579,8 +579,8 @@ fn published_sessions_pane() -> (LuaHost, usize, RenderContext) {
 }
 
 /// A click on the second session's row — the one the cursor does not start on.
-fn row_click(clicks: u8) -> thurbox::kernel::host::Click {
-    thurbox::kernel::host::Click {
+fn row_click(clicks: u8) -> talos::kernel::host::Click {
+    talos::kernel::host::Click {
         id: Some(sample().sessions[1].id.clone()),
         classes: vec!["row".into(), "session-row".into()],
         role: Some("row".into()),
@@ -650,7 +650,7 @@ fn only_a_double_click_on_a_session_row_hands_focus_to_the_agent_pane() {
     assert!(
         issued
             .iter()
-            .any(|command| matches!(command, thurbox::kernel::command::Command::Focus { .. })),
+            .any(|command| matches!(command, talos::kernel::command::Command::Focus { .. })),
         "a double-click opens the session in the agent pane: {issued:?}"
     );
 }
@@ -663,7 +663,7 @@ fn a_click_on_nothing_is_declined_rather_than_guessed() {
         .iter()
         .position(|p| p.name == "sessions")
         .expect("sessions");
-    let click = thurbox::kernel::host::Click::default();
+    let click = talos::kernel::host::Click::default();
     assert!(
         !host.on_click(index, &click).expect("click"),
         "an idless click must not move the cursor"
@@ -684,7 +684,7 @@ fn a_plugin_without_on_click_declines_instead_of_failing() {
         .position(|p| p.name == "agent")
         .expect("agent");
     assert!(!host
-        .on_click(index, &thurbox::kernel::host::Click::default())
+        .on_click(index, &talos::kernel::host::Click::default())
         .expect("no handler is not an error"));
 }
 
@@ -752,13 +752,13 @@ fn index_of(host: &LuaHost, name: &str) -> usize {
         .unwrap_or_else(|| panic!("{name} should have loaded"))
 }
 
-fn on(id: &str) -> thurbox::kernel::host::Click {
-    thurbox::kernel::host::Click {
+fn on(id: &str) -> talos::kernel::host::Click {
+    talos::kernel::host::Click {
         id: Some(id.to_string()),
         role: Some("row".into()),
         w: 20,
         h: 1,
-        ..thurbox::kernel::host::Click::default()
+        ..talos::kernel::host::Click::default()
     }
 }
 
@@ -840,7 +840,7 @@ return {
 fn a_press_carries_the_screen_cell_it_landed_on() {
     let (_home, host) = host_with(&[("10_where.lua", WHERE)]);
     let index = index_of(&host, "where");
-    let click = thurbox::kernel::host::Click {
+    let click = talos::kernel::host::Click {
         screen_x: 33,
         screen_y: 7,
         ..on("a")
@@ -927,11 +927,11 @@ return {
 fn a_press_that_misses_a_float_reaches_its_on_outside() {
     let (_home, host) = host_with(&[("10_dismissable.lua", DISMISSABLE)]);
     let index = index_of(&host, "dismissable");
-    let click = thurbox::kernel::host::Click {
+    let click = talos::kernel::host::Click {
         screen_x: 4,
         screen_y: 9,
         clicks: 1,
-        ..thurbox::kernel::host::Click::default()
+        ..talos::kernel::host::Click::default()
     };
     assert!(host.on_outside(index, &click).expect("outside"), "handled");
     assert!(
@@ -947,7 +947,7 @@ fn a_press_that_misses_a_float_reaches_its_on_outside() {
 fn a_float_without_on_outside_hears_nothing() {
     let (_home, host) = host_with(&[("10_twohanded.lua", TWO_HANDED)]);
     let index = index_of(&host, "twohanded");
-    let click = thurbox::kernel::host::Click::default();
+    let click = talos::kernel::host::Click::default();
     assert!(
         !host.on_outside(index, &click).expect("outside"),
         "declined"

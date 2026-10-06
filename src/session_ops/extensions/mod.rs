@@ -13,7 +13,7 @@
 //!   entry, so self-heal stops resurrecting it. This is the real off-switch.
 //!
 //! Deleting an extension's session/automation by hand (TUI `Ctrl+D`, `clean`,
-//! `thurbox-cli session/automation delete`) is therefore a no-op while the
+//! `talos-cli session/automation delete`) is therefore a no-op while the
 //! extension is active: the next ensure pass recreates it. `deactivate` is how a
 //! user turns an extension off for good.
 //!

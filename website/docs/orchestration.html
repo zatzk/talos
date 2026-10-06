@@ -1,7 +1,7 @@
 ---
 layout: docs.njk
-title: 'Orchestration — Thurbox Docs'
-description: 'The control-plane pattern: a dedicated repo that holds the map of your projects and the log of every orchestration run, while thurbox worker sessions hold the branches.'
+title: 'Orchestration — Talos Docs'
+description: 'The control-plane pattern: a dedicated repo that holds the map of your projects and the log of every orchestration run, while talos worker sessions hold the branches.'
 currentPage: 'orchestration'
 breadcrumb: 'Orchestration'
 ---
@@ -11,7 +11,7 @@ breadcrumb: 'Orchestration'
   <strong>where does the plan live?</strong>
   This page describes the
   <strong>control plane</strong>
-  &mdash; the shape that falls out of Thurbox's primitives once you use them at more than one
+  &mdash; the shape that falls out of Talos's primitives once you use them at more than one
   repo &mdash; and points at a template you can start from.
 </p>
 
@@ -21,9 +21,9 @@ breadcrumb: 'Orchestration'
 </h2>
 <p>
   Before any of the structure below: you do not have to write the orchestration yourself.
-  <code>thurbox-cli</code>
+  <code>talos-cli</code>
   is installed beside
-  <code>thurbox</code>
+  <code>talos</code>
   , so it is already on every session agent&rsquo;s
   <code>PATH</code>
   &mdash; from inside any session you can ask for a fleet in English.
@@ -31,12 +31,12 @@ breadcrumb: 'Orchestration'
 <ul class="prompts">
   <li>
     Using
-    <code>thurbox-cli</code>
+    <code>talos-cli</code>
     , start refactor sessions for this repo &mdash; one per crate, each on its own worktree branch
     off
     <code>main</code>
     , and send each one a prompt to refactor its crate. Then show me
-    <code>thurbox-cli session list</code>
+    <code>talos-cli session list</code>
     .
   </li>
   <li>
@@ -51,7 +51,7 @@ breadcrumb: 'Orchestration'
 </ul>
 <p>
   The agent discovers the surface with
-  <code>thurbox-cli --help</code>
+  <code>talos-cli --help</code>
   ; the commands it reaches for are
   <code>session create</code>
   (with
@@ -126,7 +126,7 @@ breadcrumb: 'Orchestration'
   </p>
 </blockquote>
 <p>
-  Each unit of work becomes one Thurbox worker session, targeting a real repo in
+  Each unit of work becomes one Talos worker session, targeting a real repo in
   <a href="features.html#git-worktrees">its own git worktree</a>
   , driven by a single self-contained prompt. Workers share no context with the control plane and
   none with each other, so every prompt restates the goal, the constraints, and what "done" means,
@@ -192,27 +192,27 @@ CLAUDE.md                    how an agent works inside the control plane</code><
 </ol>
 <p>Steps 3 and 5, concretely &mdash; the lead spawns, then reads its mail:</p>
 <pre><code class="language-bash"># The lead spawns a worker: its own worktree, parented to the lead.
-thurbox-cli session create \
+talos-cli session create \
   --name ship-auth-fix \
   --repo-path /abs/path/to/repo \
   --worktree-branch fix/auth --base-branch main \
-  --parent "$THURBOX_SESSION" \
+  --parent "$TALOS_SESSION" \
   --json
 
 # The worker, when it is done, mails the lead. `send` wakes the recipient.
-thurbox-cli message send --to "$LEAD" --kind result --body 'https://github.com/owner/repo/pull/42'
+talos-cli message send --to "$LEAD" --kind result --body 'https://github.com/owner/repo/pull/42'
 
 # The lead drains its inbox exactly once. No polling.
-thurbox-cli message inbox --for "$LEAD" --claim --json
+talos-cli message inbox --for "$LEAD" --claim --json
 
 # Afterwards, enumerate the run's workers — including the silent ones.
-thurbox-cli session list --parent "$LEAD" --json</code></pre>
+talos-cli session list --parent "$LEAD" --json</code></pre>
 
 <h2 id="primitives">
-  Why it is a Thurbox pattern
+  Why it is a Talos pattern
   <a href="#primitives" class="heading-anchor">#</a>
 </h2>
-<p>Nothing above is invented. Each piece is a Thurbox primitive doing load-bearing work.</p>
+<p>Nothing above is invented. Each piece is a Talos primitive doing load-bearing work.</p>
 
 <h3>Worktree-per-session</h3>
 <p>
@@ -229,7 +229,7 @@ thurbox-cli session list --parent "$LEAD" --json</code></pre>
   <a href="extensions.html">extension</a>
   with one long-lived
   <code>[[sessions]]</code>
-  entry, which Thurbox
+  entry, which Talos
   <strong>self-heals</strong>
   : delete the session and it comes back at the next startup or automation tick. A control plane
   that evaporates when someone tidies their session list is not a control plane.
@@ -241,7 +241,7 @@ thurbox-cli session list --parent "$LEAD" --json</code></pre>
   UUID to hand out as
   <code>--parent</code>
   , and it gets
-  <code>THURBOX_SESSION</code>
+  <code>TALOS_SESSION</code>
   in its environment like any other session.
 </p>
 
@@ -251,8 +251,8 @@ thurbox-cli session list --parent "$LEAD" --json</code></pre>
   <a href="features.html#inter-session-messages">inter-session messages</a>
   .
   <code>send</code>
-  wakes the recipient, so the lead never polls. Thurbox injects
-  <code>THURBOX_SESSION</code>
+  wakes the recipient, so the lead never polls. Talos injects
+  <code>TALOS_SESSION</code>
   into every session's environment, and both
   <code>--from</code>
   and
@@ -276,7 +276,7 @@ thurbox-cli session list --parent "$LEAD" --json</code></pre>
 
 <h3>Deliberately no automations</h3>
 <p>
-  Thurbox has
+  Talos has
   <a href="features.html#automations">automations</a>
   , and this pattern does not use them. The one scheduled candidate &mdash; the registry sync
   &mdash; commits and pushes, so a human runs it and reads the diff. Nothing else is periodic: a
@@ -337,11 +337,11 @@ thurbox-cli session list --parent "$LEAD" --json</code></pre>
   /
   <code>hook_state_contradicted</code>
   (what actually holds the pane, and whether it agrees).
-  <code>thurbox-cli session doctor</code>
+  <code>talos-cli session doctor</code>
   turns the same picture into a verdict and an exit code.
 </p>
 <p>
-  And a session whose agent Thurbox did not launch is no longer invisible: its pane is read, so a
+  And a session whose agent Talos did not launch is no longer invisible: its pane is read, so a
   known agent binary in the foreground reports
   <code>state: "running"</code>
   with
@@ -349,17 +349,17 @@ thurbox-cli session list --parent "$LEAD" --json</code></pre>
   . Better still, have your harness call
   <code>session signal</code>
   itself &mdash;
-  <code>THURBOX_SESSION</code>
+  <code>TALOS_SESSION</code>
   is already in the pane's environment, so the call needs no arguments. To get the real hooks
   rather than the coarse pane reading, ask for the wiring:
-  <code>thurbox-cli agent launch-args &lt;name&gt;</code>
+  <code>talos-cli agent launch-args &lt;name&gt;</code>
   prints the
   <code>command</code>
   ,
   <code>args</code>
   and
   <code>env</code>
-  Thurbox itself would launch with &mdash; the status hooks
+  Talos itself would launch with &mdash; the status hooks
   <em>are</em>
   arguments, so an agent started any other way has none.
 </p>
@@ -382,7 +382,7 @@ thurbox-cli session list --parent "$LEAD" --json</code></pre>
 <h3>watch, for everything that is not a report</h3>
 <p>
   The mailbox is how a worker says it finished.
-  <code>thurbox-cli watch --json --initial</code>
+  <code>talos-cli watch --json --initial</code>
   is how a driver learns everything the worker was never going to mail: that it
   went blocked on a permission, that its pane died, that somebody deleted it.
 </p>
@@ -427,7 +427,7 @@ thurbox-cli session list --parent "$LEAD" --json</code></pre>
   bad invocation,
   <code>3</code>
   a session reference matched more than one session), and the trap that follows is worth naming:
-  <code>thurbox-cli &hellip; --json | jq -r '.field'</code>
+  <code>talos-cli &hellip; --json | jq -r '.field'</code>
   exits
   <strong>0 with empty output</strong>
   when the command failed, because
@@ -438,8 +438,8 @@ thurbox-cli session list --parent "$LEAD" --json</code></pre>
   <code>set -o pipefail</code>
   does not help. Capture first, branch on the status, then parse.
 </p>
-<pre><code class="language-bash">out=$(thurbox-cli session get "$ref" --json) || {
-  printf 'thurbox: %s\n' "$(jq -r .error &lt;&lt;&lt;"$out")" &gt;&amp;2
+<pre><code class="language-bash">out=$(talos-cli session get "$ref" --json) || {
+  printf 'talos: %s\n' "$(jq -r .error &lt;&lt;&lt;"$out")" &gt;&amp;2
   exit 1
 }
 id=$(jq -r .id &lt;&lt;&lt;"$out")</code></pre>
@@ -483,7 +483,7 @@ git -C "$REPO" rev-list --count main..origin/main   # expect 0</code></pre>
   session opened on the checkout.
 </p>
 <p>
-  It is a template, not a Thurbox feature: nothing in Thurbox knows it exists, and a fork is yours
+  It is a template, not a Talos feature: nothing in Talos knows it exists, and a fork is yours
   to diverge from immediately. The part worth copying is the arrangement, not the files. Two of its
   choices are that arrangement rather than its own taste.
 </p>
@@ -531,6 +531,6 @@ git -C "$REPO" rev-list --count main..origin/main   # expect 0</code></pre>
   <code>~</code>
   <em>is</em>
   expanded there, but only since 0.174.2 &mdash; so a manifest declaring an older
-  <code>min_thurbox_version</code>
+  <code>min_talos_version</code>
   , as this one does, cannot lean on it either.
 </p>

@@ -173,7 +173,7 @@ impl Conflict {
     /// One clash, in words: both claimants and the one that fires.
     ///
     /// Spelled here rather than at each reporting surface so `warnings()` and
-    /// `thurbox-cli plugin check` cannot come to describe the same clash
+    /// `talos-cli plugin check` cannot come to describe the same clash
     /// differently — the check is a plugin author's pre-flight for exactly the
     /// diagnostic the running interface collects.
     pub fn message(&self) -> String {
@@ -314,7 +314,7 @@ pub struct Registry {
     /// `setting_overrides` does, and it matters more here. `persist` rewrites
     /// `ui.json` from these maps on any unrelated change, so an entry dropped at
     /// read time would take the user's own typo out of their file before they
-    /// ever ran `thurbox-cli config validate` over it, leaving nothing to find.
+    /// ever ran `talos-cli config validate` over it, leaving nothing to find.
     pill_overrides: BTreeMap<String, serde_json::Value>,
     /// Plugins the user turned off: absolute paths, present on disk and not
     /// loaded.
@@ -355,9 +355,9 @@ pub struct Registry {
 /// A registry built with [`Default`] holds no overrides at all, so persisting
 /// one does not *change* `ui.json` — it empties it: every disabled plugin, every
 /// trust grant and every setting a user chose is gone, replaced by the five
-/// empty tables the fresh registry has. That is not hypothetical. thurbox
-/// injects `THURBOX_CONFIG_DIR` into the sessions it spawns, so a `cargo test`
-/// run from inside thurbox resolves the *real* config directory, and the tests
+/// empty tables the fresh registry has. That is not hypothetical. talos
+/// injects `TALOS_CONFIG_DIR` into the sessions it spawns, so a `cargo test`
+/// run from inside talos resolves the *real* config directory, and the tests
 /// that build a registry to assert routing wiped the running interface's
 /// decisions as a side effect.
 ///
@@ -1200,7 +1200,7 @@ pub fn normalise_chord(raw: &str) -> String {
 
 /// Parse `ui.json` the way the kernel does, and report what it complained about.
 ///
-/// For `thurbox-cli config validate`, which was checking v1's `keybindings.json`
+/// For `talos-cli config validate`, which was checking v1's `keybindings.json`
 /// — a file nothing reads now — and not this one, which the interface reads on
 /// every launch for rebindings, band order, trust and the disabled set.
 pub fn validate_overrides() -> Vec<String> {
@@ -1209,8 +1209,8 @@ pub fn validate_overrides() -> Vec<String> {
 
 /// Where the user's interface decisions live: `<config>/ui.json`.
 ///
-/// Public so `thurbox-cli config` can report it. It sits beside `settings.toml`
-/// and the rest, which means it follows the same `thurbox` / `thurbox-dev` split
+/// Public so `talos-cli config` can report it. It sits beside `settings.toml`
+/// and the rest, which means it follows the same `talos` / `talos-dev` split
 /// every other config path does — a dev build never reads the release file.
 pub fn overrides_file() -> Option<PathBuf> {
     overrides_path()
@@ -1322,7 +1322,7 @@ fn read_settings(parsed: &serde_json::Value) -> BTreeMap<String, Value> {
 /// Every entry is kept, whatever shape it has, because `persist` writes this map
 /// back over the user's file — see [`Registry::pill_overrides`]. `apply_overrides`
 /// is what refuses one that is not a whole number; here it is only *reported*, as
-/// `read_trusted` reports a malformed grant, so `thurbox-cli config validate`
+/// `read_trusted` reports a malformed grant, so `talos-cli config validate`
 /// names the typo on every run rather than once.
 ///
 /// The section itself cannot be kept that way, since a map is not an array:
@@ -1868,7 +1868,7 @@ mod tests {
         // Granting, reading back, and the digest that makes drift detectable —
         // the three halves of what the Interface tab shows.
         let home = tempfile::TempDir::new().expect("tempdir");
-        std::env::set_var("THURBOX_CONFIG_DIR", home.path());
+        std::env::set_var("TALOS_CONFIG_DIR", home.path());
 
         let mut registry = Registry::default();
         assert!(!registry.is_trusted("/ui/plugins/mine.lua"));
@@ -1892,13 +1892,13 @@ mod tests {
             .revoke("/ui/plugins/never.lua")
             .expect("idempotent");
 
-        std::env::remove_var("THURBOX_CONFIG_DIR");
+        std::env::remove_var("TALOS_CONFIG_DIR");
     }
 
     #[test]
     fn trust_survives_being_written_and_read_back() {
         let home = tempfile::TempDir::new().expect("tempdir");
-        std::env::set_var("THURBOX_CONFIG_DIR", home.path());
+        std::env::set_var("TALOS_CONFIG_DIR", home.path());
 
         // Loaded rather than default, because only a registry that read the
         // file writes it back — see `Origin`.
@@ -1913,7 +1913,7 @@ mod tests {
             "a decision that does not survive a restart is not a decision"
         );
 
-        std::env::remove_var("THURBOX_CONFIG_DIR");
+        std::env::remove_var("TALOS_CONFIG_DIR");
     }
 
     /// A reload re-declares everything, so a conflict must be reported once
@@ -1945,8 +1945,8 @@ mod tests {
 
     /// The bug this guards: a registry nobody read from disk used to write
     /// itself over `ui.json`, and its five empty tables *are* the whole file. A
-    /// test run inherits `THURBOX_CONFIG_DIR` from the session that spawned it,
-    /// so `cargo test` from inside thurbox emptied the running interface's
+    /// test run inherits `TALOS_CONFIG_DIR` from the session that spawned it,
+    /// so `cargo test` from inside talos emptied the running interface's
     /// disabled set, trust grants and plugin settings.
     #[test]
     fn a_registry_that_was_never_read_does_not_write_over_the_file() {
@@ -2102,7 +2102,7 @@ mod tests {
     }
 
     /// A priority is a whole number. A string or a fraction is refused rather
-    /// than coerced, reported so `thurbox-cli config validate` can name it —
+    /// than coerced, reported so `talos-cli config validate` can name it —
     /// and **kept in the file**. Deleting it at read time would have `persist`
     /// erase the user's own typo on the next unrelated write, leaving a clean
     /// file, no warning and nothing to find.

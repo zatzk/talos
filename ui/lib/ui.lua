@@ -46,7 +46,7 @@ local ui = {}
 --- choosing between the two itself.
 ---
 --- Two statuses animate, on different evidence. `working` is the agent's own
---- report that a turn is running. `running` is thurbox's observation that an
+--- report that a turn is running. `running` is talos's observation that an
 --- agent holds the pane and has said nothing — which on its own cannot tell a
 --- turn in flight from a prompt waiting for input, so it animates only while
 --- `printing` says that pane is actually producing output. That is the same
@@ -54,13 +54,13 @@ local ui = {}
 --- what keeps the spinner a report rather than a guess: quiet, it falls back
 --- to the static glyph.
 ---
---- `printing` comes from `thurbox.printing`, which only a surface holding the
+--- `printing` comes from `talos.printing`, which only a surface holding the
 --- terminals can fill. A caller that passes nothing gets the static answer,
 --- which is the honest one when nobody looked.
----@param name thurbox.Status
+---@param name talos.Status
 ---@param elapsed number?
 ---@param printing boolean?
----@return { glyph: string, color: thurbox.Color? }
+---@return { glyph: string, color: talos.Color? }
 function ui.status(name, elapsed, printing)
   local spec = theme.status(name)
   if name == "working" or (name == "running" and printing) then
@@ -80,7 +80,7 @@ function ui.printing(session_id)
   if not session_id then
     return false
   end
-  local set = thurbox and thurbox.printing
+  local set = talos and talos.printing
   return set ~= nil and set[session_id] == true
 end
 
@@ -94,7 +94,7 @@ end
 ---@param elapsed number?
 ---@param status_of fun(item: table): string?
 ---@param id_of (fun(item: table): string?)?
----@return thurbox.Span[]
+---@return talos.Span[]
 function ui.dots(items, elapsed, status_of, id_of)
   local runs = {}
   for _, item in ipairs(items) do
@@ -110,7 +110,7 @@ end
 
 -- ── The key registry ────────────────────────────────────────────────────────
 
--- Memoized on the published table's identity: `thurbox.registry` is a gated
+-- Memoized on the published table's identity: `talos.registry` is a gated
 -- group, so seeing the same table object again means the same bindings — and a
 -- footer resolves several actions per render, each of which would otherwise
 -- walk every plugin's bindings.
@@ -124,7 +124,7 @@ local chord_cache = { src = nil, by_action = {} }
 ---@param action string
 ---@return string?
 function ui.chord(action)
-  local registry = thurbox and thurbox.registry
+  local registry = talos and talos.registry
   if not rawequal(registry, chord_cache.src) then
     chord_cache.src = registry
     chord_cache.by_action = {}
@@ -149,7 +149,7 @@ end
 ---@param action string
 ---@return string?
 function ui.describe(action)
-  for _, binding in ipairs((thurbox and thurbox.registry and thurbox.registry.keys) or {}) do
+  for _, binding in ipairs((talos and talos.registry and talos.registry.keys) or {}) do
     if binding.action == action and binding.desc and binding.desc ~= "" then
       return binding.desc
     end
@@ -346,7 +346,7 @@ end
 ---   initial — first row number when no cursor state exists, or a function of
 ---             `items` returning it
 ---   request — a `store` key carrying a one-shot "go to this row" (a clicked OS
----             notification, `thurbox-cli session focus`). Consumed here,
+---             notification, `talos-cli session focus`). Consumed here,
 ---             because a plain `store` write would be overwritten by the next
 ---             publish.
 ---@param key string A name for this list's state, unique within the plugin.
@@ -521,7 +521,7 @@ end
 --- `── label ───────`, muted, full bleed — the rule that heads a group.
 ---@param label string
 ---@param width integer
----@return thurbox.Span[]
+---@return talos.Span[]
 function ui.rule(label, width)
   local line = "── " .. label .. " "
   local used = widgets.len(line)
@@ -560,7 +560,7 @@ end
 --- opts: title, width, hint (a format string taking the chord), hint_action,
 --- note, note_colour
 ---@param opts table
----@return thurbox.Span[][]
+---@return talos.Span[][]
 function ui.empty(opts)
   local width = opts.width or 0
   local lines = { {}, centred(opts.title or "", width) }
@@ -847,7 +847,7 @@ end
 --- opts: title, focused, level, body, overlay_left, overlay_right,
 ---       right_column, border, title_align
 ---@param opts table
----@return thurbox.BoxNode
+---@return talos.BoxNode
 function ui.panel(opts)
   local level = opts.level or chrome.level(opts.focused)
   local body = opts.body
@@ -894,7 +894,7 @@ end
 ---
 --- opts: title, cols, rows, children, crumbs, border
 ---@param opts table
----@return thurbox.BoxNode
+---@return talos.BoxNode
 function ui.modal(opts)
   local rows = opts.rows
   if not rows then
@@ -931,7 +931,7 @@ end
 ---
 --- opts: actions, primary, cancel, key, style
 ---@param opts table
----@return thurbox.BoxNode
+---@return talos.BoxNode
 function ui.footer(opts)
   local hints = {}
   for _, entry in ipairs(opts.actions or {}) do

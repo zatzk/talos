@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
-# Prove `thurbox.yml` still declares the fields the kernel publishes on the
+# Prove `talos.yml` still declares the fields the kernel publishes on the
 # injected tables a plugin reads by name.
 #
 # `selene ui examples` proves the bundled interface is clean, which a standard
 # library declaring nothing about those tables would also achieve — and did:
-# `thurbox.granted`, `.platform`, `.metrics`, `.hover` and `.preflight.mux` were
+# `talos.granted`, `.platform`, `.metrics`, `.hover` and `.preflight.mux` were
 # declared as bare properties, so a dotted read off any of them was an
 # `incorrect_standard_library_use`, while CI stayed green because nothing in
 # `ui/` or `examples/` reads them in a form selene can see (issue #1133).
@@ -38,8 +38,8 @@
 #
 # Run from the repository root: selene resolves the `std` name against the
 # working directory, not the directory of the config it was given, so the `cd`
-# below is what makes `selene.toml`'s `std = "thurbox"` find this repository's
-# `thurbox.yml`.
+# below is what makes `selene.toml`'s `std = "talos"` find this repository's
+# `talos.yml`.
 #
 # Usage: check-lua-std.sh
 set -euo pipefail
@@ -76,7 +76,7 @@ if [ "$clean" -eq 1 ]; then
 else
     printf 'tests/fixtures/lua_std/reads.lua: expected a clean lint, got:\n' >&2
     printf '%s\n' "$reported" >&2
-    printf '  Either thurbox.yml no longer declares a field the kernel publishes\n' >&2
+    printf '  Either talos.yml no longer declares a field the kernel publishes\n' >&2
     printf '  — compare it with LuaHost::publish in src/kernel/host/ — or selene\n' >&2
     printf '  never linted the probe.\n' >&2
     failed=1
@@ -95,7 +95,7 @@ for name in granted.lua platform.lua metrics.lua metrics_system.lua hover.lua \
         printf '  incorrect_standard_library_use and nothing else, got %s of it\n' "$rejections" >&2
         printf '  among %s finding(s):\n' "$diagnostics" >&2
         printf '%s\n' "$reported" >&2
-        printf '  Either thurbox.yml describes that table too loosely to catch the\n' >&2
+        printf '  Either talos.yml describes that table too loosely to catch the\n' >&2
         printf '  typo this probe exists to catch, or selene never linted it.\n' >&2
         failed=1
     fi

@@ -13,32 +13,32 @@
 --- Declared so the shorthands the metatable serves are checkable: `__index`
 --- answers nil for a name it does not know, so without this a misspelt one is a
 --- run that renders in the terminal's default colour and looks deliberate. The
---- full role vocabulary is `thurbox.Role` in `thurbox.d.lua`; these are the
+--- full role vocabulary is `talos.Role` in `talos.d.lua`; these are the
 --- short names, and the two are kept in step by SHORTHAND below.
----@class thurbox.ThemeLib
----@field accent thurbox.Color?
----@field accent_bright thurbox.Color?
----@field muted thurbox.Color?
----@field text thurbox.Color?
----@field secondary thurbox.Color?
----@field ok thurbox.Color?
----@field warn thurbox.Color?
----@field bad thurbox.Color?
----@field info thurbox.Color?
----@field border thurbox.Color?
----@field border_focused thurbox.Color?
----@field branch thurbox.Color?
----@field hint thurbox.Color?
+---@class talos.ThemeLib
+---@field accent talos.Color?
+---@field accent_bright talos.Color?
+---@field muted talos.Color?
+---@field text talos.Color?
+---@field secondary talos.Color?
+---@field ok talos.Color?
+---@field warn talos.Color?
+---@field bad talos.Color?
+---@field info talos.Color?
+---@field border talos.Color?
+---@field border_focused talos.Color?
+---@field branch talos.Color?
+---@field hint talos.Color?
 local theme = {}
 
 -- Resolved on access so a theme change is picked up on the next frame, and
--- memoized on the published table's identity: `thurbox.theme` is a gated
+-- memoized on the published table's identity: `talos.theme` is a gated
 -- group, so seeing the same table object again means the same roles. Without
--- the memo every `theme.muted`-style access walks thurbox → theme → roles —
+-- the memo every `theme.muted`-style access walks talos → theme → roles —
 -- dozens of crossings per rendered row.
 local cached_theme, cached_roles
 local function roles()
-  local src = thurbox and thurbox.theme
+  local src = talos and talos.theme
   if src == nil then
     return {}
   end
@@ -53,8 +53,8 @@ end
 ---
 --- nil is deliberate: an undefined role must render as "no colour", never as an
 --- arbitrary one that looks deliberate.
----@param name thurbox.Role
----@return thurbox.Color?
+---@param name talos.Role
+---@return talos.Color?
 function theme.role(name)
   return roles()[name]
 end
@@ -99,7 +99,7 @@ local STATUS_GLYPHS = {
   -- An agent holds the pane and has reported nothing. Filled, because
   -- something IS there. This is the STATIC half: a process listing cannot tell
   -- a turn in flight from a prompt waiting for input, so the dot only moves
-  -- when `ui.status` is handed the one thing that can — `thurbox.printing`,
+  -- when `ui.status` is handed the one thing that can — `talos.printing`,
   -- saying that pane is producing output right now. Quiet, it stays this glyph.
   --
   -- FISHEYE rather than CIRCLE WITH VERTICAL FILL (U+25CD), which is rare
@@ -136,8 +136,8 @@ local STATUS_ROLES = {
 --- silences are drawn: `running`, `uncovered` and `unreported` each have a row
 --- above, because falling through to `idle` is what made a working
 --- driver-launched agent draw the green "the agent says it is at rest" dot.
----@param name thurbox.Status
----@return { glyph: string, color: thurbox.Color? }
+---@param name talos.Status
+---@return { glyph: string, color: talos.Color? }
 function theme.status(name)
   return {
     glyph = STATUS_GLYPHS[name] or STATUS_GLYPHS.idle,
@@ -172,13 +172,13 @@ function theme.spinner_frame(elapsed)
 end
 
 ---@param text string
----@return thurbox.Span
+---@return talos.Span
 function theme.dim(text)
   return { text = text, style = { fg = theme.muted } }
 end
 
 ---@param text string
----@return thurbox.Span
+---@return talos.Span
 function theme.heading(text)
   return { text = text, style = { fg = theme.accent, bold = true } }
 end
@@ -186,7 +186,7 @@ end
 --- The active theme's identifier, for anything that wants to show it.
 ---@return string
 function theme.name()
-  return (thurbox and thurbox.theme and thurbox.theme.name) or "default"
+  return (talos and talos.theme and talos.theme.name) or "default"
 end
 
 return theme

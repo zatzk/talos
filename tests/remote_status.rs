@@ -1,6 +1,6 @@
 //! Remote agents reporting their status back to v2.
 //!
-//! A remote agent cannot call `thurbox-cli session signal`: there is no CLI on
+//! A remote agent cannot call `talos-cli session signal`: there is no CLI on
 //! the host, and running one there would write the host's own database. So its
 //! hooks set a tmux pane option, which the local control-mode connection pushes
 //! back — and the whole of remote status is whether anything drains that queue
@@ -15,10 +15,10 @@
 
 use std::time::{Duration, Instant};
 
-use thurbox::kernel::snapshot::SnapshotStore;
-use thurbox::session::SessionId;
-use thurbox::storage::Database;
-use thurbox::sync::SharedSession;
+use talos::kernel::snapshot::SnapshotStore;
+use talos::session::SessionId;
+use talos::storage::Database;
+use talos::sync::SharedSession;
 
 const PANE: &str = "%7";
 
@@ -49,7 +49,7 @@ fn session(backend_type: &str) -> SharedSession {
 /// store will read on its next refresh — which is what an attach landing a pane
 /// id looks like from here.
 fn database(home: &tempfile::TempDir) -> Database {
-    Database::open(&home.path().join("thurbox.db")).expect("db")
+    Database::open(&home.path().join("talos.db")).expect("db")
 }
 
 /// A store over a database holding one session on `ssh:devbox`.
@@ -58,7 +58,7 @@ fn store_with_remote_session() -> (tempfile::TempDir, SnapshotStore, SessionId) 
     let row = session("ssh:devbox");
     database(&home).upsert_session(&row).expect("upsert");
     let store =
-        SnapshotStore::with_database(database(&home), &thurbox::backend::wiring::configured().0);
+        SnapshotStore::with_database(database(&home), &talos::backend::wiring::configured().0);
     (home, store, row.id)
 }
 
@@ -152,7 +152,7 @@ fn an_event_for_a_pane_nobody_claims_yet_is_kept_until_it_appears() {
     row.backend_id = String::new();
     database(&home).upsert_session(&row).expect("upsert");
     let mut store =
-        SnapshotStore::with_database(database(&home), &thurbox::backend::wiring::configured().0);
+        SnapshotStore::with_database(database(&home), &talos::backend::wiring::configured().0);
 
     let early = Instant::now();
     let applied = store.apply_hook_states(
@@ -184,7 +184,7 @@ fn a_parked_event_is_eventually_given_up_on() {
     row.backend_id = String::new();
     database(&home).upsert_session(&row).expect("upsert");
     let mut store =
-        SnapshotStore::with_database(database(&home), &thurbox::backend::wiring::configured().0);
+        SnapshotStore::with_database(database(&home), &talos::backend::wiring::configured().0);
 
     let early = Instant::now();
     store.apply_hook_states(

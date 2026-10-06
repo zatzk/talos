@@ -9,12 +9,12 @@
 
 use ratatui::backend::TestBackend;
 use ratatui::Terminal;
-use thurbox::kernel::command::Command;
-use thurbox::kernel::host::{KeyPress, LuaHost, Published, RenderContext};
-use thurbox::kernel::paint::{render, PlaceholderSurfaces};
-use thurbox::kernel::registry::{Registry, Scope};
-use thurbox::kernel::snapshot::{DeletedRow, Snapshot};
-use thurbox::kernel::theme::Themes;
+use talos::kernel::command::Command;
+use talos::kernel::host::{KeyPress, LuaHost, Published, RenderContext};
+use talos::kernel::paint::{render, PlaceholderSurfaces};
+use talos::kernel::registry::{Registry, Scope};
+use talos::kernel::snapshot::{DeletedRow, Snapshot};
+use talos::kernel::theme::Themes;
 
 const PLUGIN: &str = "restore";
 
@@ -86,12 +86,12 @@ fn publish_in(host: &LuaHost, snapshot: &Snapshot) {
 
 fn publish_with(host: &LuaHost, snapshot: &Snapshot, registry: Registry) {
     let themes = Themes::load(None);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     host.publish(&Published {
         // Every group rebuilt on every publish: a test that gated them would be
         // testing the memoization rather than the pane.
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot,
         attach_errors: &Default::default(),
         inflight: &[],

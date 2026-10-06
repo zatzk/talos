@@ -38,10 +38,10 @@ slow-timeout = { period = "30s" }
 e2e-pty = { max-threads = 1 }
 
 [[profile.default.overrides]]
-filter = 'binary_id(thurbox::tui_e2e)'
+filter = 'binary_id(talos::tui_e2e)'
 test-group = 'e2e-pty'
 
 [[profile.ci.overrides]]
-filter = 'binary_id(thurbox::tui_e2e)'
+filter = 'binary_id(talos::tui_e2e)'
 test-group = 'e2e-pty'
 

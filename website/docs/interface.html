@@ -1,14 +1,14 @@
 ---
 layout: docs.njk
-title: 'The Interface — Thurbox Docs'
-description: 'Every thurbox pane is a Lua plugin you can edit, move, turn off, delete or replace. What the kernel guarantees, and what it will not let a plugin do.'
+title: 'The Interface — Talos Docs'
+description: 'Every talos pane is a Lua plugin you can edit, move, turn off, delete or replace. What the kernel guarantees, and what it will not let a plugin do.'
 currentPage: 'interface'
 breadcrumb: 'Interface'
 ---
 <h1>The Interface</h1>
 <p>
   There is no built-in UI compiled into
-  <code>thurbox</code>. The binary boots a kernel, reads a directory of Lua files, and draws
+  <code>talos</code>. The binary boots a kernel, reads a directory of Lua files, and draws
   whatever it finds &mdash; so every pane, the session list included, is a plugin under
   <code>ui/</code>. You can edit one, replace one with a file of your own, turn one off, or delete
   it.
@@ -19,7 +19,7 @@ breadcrumb: 'Interface'
   <a href="#a-directory" class="heading-anchor">#</a>
 </h2>
 <p>
-  Not a setting, and not a theme: the panes themselves are files. thurbox ships a small set and
+  Not a setting, and not a theme: the panes themselves are files. talos ships a small set and
   reads whatever is in the directory, so adding one is adding a file and removing one is deleting
   it. Your sessions, worktrees, tasks and automations are untouched by any of it &mdash; they live
   in the database, not the interface.
@@ -35,7 +35,7 @@ breadcrumb: 'Interface'
   session, in whichever coding CLI you run, ask in English:
 </p>
 <ul class="prompts">
-  <li>Add my project logs within a dedicated pane on the right in the thurbox UI.</li>
+  <li>Add my project logs within a dedicated pane on the right in the talos UI.</li>
   <li>
     Add a pane on the left with CPU and RAM usage. There is a
     <code>top</code>
@@ -49,15 +49,15 @@ breadcrumb: 'Interface'
   <li>Install the info panel plugin.</li>
 </ul>
 <p>
-  That works because thurbox ships a built-in
+  That works because talos ships a built-in
   <a href="extensions.html">ui-skill extension</a>
   : a
-  <code>thurbox-ui</code>
+  <code>talos-ui</code>
   skill installed into each coding CLI's own skill directory, which loads only when the request is
   about the interface. It tells the agent that
-  <code>thurbox-cli plugin dir</code>
+  <code>talos-cli plugin dir</code>
   finds the directory and
-  <code>thurbox-cli plugin check</code>
+  <code>talos-cli plugin check</code>
   is how it verifies its own work, and warns it off the mistakes that are invisible until runtime
   &mdash; building under a recursively watched directory, or writing inside a cloned plugin's own
   working copy. Press
@@ -70,8 +70,8 @@ breadcrumb: 'Interface'
   <code>AGENTS.md</code>
   that any coding CLI loads as context without being asked:
 </p>
-<pre data-wrap><code class="language-bash">thurbox-cli plugin dir          # prints the directory
-thurbox-cli session create --name ui --repo-path ~/.config/thurbox/ui</code></pre>
+<pre data-wrap><code class="language-bash">talos-cli plugin dir          # prints the directory
+talos-cli session create --name ui --repo-path ~/.config/talos/ui</code></pre>
 
 <h3 id="ask-the-agent-worked">
   What a prompt like &ldquo;add a CPU/RAM pane on the left&rdquo; actually does
@@ -84,7 +84,7 @@ thurbox-cli session create --name ui --repo-path ~/.config/thurbox/ui</code></pr
 </p>
 <p>
   <strong>1. The pane.</strong>
-  <code>thurbox-cli plugin install top</code>
+  <code>talos-cli plugin install top</code>
   delivers
   <code>plugins/85_top.lua</code>
   and records the entry in
@@ -124,7 +124,7 @@ columns[#columns + 1] = { slot = "center" }</code></pre>
     <code>layout.lua</code>
     &mdash; placement stays yours, which is why step 2 is a separate edit. And a pane that loads but
     which no arrangement places draws nothing while looking perfectly healthy:
-    <code>thurbox-cli plugin check</code>
+    <code>talos-cli plugin check</code>
     is what fails on that, and prints the line to add.
   </p>
 </div>
@@ -179,7 +179,7 @@ columns[#columns + 1] = { slot = "center" }</code></pre>
   <div class="terminal-frame">
     <div class="terminal-body">
       <video
-        src="../assets/thurbox-interface.mp4"
+        src="../assets/talos-interface.mp4"
         autoplay
         loop
         muted
@@ -204,7 +204,7 @@ columns[#columns + 1] = { slot = "center" }</code></pre>
   <a href="#running-programs" class="heading-anchor">#</a>
 </h2>
 <p>
-  Two capabilities reach outside thurbox, and they are two separate decisions.
+  Two capabilities reach outside talos, and they are two separate decisions.
 </p>
 <p>
   <strong>Reading a program's output.</strong>
@@ -244,7 +244,7 @@ columns[#columns + 1] = { slot = "center" }</code></pre>
   <code>trusted &middot; modified</code>. Revoking takes effect on the next frame.
 </p>
 <p>
-  This is not a sandbox and does not pretend to be one. A program thurbox runs for you has your
+  This is not a sandbox and does not pretend to be one. A program talos runs for you has your
   authority, and no gate here changes that. What trust buys is that nothing runs
   <em>unasked</em>. Treat a plugin you did not write the way you would treat a shell profile
   someone sent you.
@@ -266,38 +266,38 @@ columns[#columns + 1] = { slot = "center" }</code></pre>
   </thead>
   <tbody>
     <tr>
-      <td><code>thurbox-cli plugin dir</code></td>
+      <td><code>talos-cli plugin dir</code></td>
       <td>Which interface directory is live, and which rule chose it</td>
     </tr>
     <tr>
-      <td><code>thurbox-cli plugin new &lt;name&gt;</code></td>
+      <td><code>talos-cli plugin new &lt;name&gt;</code></td>
       <td>Writes a starter that already loads</td>
     </tr>
     <tr>
-      <td><code>thurbox-cli plugin check</code></td>
+      <td><code>talos-cli plugin check</code></td>
       <td>
-        Loads the interface the way <code>thurbox</code> does; non-zero on a failure &mdash;
+        Loads the interface the way <code>talos</code> does; non-zero on a failure &mdash;
         including on a pane that loaded but which no arrangement places
       </td>
     </tr>
     <tr>
-      <td><code>thurbox-cli plugin list</code></td>
+      <td><code>talos-cli plugin list</code></td>
       <td>The same inventory the settings Interface tab shows, with each file's origin</td>
     </tr>
     <tr>
-      <td><code>thurbox-cli plugin events</code></td>
+      <td><code>talos-cli plugin events</code></td>
       <td>Every event a plugin may subscribe to (<code>events = { &hellip; }</code> + <code>on_event</code>), with its payload</td>
     </tr>
     <tr>
-      <td><code>thurbox-cli plugin install &lt;src&gt;</code></td>
+      <td><code>talos-cli plugin install &lt;src&gt;</code></td>
       <td>Fetches a pane and records it in <code>plugins.toml</code></td>
     </tr>
     <tr>
-      <td><code>thurbox-cli plugin sync</code></td>
+      <td><code>talos-cli plugin sync</code></td>
       <td>Brings the directory into agreement with <code>plugins.toml</code></td>
     </tr>
     <tr>
-      <td><code>thurbox-cli plugin update</code> / <code>remove</code></td>
+      <td><code>talos-cli plugin update</code> / <code>remove</code></td>
       <td>Advances a pin when you ask; removes a pane, its entry and its record</td>
     </tr>
   </tbody>
@@ -349,10 +349,10 @@ columns[#columns + 1] = { slot = "center" }</code></pre>
   handler, and the kernel calls it once per change, off the render path &mdash; a session
   appearing, leaving or changing status, the selection moving, a command finishing, the interface
   reloading. The events are derived by diffing the snapshot, so a session made by
-  <code>thurbox-cli</code>
+  <code>talos-cli</code>
   or a cron tick fires the same one the creation flow does; a subscription to a name nothing
   emits refuses to load, and
-  <code>thurbox-cli plugin events</code>
+  <code>talos-cli plugin events</code>
   lists them all. Plugins reach each other with
   <code>command("emit", &hellip;)</code>. And an action need not spend a chord to exist:
   <code>commands = { { action, desc } }</code>
@@ -364,9 +364,9 @@ columns[#columns + 1] = { slot = "center" }</code></pre>
   A broken plugin does not cost you the interface: the error is reported in place, and the bundled
   copy stands in until the file loads again. The full author's guide, including the mistakes that
   are invisible until runtime, is
-  <a href="https://github.com/Thurbeen/thurbox/blob/main/docs/PLUGINS.md">docs/PLUGINS.md</a>; the
+  <a href="https://github.com/zatzk/talos/blob/main/docs/PLUGINS.md">docs/PLUGINS.md</a>; the
   kernel's own shape and constraints are in
-  <a href="https://github.com/Thurbeen/thurbox/blob/main/docs/KERNEL.md">docs/KERNEL.md</a>.
+  <a href="https://github.com/zatzk/talos/blob/main/docs/KERNEL.md">docs/KERNEL.md</a>.
 </p>
 
 <h2 id="when-a-pane-breaks">
@@ -390,7 +390,7 @@ columns[#columns + 1] = { slot = "center" }</code></pre>
   </thead>
   <tbody>
     <tr>
-      <td>a pane thurbox ships, edited or deleted</td>
+      <td>a pane talos ships, edited or deleted</td>
       <td><kbd>r</kbd> &mdash; the shipped copy comes out of the binary</td>
     </tr>
     <tr>
@@ -401,7 +401,7 @@ columns[#columns + 1] = { slot = "center" }</code></pre>
     </tr>
     <tr>
       <td>an installed pane (<code>from &lt;src&gt;</code>)</td>
-      <td><code>thurbox-cli plugin sync</code></td>
+      <td><code>talos-cli plugin sync</code></td>
     </tr>
     <tr>
       <td>the whole directory</td>
@@ -413,14 +413,14 @@ columns[#columns + 1] = { slot = "center" }</code></pre>
 </table>
 <p>
   <kbd>r</kbd>
-  cannot restore a file thurbox never shipped, and says so instead of guessing.
+  cannot restore a file talos never shipped, and says so instead of guessing.
   <kbd>space</kbd>
   is also the key for bisecting which of several files is at fault. Both reload immediately. With
   no terminal to trust,
-  <code>thurbox-cli plugin check</code>
+  <code>talos-cli plugin check</code>
   reports the same failure and exits non-zero. Full detail:
   <a
-    href="https://github.com/Thurbeen/thurbox/blob/main/docs/PLUGINS.md#when-something-goes-wrong"
+    href="https://github.com/zatzk/talos/blob/main/docs/PLUGINS.md#when-something-goes-wrong"
     >docs/PLUGINS.md &rarr; When something goes wrong</a
   >.
 </p>
@@ -430,7 +430,7 @@ columns[#columns + 1] = { slot = "center" }</code></pre>
   <a href="#installable-panes" class="heading-anchor">#</a>
 </h2>
 <p>
-  Two surfaces thurbox does not ship in the binary are maintained as panes, each its own
+  Two surfaces talos does not ship in the binary are maintained as panes, each its own
   repository:
 </p>
 <table>
@@ -444,7 +444,7 @@ columns[#columns + 1] = { slot = "center" }</code></pre>
   <tbody>
     <tr>
       <td>
-        <a href="https://github.com/Thurbeen/thurbox-code-review" target="_blank" rel="noopener">thurbox-code-review</a>
+        <a href="https://github.com/zatzk/talos-code-review" target="_blank" rel="noopener">talos-code-review</a>
       </td>
       <td>
         A diff reviewer &mdash; the branch, a single commit or the uncommitted changes, a
@@ -459,7 +459,7 @@ columns[#columns + 1] = { slot = "center" }</code></pre>
     </tr>
     <tr>
       <td>
-        <a href="https://github.com/Thurbeen/thurbox-info-panel" target="_blank" rel="noopener">thurbox-info-panel</a>
+        <a href="https://github.com/zatzk/talos-info-panel" target="_blank" rel="noopener">talos-info-panel</a>
       </td>
       <td>
         An info panel &mdash; session, git, agent, usage and system readouts in a column beside
@@ -473,10 +473,10 @@ columns[#columns + 1] = { slot = "center" }</code></pre>
 <p>
   Both carry more than a single Lua file, so both install by cloning:
 </p>
-<pre data-wrap><code class="language-bash">thurbox-cli plugin install git+https://github.com/Thurbeen/thurbox-code-review
-thurbox-cli plugin install git+https://github.com/Thurbeen/thurbox-info-panel</code></pre>
+<pre data-wrap><code class="language-bash">talos-cli plugin install git+https://github.com/zatzk/talos-code-review
+talos-cli plugin install git+https://github.com/zatzk/talos-info-panel</code></pre>
 <p>
-  Neither is bundled and neither is vendored into thurbox, which is the point: they are ordinary
+  Neither is bundled and neither is vendored into talos, which is the point: they are ordinary
   panes on the same terms as one you write, recorded in your
   <code>plugins.toml</code>
   and pinned by your

@@ -12,15 +12,15 @@ use std::sync::Mutex;
 use anyhow::{bail, Result};
 
 /// Dedicated tmux socket name for an instance running out of the **default**
-/// data dir — isolates thurbox sessions from the user's tmux. Dev builds use
-/// "thurbox-dev" to avoid interfering with an installed release binary. An
-/// instance relocated by `THURBOX_DATA_DIR` derives its own name from this one
+/// data dir — isolates talos sessions from the user's tmux. Dev builds use
+/// "talos-dev" to avoid interfering with an installed release binary. An
+/// instance relocated by `TALOS_DATA_DIR` derives its own name from this one
 /// (`derived_socket`). Also the last-resort fallback when a host's
 /// configured socket sanitizes to empty in psmux's hook command.
 pub const TMUX_SOCKET: &str = if cfg!(dev_build) {
-    "thurbox-dev"
+    "talos-dev"
 } else {
-    "thurbox"
+    "talos"
 };
 
 /// Env var overriding the **local** multiplexer socket name. Wins over the
@@ -31,23 +31,23 @@ pub const TMUX_SOCKET: &str = if cfg!(dev_build) {
 /// private directory, but psmux (native Windows) has no socket-directory
 /// concept — every `-L <name>` resolves machine-wide, so without this override
 /// a scoped test on Windows would share (and could tear down) the user's real
-/// `thurbox`/`thurbox-dev` server. Remote hosts are unaffected (their socket
+/// `talos`/`talos-dev` server. Remote hosts are unaffected (their socket
 /// comes from `hosts.toml`).
-pub const SOCKET_OVERRIDE_ENV: &str = "THURBOX_SOCKET";
+pub const SOCKET_OVERRIDE_ENV: &str = "TALOS_SOCKET";
 
 /// Env var naming the **data directory** the injected [`SOCKET_OVERRIDE_ENV`]
-/// belongs to. Written beside it by `session_ops::thurbox_env_overrides`, and
+/// belongs to. Written beside it by `session_ops::talos_env_overrides`, and
 /// read here to tell an inherited socket from an operator's own.
 ///
 /// Without the pairing, a socket is a bare string with no owner, and the
 /// override above wins unconditionally — including in the one case that must
-/// not: thurbox injects the socket into every pane it spawns, so a sandbox, a
-/// test harness or an agent that relocates itself with `THURBOX_DATA_DIR`
+/// not: talos injects the socket into every pane it spawns, so a sandbox, a
+/// test harness or an agent that relocates itself with `TALOS_DATA_DIR`
 /// *inside* such a pane inherits a name pointing at the operator's server. The
 /// database is then isolated and the tmux server is not, which is worse than no
 /// isolation at all because it looks contained. An override with no owner is
 /// still honoured outright: that is somebody typing it.
-pub const SOCKET_OWNER_ENV: &str = "THURBOX_SOCKET_FOR";
+pub const SOCKET_OWNER_ENV: &str = "TALOS_SOCKET_FOR";
 
 /// The local multiplexer socket name — see [`socket_for`] for the precedence.
 pub(crate) fn local_socket() -> String {
@@ -124,24 +124,24 @@ fn fnv1a32(bytes: &[u8]) -> u32 {
     hash
 }
 
-/// The socket name this instance's local sessions live on — what `thurbox-cli
+/// The socket name this instance's local sessions live on — what `talos-cli
 /// version --json` reports so a peer attaching over ssh joins the right server,
 /// and so an integrator never has to guess the name. Resolved, not constant:
-/// an instance relocated by `THURBOX_DATA_DIR` runs on its own socket (see
+/// an instance relocated by `TALOS_DATA_DIR` runs on its own socket (see
 /// `socket_for`).
 pub fn local_socket_name() -> String {
     local_socket()
 }
 
-/// Socket names learned from a host's own `thurbox-cli` (`version --json`'s
+/// Socket names learned from a host's own `talos-cli` (`version --json`'s
 /// `tmux_socket`), keyed by the host's machine (`ssh:<name>`), not by route:
-/// the name is the host thurbox's *instance* address (ADR-12), derived from
+/// the name is the host talos's *instance* address (ADR-12), derived from
 /// its data directory, and every multiplexer that instance drives there runs
 /// under it. So a socket learned while driving tmux on a host is the one its
 /// psmux or rmux sessions use too. A host entry with no explicit
 /// `socket` uses *this* build's socket name by default, which is wrong exactly
 /// when the flavours differ — a dev laptop against a release host would attach
-/// to an empty `thurbox-dev` server while the host's sessions sit on `thurbox`.
+/// to an empty `talos-dev` server while the host's sessions sit on `talos`.
 /// `session_ops::host_cli` records what the host said; [`host_socket`] and every
 /// backend built for that host consult it at use, so a backend constructed at
 /// startup follows the host once it has been asked.
@@ -173,7 +173,7 @@ pub(crate) fn learned_host_socket(backend_name: &str) -> Option<String> {
 /// `socket` override, else what its own CLI reported, else the compile-time
 /// default. Deliberately **not** this process's own local socket: a relocation
 /// here moves *our* sessions, while the host's sessions live wherever the
-/// thurbox on that host put them — which is what [`learn_host_socket`] records.
+/// talos on that host put them — which is what [`learn_host_socket`] records.
 /// Single source of truth shared by the adapters built for a host and the psmux
 /// hook-signal rewrite (which must bake the socket into the command — psmux has
 /// no `$TMUX`-style in-pane socket resolution to rely on).
@@ -187,13 +187,13 @@ pub fn host_socket(host: &crate::session::HostDef) -> String {
 /// The socket a remote operation on `host` may act on, or why it must not act
 /// at all.
 ///
-/// A host that runs a thurbox of its own owns the socket its sessions live on:
+/// A host that runs a talos of its own owns the socket its sessions live on:
 /// its `hosts.toml` override, or what its CLI reported ([`learn_host_socket`]).
 /// This build's compile-time default is a guess about somebody else's machine —
-/// a dev build would aim at `thurbox-dev` while the host's release binary runs
-/// `thurbox`, and a host with a relocated data dir derives a name of its own —
+/// a dev build would aim at `talos-dev` while the host's release binary runs
+/// `talos`, and a host with a relocated data dir derives a name of its own —
 /// so a teardown refuses rather than acting on it. With sharing off nothing but
-/// this thurbox writes there, so the default is ours by construction.
+/// this talos writes there, so the default is ours by construction.
 pub(crate) fn known_host_socket(host: &crate::session::HostDef) -> Result<String> {
     if let Some(socket) = host
         .socket
@@ -206,9 +206,9 @@ pub(crate) fn known_host_socket(host: &crate::session::HostDef) -> Result<String
         return Ok(TMUX_SOCKET.to_string());
     }
     bail!(
-        "socket unknown for host '{}': it runs a thurbox of its own and has not \
+        "socket unknown for host '{}': it runs a talos of its own and has not \
          reported which socket that is (set `socket` in hosts.toml, or make its \
-         thurbox-cli reachable)",
+         talos-cli reachable)",
         host.name
     )
 }
@@ -225,23 +225,23 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(host_socket(&learned), TMUX_SOCKET);
-        learn_host_socket(&learned, "thurbox");
-        assert_eq!(host_socket(&learned), "thurbox");
+        learn_host_socket(&learned, "talos");
+        assert_eq!(host_socket(&learned), "talos");
         let pinned = crate::session::HostDef {
             name: "pinned-socket-host".into(),
             destination: "me@h".into(),
             socket: Some("mine".into()),
             ..Default::default()
         };
-        learn_host_socket(&pinned, "thurbox");
+        learn_host_socket(&pinned, "talos");
         assert_eq!(host_socket(&pinned), "mine");
     }
 
     #[test]
     fn a_default_instance_keeps_the_build_socket() {
         // The backwards-compatibility guarantee: nothing about an operator's
-        // existing instance moves, including one whose `THURBOX_DATA_DIR`
-        // merely restates the default (which is what thurbox injects into
+        // existing instance moves, including one whose `TALOS_DATA_DIR`
+        // merely restates the default (which is what talos injects into
         // every session it spawns).
         assert_eq!(socket_for(None, None, None, None), TMUX_SOCKET);
     }
@@ -274,7 +274,7 @@ mod tests {
         );
         assert!(
             lab.starts_with(TMUX_SOCKET),
-            "still recognisable as thurbox's: {lab}"
+            "still recognisable as talos's: {lab}"
         );
         assert!(
             lab.chars()
@@ -307,12 +307,12 @@ mod tests {
     fn an_explicit_socket_wins_over_the_derivation() {
         assert_eq!(
             socket_for(
-                Some("thurbox-named".into()),
+                Some("talos-named".into()),
                 None,
                 Some(Path::new("/tmp/lab")),
                 Some(Path::new("/tmp/lab"))
             ),
-            "thurbox-named"
+            "talos-named"
         );
         // Empty is unset, and then the relocation still applies.
         assert_eq!(
@@ -334,25 +334,25 @@ mod tests {
     #[test]
     fn an_inherited_socket_is_dropped_once_the_data_dir_moves() {
         let lab = Path::new("/tmp/lab");
-        let home = Path::new("/home/me/.local/share/thurbox");
+        let home = Path::new("/home/me/.local/share/talos");
         // What a pane carries: the spawning instance's socket, tagged with the
         // data dir it belongs to. A child that stays put keeps it...
         assert_eq!(
-            socket_for(Some("thurbox".into()), Some(home), Some(home), None),
-            "thurbox"
+            socket_for(Some("talos".into()), Some(home), Some(home), None),
+            "talos"
         );
         // ...and one that relocates itself does not: the tag no longer names
         // where this instance's database is, so the name is somebody else's
         // server and the derivation has to run instead.
         assert_eq!(
-            socket_for(Some("thurbox".into()), Some(home), Some(lab), Some(lab)),
+            socket_for(Some("talos".into()), Some(home), Some(lab), Some(lab)),
             derived_socket(lab)
         );
         // An override with no tag at all is an operator naming a server
         // outright, which still wins over everything.
         assert_eq!(
-            socket_for(Some("thurbox-named".into()), None, Some(lab), Some(lab)),
-            "thurbox-named"
+            socket_for(Some("talos-named".into()), None, Some(lab), Some(lab)),
+            "talos-named"
         );
     }
 
@@ -362,15 +362,15 @@ mod tests {
         // tests reading `local_socket()`.
         //
         // The owner tag has to go first. `cargo test` runs inside a live
-        // thurbox session on any developer machine, and that session injects
-        // the pair — so an inherited `THURBOX_SOCKET_FOR` naming the operator's
+        // talos session on any developer machine, and that session injects
+        // the pair — so an inherited `TALOS_SOCKET_FOR` naming the operator's
         // data dir would make the override below read as inherited rather than
         // typed, and `local_socket()` would derive a socket instead of
         // honouring it.
         std::env::remove_var(SOCKET_OWNER_ENV);
-        std::env::set_var(SOCKET_OVERRIDE_ENV, "thurbox-lab-test");
-        assert_eq!(local_socket(), "thurbox-lab-test");
-        // Empty counts as unset — a sandbox script exporting `THURBOX_SOCKET=`
+        std::env::set_var(SOCKET_OVERRIDE_ENV, "talos-lab-test");
+        assert_eq!(local_socket(), "talos-lab-test");
+        // Empty counts as unset — a sandbox script exporting `TALOS_SOCKET=`
         // must not produce `-L ''`.
         std::env::set_var(SOCKET_OVERRIDE_ENV, "");
         assert_eq!(local_socket(), TMUX_SOCKET);

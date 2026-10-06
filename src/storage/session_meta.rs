@@ -1,9 +1,9 @@
 //! Per-session key/value metadata — the driver's own scratch space.
 //!
-//! Whoever is driving thurbox has identity of its own to keep beside a session:
+//! Whoever is driving talos has identity of its own to keep beside a session:
 //! a task id, a lease, a correlation key. Without somewhere to put it, that
 //! identity ends up encoded in the session *name*, which then has to be parsed,
-//! kept unique and kept inside the name-length limit — a shape thurbox should
+//! kept unique and kept inside the name-length limit — a shape talos should
 //! not force on anyone.
 //!
 //! Keys are namespaced by convention (`fm.*`, `gc.*`, `you.*`) so two drivers

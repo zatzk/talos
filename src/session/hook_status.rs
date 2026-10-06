@@ -3,7 +3,7 @@
 //! age, coverage and pane agreement that say how much to trust it.
 //!
 //! It lives in `session` rather than in either consumer because both the
-//! interface and `thurbox-cli` have to answer "what state is this session in",
+//! interface and `talos-cli` have to answer "what state is this session in",
 //! and while they each derived it themselves they answered different words for
 //! one row — an acknowledged turn was `idle` on screen and `done` on `session
 //! get` for the rest of the session's life. `session` is the pure module both
@@ -35,7 +35,7 @@
 //!   means one thing for `claude` and nothing at all for `aider`.
 //! - **Corroboration** — [`classify_foreground`]. What actually holds the
 //!   pane's tty, from the foreground process group. This is the only check that
-//!   can contradict a latched state, and the only way to see an agent thurbox
+//!   can contradict a latched state, and the only way to see an agent talos
 //!   never launched.
 //!
 //! Pure data and decisions: no process is run here, no file is read, and
@@ -52,13 +52,13 @@ use super::{AgentRegistry, HOOK_STATES};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HookDelivery {
     /// Args appended to the agent's launch command (`[[agent_patches]]`).
-    /// Wired at spawn, so it covers only agents thurbox itself launches.
+    /// Wired at spawn, so it covers only agents talos itself launches.
     Args,
     /// A reversible deep-merge into a config file the agent and its user share
     /// (`[[config_merges]]`) — JSON, or TOML for an agent whose shared config is
     /// TOML (kimi).
     ConfigMerge,
-    /// A standalone thurbox-managed file dropped into the agent's own config
+    /// A standalone talos-managed file dropped into the agent's own config
     /// directory (`[[external_files]]`).
     File,
 }
@@ -161,14 +161,14 @@ pub const AGENT_HOOK_COVERAGE: &[AgentHookCoverage] = &[
         agent: "opencode",
         states: &["working", "blocked", "done", "idle"],
         delivery: HookDelivery::File,
-        hook_file: Some("~/.config/opencode/plugin/thurbox-status.js"),
+        hook_file: Some("~/.config/opencode/plugin/talos-status.js"),
         blocked_is_heuristic: false,
     },
     AgentHookCoverage {
         agent: "copilot",
         states: &["working", "blocked", "done", "idle"],
         delivery: HookDelivery::File,
-        hook_file: Some("~/.copilot/hooks/thurbox-status.json"),
+        hook_file: Some("~/.copilot/hooks/talos-status.json"),
         blocked_is_heuristic: false,
     },
     AgentHookCoverage {
@@ -182,21 +182,21 @@ pub const AGENT_HOOK_COVERAGE: &[AgentHookCoverage] = &[
         agent: "pi",
         states: &["working", "blocked", "done", "idle"],
         delivery: HookDelivery::File,
-        hook_file: Some("~/.pi/agent/extensions/thurbox-status.ts"),
+        hook_file: Some("~/.pi/agent/extensions/talos-status.ts"),
         blocked_is_heuristic: false,
     },
     AgentHookCoverage {
         agent: "omp",
         states: &["working", "blocked", "done", "idle"],
         delivery: HookDelivery::File,
-        hook_file: Some("~/.omp/agent/extensions/thurbox-status.ts"),
+        hook_file: Some("~/.omp/agent/extensions/talos-status.ts"),
         blocked_is_heuristic: false,
     },
     AgentHookCoverage {
         agent: "grok",
         states: &["working", "blocked", "done", "idle"],
         delivery: HookDelivery::File,
-        hook_file: Some("~/.grok/hooks/thurbox-status.json"),
+        hook_file: Some("~/.grok/hooks/talos-status.json"),
         // grok is claude-shaped, including the `Notification` text match.
         blocked_is_heuristic: true,
     },
@@ -247,7 +247,7 @@ impl CoverageSource {
 /// extension resolves it: by the agent's own name, else by the `hook_schema`
 /// family the user asserted for it.
 ///
-/// `None` means **uninstrumented** — thurbox ships no hook payload for this
+/// `None` means **uninstrumented** — talos ships no hook payload for this
 /// agent and the user asserted no family, so it can report nothing at all. That
 /// is a different fact from "idle", and the whole reason this returns an
 /// `Option` rather than an empty state list.
@@ -270,7 +270,7 @@ pub fn coverage_for(
 /// `Partial` is the honest middle: `aider` reports `blocked` and nothing else,
 /// so its silence about `working` carries no information.
 ///
-/// `Full` and `Partial` are both claims about wiring thurbox *declared* — the
+/// `Full` and `Partial` are both claims about wiring talos *declared* — the
 /// row's own agent, or the family a `hook_schema` asserted. `Presumed` is the
 /// fourth word for the one case where neither name answers and the pane does:
 /// see [`Coverage::presumed`].
@@ -278,7 +278,7 @@ pub fn coverage_for(
 pub enum Coverage {
     Full,
     Partial,
-    /// The states below belong to an agent thurbox **observed** in the pane
+    /// The states below belong to an agent talos **observed** in the pane
     /// rather than one the row declares, so they say what that agent's payload
     /// *would* report — not that anything installed it.
     ///
@@ -326,7 +326,7 @@ impl Coverage {
 /// Resolved by name alone, unlike [`coverage_for`]: the name in a
 /// [`Corroboration::ForeignAgent`] came from matching a process against the
 /// registry, and a `hook_schema` an entry asserts is a claim about the agent
-/// thurbox would *launch* under that name — not about a process a foreign
+/// talos would *launch* under that name — not about a process a foreign
 /// driver started, which is all this has seen.
 pub fn coverage_of_detected(agent: &str) -> Option<&'static AgentHookCoverage> {
     AGENT_HOOK_COVERAGE.iter().find(|c| c.agent == agent)
@@ -351,14 +351,14 @@ pub enum Corroboration {
     /// The foreground process is the session's own agent.
     Agent,
     /// The foreground process is *a* known agent, but not the one this session
-    /// was created with — an agent some driver started inside a pane thurbox
+    /// was created with — an agent some driver started inside a pane talos
     /// opened for something else (typically a bare shell). The session is
     /// running an agent whether or not it ever signalled.
     ///
     /// Carries the registry **name** of the agent that was found, which is the
     /// whole reason a driver-launched session can be labelled at all: the
     /// answer used to be computed and thrown away, leaving every surface to
-    /// say "some agent" about a pane thurbox could name. Not `Copy` for it,
+    /// say "some agent" about a pane talos could name. Not `Copy` for it,
     /// which is the price of the payload and is paid once here.
     ///
     /// `None` when the executable is one **several** registered profiles
@@ -603,7 +603,7 @@ fn is_assignment(token: &str) -> bool {
 /// `agent_command` is the session's own agent binary (`AgentDef::command`, not
 /// the agent *name* — `antigravity` runs `agy`). `registry` is every agent the
 /// user has defined, which is what makes an externally-launched agent visible:
-/// thurbox wires no hooks for a session whose agent is `bash`, but if `claude`
+/// talos wires no hooks for a session whose agent is `bash`, but if `claude`
 /// is in the registry and `claude` holds the pane, an agent is running. The
 /// whole registry rather than a list of commands, so the answer can be
 /// reported under the *name* a person configured (`antigravity`, not `agy`).
@@ -686,7 +686,7 @@ pub fn contradicts(state: Option<&str>, corroboration: &Corroboration) -> bool {
 /// Where a session's reported state came from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StateSource {
-    /// An agent lifecycle hook called `thurbox-cli session signal`, or the
+    /// An agent lifecycle hook called `talos-cli session signal`, or the
     /// remote pane-option channel that stands in for it.
     Hook,
     /// Nothing signalled, but the pane's foreground process is an agent. Coarse
@@ -706,13 +706,13 @@ impl StateSource {
 /// The one word every surface answers with, and the whole vocabulary of them.
 ///
 /// Four of these are [`HOOK_STATES`] — the agent's own report, verbatim. The
-/// rest are thurbox's own, and each is spelled apart from `idle` deliberately:
+/// rest are talos's own, and each is spelled apart from `idle` deliberately:
 /// collapsing "nothing here is wired to report" or "the host is gone" into
 /// "the agent says it is at rest" is the conflation this whole module exists
 /// to prevent.
 ///
 /// Every surface derives through this enum — `session get`, `session list`,
-/// `thurbox-cli watch`, `thurbox-cli` bare and the interface's own session
+/// `talos-cli watch`, `talos-cli` bare and the interface's own session
 /// list — so a driver reconciling two of them never has to reconcile two
 /// vocabularies. The read-time rules that produce it are [`derive_state`],
 /// [`with_output_quiescence`] and [`with_reachability`]; a caller applies the
@@ -733,7 +733,7 @@ pub enum SessionState {
     /// It outranks everything else here for the sharpest version of the reason
     /// the two silences below exist: a parked session has no process at all, so
     /// *every* other word would describe an agent that is not running. It is
-    /// also the one state thurbox knows first-hand rather than infers.
+    /// also the one state talos knows first-hand rather than infers.
     Stopped,
     /// A remote session whose host cannot be reached. The row stands; the
     /// machine behind it does not, and the hook columns just hold its last
@@ -1000,7 +1000,7 @@ pub struct Assessment {
     pub state: Option<SessionState>,
     pub state_source: Option<StateSource>,
     /// Parked by `session stop`: the row and its checkout stand, the pane does
-    /// not. Set by [`Self::parked`], and the one fact here that is thurbox's
+    /// not. Set by [`Self::parked`], and the one fact here that is talos's
     /// own rather than the agent's or the pane's.
     pub stopped: bool,
     /// The agent every answer above was resolved against.
@@ -1116,7 +1116,7 @@ impl Assessment {
     ///
     /// The stored state is left exactly as it was; the observation only adds
     /// [`Self::contradicted`], and only fills [`Self::state`] when nothing ever
-    /// signalled (an agent thurbox did not launch, and so never wired).
+    /// signalled (an agent talos did not launch, and so never wired).
     pub fn with_pane(
         mut self,
         agent_command: &str,
@@ -1206,7 +1206,7 @@ impl Assessment {
     /// "the best answer available" for a session that is *running*, and a
     /// parked one is not. `hook_state` stays exactly as stored, because a
     /// consumer reading that column reads the agent's last word verbatim and
-    /// nothing here may launder thurbox's own fact into it.
+    /// nothing here may launder talos's own fact into it.
     pub fn parked(mut self) -> Self {
         self.stopped = true;
         self.state = None;
@@ -1548,7 +1548,7 @@ mod tests {
         assert_eq!(coverage.agent, "claude");
         assert_eq!(source, CoverageSource::BySchema);
 
-        // An asserted family that thurbox ships no payload for buys nothing.
+        // An asserted family that talos ships no payload for buys nothing.
         let reg = registry(vec![agent("fleet", "fleet", Some("nonesuch"))]);
         assert!(coverage_for(&reg, "fleet").is_none());
     }
@@ -1653,9 +1653,9 @@ mod tests {
     }
 
     #[test]
-    fn an_agent_thurbox_did_not_launch_is_still_seen() {
+    fn an_agent_talos_did_not_launch_is_still_seen() {
         // The externally-driven shape: the session's agent is a bare shell (so
-        // thurbox wired no hooks and nothing ever signalled), and a driver
+        // talos wired no hooks and nothing ever signalled), and a driver
         // started a real agent inside the pane.
         let known = registry(vec![
             agent("shell", "bash", None),

@@ -14,8 +14,8 @@
 
 use ratatui::style::{Color, Modifier, Style};
 
-use thurbox::kernel::convert::{to_lua, to_node};
-use thurbox::kernel::node::{Identity, Node, Run};
+use talos::kernel::convert::{to_lua, to_node};
+use talos::kernel::node::{Identity, Node, Run};
 
 fn styled_tree() -> Node {
     Node::Text {
@@ -148,7 +148,7 @@ fn an_unstyled_run_stays_unstyled() {
 /// flattened to plain text.
 #[test]
 fn every_field_survives_the_trip_out_and_back() {
-    use thurbox::kernel::node::{
+    use talos::kernel::node::{
         Align, Axis, BorderKind, Borders, Frame, Overlay, Size, SurfaceSource,
     };
 

@@ -1,7 +1,7 @@
 ---
 layout: docs.njk
-title: 'Extensions — Thurbox Docs'
-description: 'Thurbox extensions: install, activate, deactivate, and self-heal opt-in, agent-agnostic add-ons with thurbox-cli, plus the extension.toml manifest format and how to author one.'
+title: 'Extensions — Talos Docs'
+description: 'Talos extensions: install, activate, deactivate, and self-heal opt-in, agent-agnostic add-ons with talos-cli, plus the extension.toml manifest format and how to author one.'
 currentPage: 'extensions'
 breadcrumb: 'Extensions'
 ---
@@ -11,8 +11,8 @@ breadcrumb: 'Extensions'
             <strong>agent-agnostic</strong>
             add-ons that
             <em>compose</em>
-            Thurbox through the public
-            <code>thurbox-cli</code>
+            Talos through the public
+            <code>talos-cli</code>
             surface &mdash; they never extend the binary. The core knows a declarative
             <strong>manifest format</strong>
             , never any specific extension, so the same machinery installs and manages any of them.
@@ -27,7 +27,7 @@ breadcrumb: 'Extensions'
             <code>extension.toml</code>
             manifest plus the files it ships (specs, scripts, config templates). One command
             installs it:
-            <code>thurbox-cli</code>
+            <code>talos-cli</code>
             fetches the manifest, lays the files down under a home directory, registers any agents
             the extension needs in
             <code>agents.toml</code>
@@ -48,12 +48,12 @@ breadcrumb: 'Extensions'
             <li>
               <strong>Self-healing.</strong>
               While an extension is active, deleting its session or automation is a no-op &mdash;
-              Thurbox recreates it. Deactivating is the real off-switch.
+              Talos recreates it. Deactivating is the real off-switch.
             </li>
           </ul>
           <div class="info-box">
             <p>
-              <strong>Two extensions ship with Thurbox, and both are built in.</strong>
+              <strong>Two extensions ship with Talos, and both are built in.</strong>
               Everything else you install yourself, from a URL, a local directory, or a git
               repository. The worked example is
               <a href="https://github.com/Thurbeen/fleet" target="_blank" rel="noopener">fleet</a>
@@ -67,7 +67,7 @@ breadcrumb: 'Extensions'
               <strong>Two extensions ship built in:</strong>
               <a href="agent-hooks.html">agent hooks</a>
               , which wires each agent's lifecycle hooks to
-              <code>thurbox-cli session signal</code>
+              <code>talos-cli session signal</code>
               so the session list shows working/blocked/done/idle, and
               <strong>ui-skill</strong>
               , which teaches whichever coding CLI you run
@@ -76,7 +76,7 @@ breadcrumb: 'Extensions'
               <strong>embedded in the binary and auto-activated</strong>
               &mdash; they still install through the same manifest machinery shown here. Turn either
               off with
-              <code>thurbox-cli extension deactivate &lt;name&gt;</code>
+              <code>talos-cli extension deactivate &lt;name&gt;</code>
               .
             </p>
           </div>
@@ -86,16 +86,16 @@ breadcrumb: 'Extensions'
             <a href="#install" class="heading-anchor">#</a>
           </h2>
           <p>Install an extension from a directory, a URL, or a git repository:</p>
-          <pre data-wrap><code class="language-bash">thurbox-cli extension install ./my-extension
-thurbox-cli extension install git+https://github.com/you/my-extension</code></pre>
+          <pre data-wrap><code class="language-bash">talos-cli extension install ./my-extension
+talos-cli extension install git+https://github.com/you/my-extension</code></pre>
           <p>
             That single command is the whole installer. It resolves the source, fetches the manifest
             and payload, writes them under the extension home (
-            <code>~/.config/thurbox/extensions/&lt;name&gt;</code>
+            <code>~/.config/talos/extensions/&lt;name&gt;</code>
             by default;
             <code>--home &lt;dir&gt;</code>
             to override), registers the extension's agents, writes the resolved manifest to
-            <code>~/.config/thurbox/extensions/&lt;name&gt;.toml</code>
+            <code>~/.config/talos/extensions/&lt;name&gt;.toml</code>
             , and activates it. It is idempotent &mdash; re-running refreshes shipped files while
             keeping your own data (seeded files you've edited, agent tweaks).
           </p>
@@ -106,7 +106,7 @@ thurbox-cli extension install git+https://github.com/you/my-extension</code></pr
           </h2>
           <p>
             All extension management lives under
-            <code>thurbox-cli extension</code>
+            <code>talos-cli extension</code>
             (alias
             <code>ext</code>
             ):
@@ -211,12 +211,12 @@ thurbox-cli extension install git+https://github.com/you/my-extension</code></pr
               <code>main</code>
               ), so a fetched extension always matches the binary reading it.
               <strong>Nothing ships under a bare name today:</strong>
-              the only extensions in the Thurbox repository are the two built-ins, which install
+              the only extensions in the Talos repository are the two built-ins, which install
               themselves.
             </li>
           </ul>
-          <pre data-wrap><code class="language-bash">thurbox-cli extension install ./my-extension
-thurbox-cli extension install https://example.com/ext/my-extension --home ~/work/ext</code></pre>
+          <pre data-wrap><code class="language-bash">talos-cli extension install ./my-extension
+talos-cli extension install https://example.com/ext/my-extension --home ~/work/ext</code></pre>
           <div class="info-box">
             <p>
               <strong>Safety:</strong>
@@ -235,14 +235,14 @@ thurbox-cli extension install https://example.com/ext/my-extension --home ~/work
           <p>
             An installed extension is recorded in an
             <strong>active set</strong>
-            . On TUI startup and on every automation tick, Thurbox re-ensures each active
+            . On TUI startup and on every automation tick, Talos re-ensures each active
             extension's declared sessions and automations exist &mdash; so deleting them by hand
             (TUI
             <code>Ctrl+D</code>
             , a
             <code>clean</code>
             , or
-            <code>thurbox-cli session/automation delete</code>
+            <code>talos-cli session/automation delete</code>
             ) is a no-op: they come back. This is what makes an extension hard to half-remove by
             accident.
           </p>
@@ -287,7 +287,7 @@ thurbox-cli extension install https://example.com/ext/my-extension --home ~/work
             ; the rest is illustrative, so every field the format supports appears once.
           </p>
           <pre data-title="extension.toml"><code class="language-toml">name = "fleet"
-description = "Control-plane session: the repo map and thurbox orchestration"
+description = "Control-plane session: the repo map and talos orchestration"
 config_version = 1
 # home = "~/fleet"              # OPTIONAL; default is under the config dir
                                 # ({home} is substituted everywhere it appears)
@@ -411,7 +411,7 @@ prompt = "tick"</code></pre>
             </li>
             <li>
               Build the behavior on the
-              <code>thurbox-cli</code>
+              <code>talos-cli</code>
               surface (
               <code>session</code>
               ,
@@ -422,7 +422,7 @@ prompt = "tick"</code></pre>
             </li>
             <li>
               Test locally with
-              <code>thurbox-cli extension install ./your-ext</code>
+              <code>talos-cli extension install ./your-ext</code>
               , then publish it &mdash; a git repository is the usual home, and
               <code>install git+https://&hellip;</code>
               clones it.
@@ -432,7 +432,7 @@ prompt = "tick"</code></pre>
             For the exact config-file locations and the metadata key that tracks active extensions,
             see the
             <a
-              href="https://github.com/Thurbeen/thurbox/blob/main/docs/CONFIG.md"
+              href="https://github.com/zatzk/talos/blob/main/docs/CONFIG.md"
               target="_blank"
               rel="noopener"
             >
@@ -446,7 +446,7 @@ prompt = "tick"</code></pre>
             <a href="#catalog" class="heading-anchor">#</a>
           </h2>
           <p>
-            Two ship with Thurbox and are on by default; anything else you install yourself.
+            Two ship with Talos and are on by default; anything else you install yourself.
           </p>
 
           <h3 class="docs-hub-category" id="cat-built-in">Built in</h3>
@@ -460,7 +460,7 @@ prompt = "tick"</code></pre>
                 <h3>agent hooks <span class="badge badge-green">built in</span></h3>
                 <p>
                   Wires each agent's lifecycle hooks to
-                  <code>thurbox-cli session signal</code>
+                  <code>talos-cli session signal</code>
                   so every session reports working/blocked/done/idle. Embedded and on by default.
                 </p>
               </div>
@@ -471,7 +471,7 @@ prompt = "tick"</code></pre>
                 <h3>ui-skill <span class="badge badge-green">built in</span></h3>
                 <p>
                   Installs a
-                  <code>thurbox-ui</code>
+                  <code>talos-ui</code>
                   skill into whichever coding CLIs you have, so an agent in any session knows how
                   to edit the interface. Embedded and on by default.
                 </p>
@@ -500,7 +500,7 @@ prompt = "tick"</code></pre>
                   <code>fleet</code>
                   session. The
                   <a
-                    href="https://github.com/Thurbeen/thurbox/blob/main/docs/ORCHESTRATION.md"
+                    href="https://github.com/zatzk/talos/blob/main/docs/ORCHESTRATION.md"
                     target="_blank"
                     rel="noopener"
                     >orchestration guide</a

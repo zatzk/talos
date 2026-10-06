@@ -1,11 +1,11 @@
-//! `thurbox-cli agent` — read the registry a session's launch is resolved from.
+//! `talos-cli agent` — read the registry a session's launch is resolved from.
 //!
-//! Read-only, and one verb: what thurbox would run to start a registered agent.
+//! Read-only, and one verb: what talos would run to start a registered agent.
 //!
 //! It exists because the status hooks that make `state` and `watch` work are
 //! *arguments*. The `hooks` extension installs them by appending to an agent's
 //! `args` in `agents.toml` (`--settings <hooks>.json` for claude), so they only
-//! reach the process when thurbox builds the command line. A driver that
+//! reach the process when talos builds the command line. A driver that
 //! launches the agent itself — through `session create --command`, or by typing
 //! into a shell session — had no way to obtain them, so its sessions reported
 //! nothing and `watch` never mentioned them. That is exactly the integrator
@@ -21,15 +21,15 @@ use crate::storage::Database;
 
 #[derive(Subcommand, Debug)]
 pub enum Action {
-    /// Print how thurbox would launch a registered agent: `command`, `args`,
+    /// Print how talos would launch a registered agent: `command`, `args`,
     /// `env`.
     ///
     /// Pass the args through and the agent's status hooks fire, so the session
     /// reports `state` and appears in `watch` — which is the whole reason to
-    /// ask. Without `--session` the environment names this thurbox instance
+    /// ask. Without `--session` the environment names this talos instance
     /// (config dir, data dir, multiplexer socket) and nothing more; with it,
     /// the agent's conversation id is pinned to that session's and the
-    /// `THURBOX_*` identity its `session signal` needs is included.
+    /// `TALOS_*` identity its `session signal` needs is included.
     ///
     /// This is a fresh launch, never a resume: continuing an existing
     /// conversation is `session start` / `session restart`.
@@ -93,9 +93,9 @@ pub fn run(
                 human,
             )
             .help([
-                "thurbox-cli agent launch-args <name> --session <ref>   with that session's identity",
-                "thurbox-cli session create --name x --repo-path . --command <command> --arg <arg>   run it as a session",
-                "thurbox-cli session doctor <ref>   whether its reports are arriving",
+                "talos-cli agent launch-args <name> --session <ref>   with that session's identity",
+                "talos-cli session create --name x --repo-path . --command <command> --arg <arg>   run it as a session",
+                "talos-cli session doctor <ref>   whether its reports are arriving",
             ]))
         }
     }
@@ -151,8 +151,8 @@ args = ["-i"]
         assert_eq!(out["command"], json!("claude"));
         assert_eq!(out["args"], json!(["--settings", "/opt/hooks/claude.json"]));
         // No session, so no identity to lend — and saying nothing is right:
-        // an empty THURBOX_SESSION would report for no session at all.
-        assert!(out["env"]["THURBOX_SESSION"].is_null());
+        // an empty TALOS_SESSION would report for no session at all.
+        assert!(out["env"]["TALOS_SESSION"].is_null());
         assert!(out["session_id"].is_null());
     }
 

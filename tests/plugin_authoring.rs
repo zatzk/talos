@@ -4,17 +4,17 @@
 //! do I write, what do I start from, will it load — answered the way a script or
 //! an agent would ask it: through the command, reading its output and its exit.
 //!
-//! `THURBOX_UI_DIR` is set per test. nextest runs a process per test, so the
+//! `TALOS_UI_DIR` is set per test. nextest runs a process per test, so the
 //! override cannot leak between them.
 
-use thurbox::cli::plugins::{run, Action};
+use talos::cli::plugins::{run, Action};
 
 /// Keep plugin checks independent of the operator's saved keybinding overrides.
 fn at(dir: &std::path::Path) -> std::path::PathBuf {
     let ui = dir.join("ui");
     std::fs::create_dir_all(&ui).expect("mkdir");
-    std::env::set_var("THURBOX_CONFIG_DIR", dir);
-    std::env::set_var("THURBOX_UI_DIR", &ui);
+    std::env::set_var("TALOS_CONFIG_DIR", dir);
+    std::env::set_var("TALOS_UI_DIR", &ui);
     ui
 }
 
@@ -31,7 +31,7 @@ fn checkout_ui() -> std::path::PathBuf {
 fn shipped_menu_and_click_actions_are_in_the_catalog() {
     let home = tempfile::tempdir().expect("tempdir");
     at(home.path());
-    std::env::set_var("THURBOX_UI_DIR", checkout_ui());
+    std::env::set_var("TALOS_UI_DIR", checkout_ui());
     let report = json(Action::Check);
     assert_eq!(report["ok"], true, "{report}");
     for warning in report["warnings"].as_array().expect("warnings") {
@@ -62,7 +62,7 @@ fn the_directory_report_names_the_rule_that_chose_it() {
         report["reason"]
             .as_str()
             .unwrap_or_default()
-            .contains("THURBOX_UI_DIR"),
+            .contains("TALOS_UI_DIR"),
         "{report}"
     );
 }
@@ -71,15 +71,15 @@ fn the_directory_report_names_the_rule_that_chose_it() {
 fn standing_in_a_checkout_does_not_silently_load_its_interface() {
     // There used to be an automatic rule: a `./ui` beside the working directory
     // won. It made the interface the ONE config that ignored the
-    // `thurbox`/`thurbox-dev` split — `cargo run` in the repository read
-    // `~/.config/thurbox-dev` for agents, settings, themes and the database, and
+    // `talos`/`talos-dev` split — `cargo run` in the repository read
+    // `~/.config/talos-dev` for agents, settings, themes and the database, and
     // the checkout for its panes, with nothing on screen saying which. Editing a
-    // checkout's interface is an explicit `THURBOX_UI_DIR` now.
-    std::env::remove_var("THURBOX_UI_DIR");
-    // Point the CONFIG dir at a tempdir, not `THURBOX_UI_DIR` — the whole claim is
+    // checkout's interface is an explicit `TALOS_UI_DIR` now.
+    std::env::remove_var("TALOS_UI_DIR");
+    // Point the CONFIG dir at a tempdir, not `TALOS_UI_DIR` — the whole claim is
     // that the user's copy is what resolves, so the override must stay unset.
     let home = tempfile::tempdir().expect("tempdir");
-    std::env::set_var("THURBOX_CONFIG_DIR", home.path());
+    std::env::set_var("TALOS_CONFIG_DIR", home.path());
     let repo = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     std::env::set_current_dir(&repo).expect("cd");
     assert!(
@@ -88,7 +88,7 @@ fn standing_in_a_checkout_does_not_silently_load_its_interface() {
     );
 
     let report = json(Action::Dir);
-    std::env::remove_var("THURBOX_CONFIG_DIR");
+    std::env::remove_var("TALOS_CONFIG_DIR");
     assert_eq!(
         report["chosen"], "user-copy",
         "standing in the repository must not change which interface loads: {report}"
@@ -110,7 +110,7 @@ fn an_override_at_a_checkout_is_reported_as_the_checkout() {
     // recognises rather than for the mechanism that delivered it.
     let repo = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     std::env::set_current_dir(&repo).expect("cd");
-    std::env::set_var("THURBOX_UI_DIR", repo.join("ui"));
+    std::env::set_var("TALOS_UI_DIR", repo.join("ui"));
 
     let report = json(Action::Dir);
     assert_eq!(report["chosen"], "checkout", "{report}");
@@ -124,7 +124,7 @@ fn an_override_at_a_checkout_is_reported_as_the_checkout() {
         repo.join("ui").display().to_string(),
         "{report}"
     );
-    std::env::remove_var("THURBOX_UI_DIR");
+    std::env::remove_var("TALOS_UI_DIR");
 }
 
 #[test]
@@ -149,9 +149,9 @@ fn an_override_that_is_not_there_is_an_error_naming_it() {
     // for; the TUI refuses to start for the same reason.
     let home = tempfile::tempdir().expect("tempdir");
     let missing = home.path().join("nowhere");
-    std::env::set_var("THURBOX_UI_DIR", &missing);
+    std::env::set_var("TALOS_UI_DIR", &missing);
     let error = run(Action::Dir).expect_err("must refuse");
-    assert!(error.contains("THURBOX_UI_DIR"), "{error}");
+    assert!(error.contains("TALOS_UI_DIR"), "{error}");
     assert!(error.contains("nowhere"), "{error}");
 }
 
@@ -241,7 +241,7 @@ fn a_name_that_would_escape_the_directory_is_refused() {
 
 #[test]
 fn the_shipped_interface_checks_out() {
-    std::env::set_var("THURBOX_UI_DIR", checkout_ui());
+    std::env::set_var("TALOS_UI_DIR", checkout_ui());
     let checked = json(Action::Check);
     assert_eq!(checked["ok"], true, "{checked}");
     // Every bundled pane, by name — this is also what catches a bundled file that
@@ -318,7 +318,7 @@ fn a_pane_nothing_places_is_a_failure_that_says_what_to_add() {
 fn the_listing_does_not_report_working_panes_as_unplaced() {
     let home = tempfile::tempdir().expect("tempdir");
     let ui = at(home.path());
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
 
     let state_of = |listing: &serde_json::Value, name: &str| -> String {
         listing["files"]
@@ -366,7 +366,7 @@ fn the_listing_does_not_report_working_panes_as_unplaced() {
 fn the_listing_reports_the_name_that_commands_accept() {
     let home = tempfile::tempdir().expect("tempdir");
     let ui = at(home.path());
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
 
     // A managed pane whose file stem differs from its directory and from its
     // declared name — the shape that made the two disagree.
@@ -376,12 +376,12 @@ fn the_listing_reports_the_name_that_commands_accept() {
         "return { name = \"thing\", slot = \"center\",          render = function() return { type = \"text\", text = \"x\" } end }\n",
     )
     .expect("pane");
-    let entry = thurbox::session::PluginEntry {
+    let entry = talos::session::PluginEntry {
         src: "git+https://example.com/vendor-tree".into(),
         file: "vendor-tree/plugins/40_thing.lua".into(),
         pin: None,
     };
-    thurbox::kernel::packages::add_to_spec(&ui, &entry).expect("spec");
+    talos::kernel::packages::add_to_spec(&ui, &entry).expect("spec");
 
     let listing = json(Action::List);
     let row = listing["files"]
@@ -440,7 +440,7 @@ fn a_pane_the_user_turned_off_is_not_reported_as_unplaced() {
     // it anyway would report a failure the interface does not have. Removing the
     // slot from the arrangement is the CORRECT thing to do alongside it.
     let home = tempfile::tempdir().expect("tempdir");
-    std::env::set_var("THURBOX_CONFIG_DIR", home.path());
+    std::env::set_var("TALOS_CONFIG_DIR", home.path());
     let ui = at(home.path());
     run(Action::New {
         name: "notes".into(),
@@ -456,13 +456,13 @@ fn a_pane_the_user_turned_off_is_not_reported_as_unplaced() {
     assert!(on.failure.is_some(), "{:?}", on.json);
 
     // … and not a failure once it is off.
-    let mut registry = thurbox::kernel::registry::Registry::load();
+    let mut registry = talos::kernel::registry::Registry::load();
     registry
         .set_disabled(&file.to_string_lossy(), true)
         .expect("disable");
 
     let off = run(Action::Check).expect("check runs");
-    std::env::remove_var("THURBOX_CONFIG_DIR");
+    std::env::remove_var("TALOS_CONFIG_DIR");
     assert!(off.failure.is_none(), "{:?}", off.json);
     assert!(
         !off.json["loaded"].to_string().contains("notes"),
@@ -502,7 +502,7 @@ fn an_interface_with_no_panes_is_reported_not_failed() {
     let ui = at(home.path());
     std::fs::create_dir_all(ui.join("plugins")).expect("mkdir");
     // `layout.lua` and `lib/` are what the host needs; no plugins at all.
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
     for entry in std::fs::read_dir(ui.join("plugins")).expect("read plugins") {
         std::fs::remove_file(entry.expect("entry").path()).expect("remove");
     }
@@ -528,29 +528,29 @@ fn the_listing_tells_a_file_you_installed_from_one_you_wrote() {
     // the same answer.
     let home = tempfile::tempdir().expect("tempdir");
     let ui = at(home.path());
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
     std::fs::write(ui.join("plugins").join("90_mine.lua"), "return {}\n").expect("write");
 
-    let entry = thurbox::session::PluginEntry {
+    let entry = talos::session::PluginEntry {
         src: "atlas".into(),
         file: "plugins/75_atlas.lua".into(),
         pin: Some("v0.3.1".into()),
     };
-    let mut lock = thurbox::session::PluginLock::default();
-    thurbox::kernel::packages::deliver(
+    let mut lock = talos::session::PluginLock::default();
+    talos::kernel::packages::deliver(
         &ui,
         &entry,
         "https://example.com/atlas",
         "v0.3.1",
-        &[thurbox::kernel::packages::Payload {
+        &[talos::kernel::packages::Payload {
             file: "plugins/75_atlas.lua".into(),
             contents: "return {}\n".into(),
         }],
         &mut lock,
     )
     .expect("deliver");
-    thurbox::kernel::packages::write_lock(&ui, &lock).expect("write lock");
-    thurbox::kernel::packages::add_to_spec(&ui, &entry).expect("add to spec");
+    talos::kernel::packages::write_lock(&ui, &lock).expect("write lock");
+    talos::kernel::packages::add_to_spec(&ui, &entry).expect("add to spec");
 
     let listing = json(Action::List);
     let row = |file: &str| -> serde_json::Value {
@@ -595,7 +595,7 @@ fn the_listing_tells_a_file_you_installed_from_one_you_wrote() {
 fn the_listing_tells_a_shipped_file_from_an_edited_one() {
     let home = tempfile::tempdir().expect("tempdir");
     let ui = at(home.path());
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
 
     let before = json(Action::List);
     let files = before["files"].to_string();
@@ -627,21 +627,21 @@ fn the_documented_example_is_a_plugin_that_loads() {
     // allowed to rot: this builds an interface out of it and renders it.
     let home = tempfile::tempdir().expect("tempdir");
     let ui = at(home.path());
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
     let example = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("examples")
         .join("lua")
         .join("plugin.lua");
     std::fs::copy(&example, ui.join("plugins").join("90_example.lua")).expect("copy");
 
-    let host = thurbox::kernel::host::LuaHost::new(&ui);
+    let host = talos::kernel::host::LuaHost::new(&ui);
     assert!(host.error.is_none(), "{:?}", host.error);
     let index = host.index_of("example").expect("the example did not load");
 
     let rendered = host
         .render(
             index,
-            thurbox::kernel::host::RenderContext {
+            talos::kernel::host::RenderContext {
                 width: 40,
                 height: 10,
                 focused: true,
@@ -664,21 +664,21 @@ fn the_composite_example_loads_and_declares_what_it_needs() {
     // loading, the claim that a complex pane is writable stops being true.
     let home = tempfile::tempdir().expect("tempdir");
     let ui = at(home.path());
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
     let example = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("examples")
         .join("lua")
         .join("composite.lua");
     std::fs::copy(&example, ui.join("plugins").join("95_composite.lua")).expect("copy");
 
-    let host = thurbox::kernel::host::LuaHost::new(&ui);
+    let host = talos::kernel::host::LuaHost::new(&ui);
     assert!(host.error.is_none(), "{:?}", host.error);
     let index = host
         .index_of("composite")
         .expect("the example did not load");
     assert_eq!(
         host.plugins[index].capabilities,
-        vec![thurbox::kernel::host::Capability::Run],
+        vec![talos::kernel::host::Capability::Run],
         "it must declare what it needs, or it would be granted nothing silently"
     );
 }
@@ -689,20 +689,20 @@ fn an_untrusted_composite_draws_how_to_trust_it_rather_than_failing() {
     // looks broken before you have done anything is a plugin nobody keeps.
     let home = tempfile::tempdir().expect("tempdir");
     let ui = at(home.path());
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
     let example = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("examples")
         .join("lua")
         .join("composite.lua");
     std::fs::copy(&example, ui.join("plugins").join("95_composite.lua")).expect("copy");
 
-    let host = thurbox::kernel::host::LuaHost::new(&ui);
+    let host = talos::kernel::host::LuaHost::new(&ui);
     // Nothing trusted, which is the default: `run` is absent, not refusing.
     let index = host.index_of("composite").expect("loaded");
     let rendered = host
         .render(
             index,
-            thurbox::kernel::host::RenderContext {
+            talos::kernel::host::RenderContext {
                 width: 50,
                 height: 12,
                 focused: true,
@@ -731,7 +731,7 @@ fn an_untrusted_composite_draws_how_to_trust_it_rather_than_failing() {
 fn a_pane_sharing_a_switch_slot_with_no_pill_is_warned_about() {
     let home = tempfile::tempdir().expect("tempdir");
     let ui = at(home.path());
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
 
     // `20_agent` already occupies `center` in switch mode and sorts first, so this
     // one is the alternate.
@@ -767,7 +767,7 @@ fn declaring_a_pill_is_enough_to_be_findable() {
     // anything, so a pill is the one advertisement that is automatic.
     let home = tempfile::tempdir().expect("tempdir");
     let ui = at(home.path());
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
     std::fs::write(
         ui.join("plugins").join("90_hidden.lua"),
         "return {\n\
@@ -794,8 +794,8 @@ fn the_pane_that_draws_by_default_is_not_warned_about() {
     // The first occupant of a switch slot is the one shown, so it needs no pill —
     // warning about it would train the reader to ignore the warning.
     let home = tempfile::tempdir().expect("tempdir");
-    std::env::set_var("THURBOX_CONFIG_DIR", home.path());
-    std::env::set_var("THURBOX_UI_DIR", checkout_ui());
+    std::env::set_var("TALOS_CONFIG_DIR", home.path());
+    std::env::set_var("TALOS_UI_DIR", checkout_ui());
     let output = run(Action::Check).expect("check runs");
     assert!(output.failure.is_none(), "{:?}", output.json);
     assert_eq!(
@@ -814,7 +814,7 @@ fn the_pane_that_draws_by_default_is_not_warned_about() {
 #[test]
 fn a_dropped_pill_says_whether_the_palette_has_its_action_or_nothing_does() {
     let home = tempfile::tempdir().expect("tempdir");
-    std::env::set_var("THURBOX_CONFIG_DIR", home.path());
+    std::env::set_var("TALOS_CONFIG_DIR", home.path());
     let ui = at(home.path());
     run(Action::New {
         name: "notes".into(),
@@ -842,7 +842,7 @@ fn a_dropped_pill_says_whether_the_palette_has_its_action_or_nothing_does() {
     .expect("write");
 
     let output = run(Action::Check).expect("check runs");
-    std::env::remove_var("THURBOX_CONFIG_DIR");
+    std::env::remove_var("TALOS_CONFIG_DIR");
     assert!(output.failure.is_none(), "{:?}", output.json);
 
     let dropped = output.json["dropped_pills"]
@@ -902,9 +902,9 @@ fn two_plugins_claiming_one_global_chord_are_both_named() {
     let home = tempfile::tempdir().expect("tempdir");
     // The overrides decide who wins a clash, so the check is run against a config
     // directory of this test's own rather than whatever the machine has rebound.
-    std::env::set_var("THURBOX_CONFIG_DIR", home.path());
+    std::env::set_var("TALOS_CONFIG_DIR", home.path());
     let ui = at(home.path());
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
 
     // Pills so the only thing left to report is the chord: both take the `center`
     // switch slot, and an alternate with no pill earns a warning of its own.
@@ -968,9 +968,9 @@ fn two_plugins_claiming_one_global_chord_are_both_named() {
 #[test]
 fn the_same_chord_in_two_plugin_scopes_is_not_reported() {
     let home = tempfile::tempdir().expect("tempdir");
-    std::env::set_var("THURBOX_CONFIG_DIR", home.path());
+    std::env::set_var("TALOS_CONFIG_DIR", home.path());
     let ui = at(home.path());
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
 
     for (file, name) in [("90_notes.lua", "notes"), ("91_scratch.lua", "scratch")] {
         std::fs::write(
@@ -1009,9 +1009,9 @@ fn the_same_chord_in_two_plugin_scopes_is_not_reported() {
 #[test]
 fn a_plugin_taking_a_kernel_chord_is_reported_against_the_kernel() {
     let home = tempfile::tempdir().expect("tempdir");
-    std::env::set_var("THURBOX_CONFIG_DIR", home.path());
+    std::env::set_var("TALOS_CONFIG_DIR", home.path());
     let ui = at(home.path());
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
 
     std::fs::write(
         ui.join("plugins").join("90_notes.lua"),
@@ -1045,7 +1045,7 @@ fn a_plugin_taking_a_kernel_chord_is_reported_against_the_kernel() {
 fn raw_gestures_are_reported_and_kernel_action_names_are_rejected() {
     let home = tempfile::tempdir().expect("tempdir");
     let ui = at(home.path());
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
     std::fs::write(
         ui.join("plugins/90_notes.lua"),
         "return { name = 'notes', slot = 'center',\n\
@@ -1074,7 +1074,7 @@ fn raw_gestures_are_reported_and_kernel_action_names_are_rejected() {
 fn constructed_click_actions_are_checked_against_the_catalog() {
     let home = tempfile::tempdir().expect("tempdir");
     let ui = at(home.path());
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
     std::fs::write(
         ui.join("plugins/90_notes.lua"),
         "local MISSING = 'notes.unknown'\n\
@@ -1094,7 +1094,7 @@ fn constructed_click_actions_are_checked_against_the_catalog() {
 fn expression_built_clicks_do_not_report_a_partial_action_name() {
     let home = tempfile::tempdir().expect("tempdir");
     let ui = at(home.path());
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
     std::fs::write(
         ui.join("plugins/90_notes.lua"),
         "local SUFFIX = 'open'\n\
@@ -1118,7 +1118,7 @@ fn expression_built_clicks_do_not_report_a_partial_action_name() {
 fn commented_literal_click_actions_are_recognized() {
     let home = tempfile::tempdir().expect("tempdir");
     let ui = at(home.path());
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
     std::fs::write(
         ui.join("plugins/90_notes.lua"),
         "local ACTION = 'notes.open' -- button action\n\
@@ -1140,7 +1140,7 @@ fn commented_literal_click_actions_are_recognized() {
 fn a_plugin_cannot_claim_the_kernel_owner_name() {
     let home = tempfile::tempdir().expect("tempdir");
     let ui = at(home.path());
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
     std::fs::write(
         ui.join("plugins/90_kernel.lua"),
         "return { name = 'kernel', slot = 'center',\n\
@@ -1167,9 +1167,9 @@ fn a_plugin_cannot_claim_the_kernel_owner_name() {
 #[test]
 fn a_name_two_files_answer_to_names_both_of_them() {
     let home = tempfile::tempdir().expect("tempdir");
-    std::env::set_var("THURBOX_CONFIG_DIR", home.path());
+    std::env::set_var("TALOS_CONFIG_DIR", home.path());
     let ui = at(home.path());
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
 
     // No `name`, so both take `notes` from the filename — the way a user ends up
     // with two of them without ever typing the name at all.

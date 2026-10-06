@@ -1,11 +1,11 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Thurbox installer for native Windows (PowerShell).
+    Talos installer for native Windows (PowerShell).
 
 .DESCRIPTION
-    Downloads the latest thurbox release for Windows, verifies its SHA256
-    checksum, extracts thurbox.exe / thurbox-cli.exe into an install directory,
+    Downloads the latest talos release for Windows, verifies its SHA256
+    checksum, extracts talos.exe / talos-cli.exe into an install directory,
     and adds that directory to the user PATH.
 
     Mirrors scripts/install.sh (Linux/macOS). Windows uses psmux as the terminal
@@ -13,18 +13,18 @@
 
 .EXAMPLE
     # One-liner (pipe to PowerShell):
-    irm https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/install.ps1 | iex
+    irm https://raw.githubusercontent.com/zatzk/talos/main/scripts/install.ps1 | iex
 
 .EXAMPLE
     # Pin a version / custom dir (run as a file):
-    .\install.ps1 -Version v0.1.0 -InstallDir C:\tools\thurbox
+    .\install.ps1 -Version v0.1.0 -InstallDir C:\tools\talos
 
 .NOTES
     Configuration can also be supplied via environment variables, which is the
     reliable path for the pipe-to-iex form that cannot pass parameters:
-      $env:THURBOX_VERSION      = 'v0.1.0'
-      $env:THURBOX_INSTALL_DIR  = 'C:\tools\thurbox'
-      $env:THURBOX_REPO         = 'Thurbeen/thurbox'
+      $env:TALOS_VERSION      = 'v0.1.0'
+      $env:TALOS_INSTALL_DIR  = 'C:\tools\talos'
+      $env:TALOS_REPO         = 'zatzk/talos'
 #>
 
 [CmdletBinding()]
@@ -38,12 +38,12 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 # --- Configuration (parameter overrides env var overrides default) ----------
-if (-not $Repo)    { $Repo    = if ($env:THURBOX_REPO)    { $env:THURBOX_REPO }    else { 'Thurbeen/thurbox' } }
-if (-not $Version) { $Version = if ($env:THURBOX_VERSION) { $env:THURBOX_VERSION } else { '' } }
+if (-not $Repo)    { $Repo    = if ($env:TALOS_REPO)    { $env:TALOS_REPO }    else { 'zatzk/talos' } }
+if (-not $Version) { $Version = if ($env:TALOS_VERSION) { $env:TALOS_VERSION } else { '' } }
 if (-not $InstallDir) {
-    if ($env:THURBOX_INSTALL_DIR) { $InstallDir = $env:THURBOX_INSTALL_DIR }
-    elseif ($env:LOCALAPPDATA)    { $InstallDir = Join-Path $env:LOCALAPPDATA 'Programs\thurbox' }
-    else                          { $InstallDir = Join-Path $HOME '.thurbox\bin' }  # degenerate fallback
+    if ($env:TALOS_INSTALL_DIR) { $InstallDir = $env:TALOS_INSTALL_DIR }
+    elseif ($env:LOCALAPPDATA)    { $InstallDir = Join-Path $env:LOCALAPPDATA 'Programs\talos' }
+    else                          { $InstallDir = Join-Path $HOME '.talos\bin' }  # degenerate fallback
 }
 
 # --- Pretty output ----------------------------------------------------------
@@ -88,7 +88,7 @@ function Get-LatestVersion {
     # GitHub API first.
     try {
         $rel = Invoke-RestMethod -UseBasicParsing -Uri "https://api.github.com/repos/$Repo/releases/latest" `
-            -Headers @{ 'User-Agent' = 'thurbox-installer' }
+            -Headers @{ 'User-Agent' = 'talos-installer' }
         if ($rel.tag_name) { return $rel.tag_name }
     } catch {
         Write-Step "GitHub API unavailable ($($_.Exception.Message)); scraping releases page..."
@@ -103,7 +103,7 @@ function Get-LatestVersion {
         Write-Verbose "Releases-page scrape failed: $($_.Exception.Message)"
     }
 
-    throw "Could not determine the latest version. Pin one with -Version v0.1.0 (or `$env:THURBOX_VERSION)."
+    throw "Could not determine the latest version. Pin one with -Version v0.1.0 (or `$env:TALOS_VERSION)."
 }
 
 # --- Checksum verification --------------------------------------------------
@@ -135,11 +135,11 @@ function Add-ToUserPath {
 }
 
 # --- Extraction -------------------------------------------------------------
-# The running thurbox processes started from any of $Path, for the message that
+# The running talos processes started from any of $Path, for the message that
 # asks the user to close them. Path is $null for a process we may not inspect.
 function Get-LockingProcess {
     param([string[]]$Path)
-    Get-Process -Name 'thurbox', 'thurbox-cli' -ErrorAction SilentlyContinue |
+    Get-Process -Name 'talos', 'talos-cli' -ErrorAction SilentlyContinue |
         Where-Object { $_.Path -and ($Path -contains $_.Path) }
 }
 
@@ -147,7 +147,7 @@ function Get-LockingProcess {
 #
 # Not Expand-Archive -Force straight into $Destination: that deletes each file
 # it overwrites, and Windows refuses to delete an executable a process is
-# running from, so updating while thurbox (or a thurbox-cli a hook started) was
+# running from, so updating while talos (or a talos-cli a hook started) was
 # running died with Remove-Item's access-denied trace. Windows does let such a
 # file be renamed, so each one is moved aside to .<name>.old - the backup name
 # the in-app updater (src/agent/self_update.rs) uses - and the new one moved
@@ -201,16 +201,16 @@ function Invoke-Install {
     $ver = Get-LatestVersion
     Write-Info "Version:  $ver"
 
-    $archive = "thurbox-$ver-$target.zip"
+    $archive = "talos-$ver-$target.zip"
     $base = "https://github.com/$Repo/releases/download/$ver"
-    $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("thurbox-install-" + [System.Guid]::NewGuid().ToString('N'))
+    $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("talos-install-" + [System.Guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $tmp -Force | Out-Null
 
     try {
         Write-Info 'Downloading checksums...'
         $checksumPath = Join-Path $tmp 'checksums.txt'
         try {
-            Invoke-WebRequest -UseBasicParsing -Uri "$base/thurbox-$ver-checksums.txt" -OutFile $checksumPath
+            Invoke-WebRequest -UseBasicParsing -Uri "$base/talos-$ver-checksums.txt" -OutFile $checksumPath
         } catch {
             throw "Release assets for $ver are not available. Check https://github.com/$Repo/releases/tag/$ver"
         }
@@ -234,7 +234,7 @@ function Invoke-Install {
     }
 
     Write-Host ''
-    Write-Ok "Thurbox installed to $InstallDir\thurbox.exe"
+    Write-Ok "Talos installed to $InstallDir\talos.exe"
 
     if (Add-ToUserPath $InstallDir) {
         Write-Warn "Added $InstallDir to your user PATH - restart your terminal for it to take effect."
@@ -245,14 +245,14 @@ function Invoke-Install {
     Write-Host "`nNext steps" -ForegroundColor Magenta
     Write-Step '* Install psmux (the Windows multiplexer): https://github.com/psmux/psmux'
     Write-Step '* Install a coding-agent CLI (claude, codex, antigravity, opencode, aider, ...)'
-    Write-Step '* Check both:        thurbox-cli doctor'
-    Write-Step '* Launch the TUI:    thurbox'
-    Write-Step '* Scriptable CLI:    thurbox-cli'
+    Write-Step '* Check both:        talos-cli doctor'
+    Write-Step '* Launch the TUI:    talos'
+    Write-Step '* Scriptable CLI:    talos-cli'
     Write-Host ''
     Write-Ok 'Installation complete! Happy hacking.'
 }
 
-# Run unless dot-sourced for testing ($env:THURBOX_PS_TEST set).
-if (-not $env:THURBOX_PS_TEST) {
+# Run unless dot-sourced for testing ($env:TALOS_PS_TEST set).
+if (-not $env:TALOS_PS_TEST) {
     Invoke-Install
 }

@@ -460,11 +460,11 @@ fn every_commit_upstream(cwd: &Path, default: &str, base: &str) -> Option<bool> 
 /// needing a configured `user.email`, which `commit-tree` would otherwise
 /// demand of a repository that has none.
 const PROBE_IDENT: [(&str, &str); 6] = [
-    ("GIT_AUTHOR_NAME", "thurbox"),
-    ("GIT_AUTHOR_EMAIL", "thurbox@invalid"),
+    ("GIT_AUTHOR_NAME", "talos"),
+    ("GIT_AUTHOR_EMAIL", "talos@invalid"),
     ("GIT_AUTHOR_DATE", "@0 +0000"),
-    ("GIT_COMMITTER_NAME", "thurbox"),
-    ("GIT_COMMITTER_EMAIL", "thurbox@invalid"),
+    ("GIT_COMMITTER_NAME", "talos"),
+    ("GIT_COMMITTER_EMAIL", "talos@invalid"),
     ("GIT_COMMITTER_DATE", "@0 +0000"),
 ];
 

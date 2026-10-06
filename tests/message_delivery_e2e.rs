@@ -1,4 +1,4 @@
-//! `thurbox-cli message send` delivering into a Codex session's own thread.
+//! `talos-cli message send` delivering into a Codex session's own thread.
 //!
 //! Driven through the real binaries, with a stand-in `codex` that logs what it
 //! was asked to queue: the question is which conversation a body lands in, and
@@ -12,21 +12,21 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 
 use serde_json::Value;
-use thurbox::session::SessionId;
-use thurbox::storage::Database;
-use thurbox::sync::SharedSession;
+use talos::session::SessionId;
+use talos::storage::Database;
+use talos::sync::SharedSession;
 
-const CODEX_THREAD_META: &str = "thurbox.codex_conversation_id";
+const CODEX_THREAD_META: &str = "talos.codex_conversation_id";
 
-/// Point this process, and every `thurbox-cli` it runs, at `home`. Both forms,
+/// Point this process, and every `talos-cli` it runs, at `home`. Both forms,
 /// as `tests/create_e2e.rs` does: nextest runs one process per test.
 fn isolate(home: &Path) -> Database {
-    thurbox::paths::set_test_dir(home);
-    std::env::set_var(thurbox::paths::CONFIG_DIR_OVERRIDE_ENV, home);
-    std::env::set_var(thurbox::paths::DATA_DIR_OVERRIDE_ENV, home);
+    talos::paths::set_test_dir(home);
+    std::env::set_var(talos::paths::CONFIG_DIR_OVERRIDE_ENV, home);
+    std::env::set_var(talos::paths::DATA_DIR_OVERRIDE_ENV, home);
     // An empty Claude registry, so no Claude socket on this machine is a route.
     std::env::set_var("CLAUDE_CONFIG_DIR", home.join("claude"));
-    let path = thurbox::paths::database_file().expect("db path");
+    let path = talos::paths::database_file().expect("db path");
     std::fs::create_dir_all(path.parent().expect("data dir")).expect("mkdir");
     Database::open(&path).expect("open db")
 }
@@ -74,14 +74,14 @@ fn fake_codex(bin: &Path) -> std::ffi::OsString {
 
 /// What Codex's `SessionStart` hook runs, fed the payload Codex gives it.
 fn codex_session_start(row: &SharedSession, conversation: &str, source: &str) {
-    let mut hook = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"))
+    let mut hook = Command::new(env!("CARGO_BIN_EXE_talos-cli"))
         .args(["session", "bind-codex"])
-        .env("THURBOX_SESSION", row.id.to_string())
+        .env("TALOS_SESSION", row.id.to_string())
         .env(
-            "THURBOX_SESSION_ID",
+            "TALOS_SESSION_ID",
             row.agent_session_id.as_deref().unwrap(),
         )
-        .env_remove("THURBOX_CODEX_PICKER")
+        .env_remove("TALOS_CODEX_PICKER")
         .stdin(Stdio::piped())
         .spawn()
         .expect("spawn bind-codex");
@@ -94,12 +94,12 @@ fn codex_session_start(row: &SharedSession, conversation: &str, source: &str) {
 }
 
 fn send(to: &SharedSession, body: &str, path: &std::ffi::OsStr, log: &Path) -> Value {
-    let out = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"))
+    let out = Command::new(env!("CARGO_BIN_EXE_talos-cli"))
         .args(["message", "send", "--to", &to.name, "--kind", "note"])
         .args(["--body", body, "--json"])
         .env("PATH", path)
         .env("FAKE_CODEX_LOG", log)
-        .env_remove("THURBOX_SESSION")
+        .env_remove("TALOS_SESSION")
         .output()
         .expect("run message send");
     assert!(
@@ -113,7 +113,7 @@ fn send(to: &SharedSession, body: &str, path: &std::ffi::OsStr, log: &Path) -> V
 /// Codex's `/new` opens a fresh thread in the same process and reports it as
 /// `startup` (the TUI sends no start source, and the app server defaults it),
 /// not `clear`. A send after it must not queue the body on the thread the pane
-/// left: Codex accepts it there, thurbox marks the row read, and the agent the
+/// left: Codex accepts it there, talos marks the row read, and the agent the
 /// user is looking at never sees it.
 #[test]
 fn a_send_after_codex_new_does_not_queue_on_the_abandoned_thread() {

@@ -30,7 +30,7 @@ local function selected()
   if not id then
     return nil
   end
-  for _, session in ipairs(thurbox and thurbox.sessions or {}) do
+  for _, session in ipairs(talos and talos.sessions or {}) do
     if session.id == id then
       return session
     end

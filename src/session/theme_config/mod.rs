@@ -1,4 +1,4 @@
-//! Theme palettes for the Thurbox TUI.
+//! Theme palettes for the Talos TUI.
 //!
 //! A `ThemePalette` is the runtime, swappable palette. Widgets read the active
 //! palette via `crate::kernel::theme`; users pick one via the theme

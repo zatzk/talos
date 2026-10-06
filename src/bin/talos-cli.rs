@@ -1,0 +1,199 @@
+//! Talos CLI binary — scriptable access to the same state the TUI shows.
+//! Session commands work headlessly; `ui` targets a running TUI instance.
+//!
+//! This entrypoint owns the parts of the AXI contract (`axi/1.0-2026-07`) that
+//! are about the *process* rather than about any one command: a failure that
+//! left nothing to print is a structured document on **stdout**, and the exit
+//! code says which kind of failure it was — `0` success, `1` the command ran
+//! and failed, `2` the invocation was wrong, `3` the session reference matched
+//! more than one session. An agent reads one stream and one status; splitting
+//! the answer across stdout and stderr costs it a retry to find out what
+//! happened.
+//!
+//! The exit code is the *only* half of that contract a caller may invert. An
+//! `error` key on stdout implies a non-zero exit; the converse does not hold,
+//! because a command whose report *is* the answer (`session doctor`, `config
+//! validate`) prints that report and asks for a non-zero exit anyway. Gate on
+//! the document, not on `$?`.
+//!
+//! The other half of that promise is that stdout carries **exactly one**
+//! document. A command that renders its report and then asks for a non-zero
+//! exit (`session doctor` on a broken session, `config validate` on an invalid
+//! file) comes back as [`cli::Outcome::Failed`]: the report is the answer, the
+//! exit code carries the verdict, and the sentence explaining it goes to
+//! stderr — appending a second document there would break `jq` and every other
+//! single-document parser on exactly the commands an integrator scripts.
+
+use clap::Parser;
+use talos::cli::{self, output::Format, output::FormatFlags, Cli, EXIT_ERROR, EXIT_USAGE};
+
+fn main() {
+    tracing_subscriber::fmt()
+        .with_writer(std::io::stderr)
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::from_default_env()
+                .add_directive(tracing::Level::WARN.into()),
+        )
+        .init();
+
+    let cli = match Cli::try_parse() {
+        Ok(cli) => cli,
+        Err(e) => exit_from_clap(&e),
+    };
+
+    let format = Format::resolve(FormatFlags {
+        json: cli.json,
+        pretty: cli.pretty,
+        text: cli.text,
+        toon: cli.toon,
+    });
+
+    // Publish settings before Database::open (audit pruning reads retention).
+    // Warnings go to the WARN-level stderr logger; `config validate` is the
+    // loud path.
+    let (settings, _) = talos::agent::settings_config::load_or_seed_with_warnings();
+    talos::session::settings::init(settings);
+
+    let Some(db_path) = talos::paths::database_file() else {
+        fail(
+            "cannot resolve the database path",
+            "set HOME (or TALOS_DATA_DIR) and run the command again",
+            "talos-cli config show",
+            format,
+        );
+    };
+
+    let db = match talos::storage::Database::open(&db_path) {
+        Ok(db) => db,
+        Err(e) => fail(
+            &format!("cannot open the database at {}: {e}", db_path.display()),
+            "check the file is readable and not held by another process, then retry",
+            "talos-cli config show",
+            format,
+        ),
+    };
+
+    // The one-time WSL row repair schema v47 marks as owed. Driven from here as
+    // well as from the TUI boot: the mark is written by whichever binary opens
+    // the database first, and a headless-driven install need never launch the
+    // interface — until the repair runs, a mislabelled row reads as remote, so
+    // the reap sweep refuses to kill windows it believes are elsewhere and
+    // leaks them. Costs one indexed lookup when nothing is owed, which is every
+    // invocation after the first.
+    // `warn!`, not `info!`: the logger installed above filters to WARN with no
+    // `RUST_LOG` set, and this is the one record that a one-time rewrite of
+    // persisted rows happened — the owed mark is gone afterwards, so the TUI
+    // cannot report it later.
+    for notice in talos::session_ops::repair_wsl_loopback_rows(&db) {
+        tracing::warn!("{notice}");
+    }
+
+    // The one registry this process drives backends through, built here at its
+    // composition root — on the first command that acts on a session, and
+    // never for the ones that do not. Registration only: nothing connects
+    // until a backend is asked something.
+    let build = || talos::backend::wiring::configured().0;
+    // This machine's backends alone, for `session signal` — run by every
+    // agent hook, so it must not pay for reading every host.
+    let build_local = talos::backend::wiring::local_only;
+    let backends = cli::Backends::lazy(&build).with_local(&build_local);
+    let outcome = cli::run(cli, &db, &backends);
+    // Before any exit below, which runs no destructor.
+    for registry in backends.built() {
+        registry.shutdown_all();
+    }
+    match outcome {
+        Ok(cli::Outcome::Ok) => {}
+        // The report is already on stdout and is the answer; only the verdict
+        // is left to carry, and it carries as an exit code.
+        Ok(cli::Outcome::Failed { message, code }) => {
+            eprintln!("{message}");
+            // A command that asked for a specific code meant it: `session exec
+            // --exit-passthrough` exists so an in-session command's own code
+            // reaches the caller intact, and collapsing it here would make the
+            // flag a lie. Everything else takes the generic failure code.
+            std::process::exit(code.unwrap_or(EXIT_ERROR));
+        }
+        // A runtime failure, not a bad invocation: clap already answered those
+        // with its own wording and exit 2. Advising `--help` here misattributes
+        // "that session has exited" to the arguments, and points at a page that
+        // cannot fix it — so the suggestion sends the caller to the state the
+        // message is about. The code travels with the message: an ambiguous
+        // session reference is a different answer from a missing one, and only
+        // the failure itself knows which it was.
+        Err(e) => fail_with(
+            &e.message,
+            "the command ran and failed; the message says what went wrong — \
+             `talos-cli` prints the state it was working against",
+            "talos-cli",
+            format,
+            e.exit_code,
+        ),
+    }
+}
+
+/// Print a structured failure on stdout and exit [`EXIT_ERROR`].
+fn fail(message: &str, suggestion: &str, next: &str, format: Format) -> ! {
+    fail_with(message, suggestion, next, format, EXIT_ERROR)
+}
+
+/// [`fail`], with the exit code the failure asked for.
+fn fail_with(message: &str, suggestion: &str, next: &str, format: Format, code: i32) -> ! {
+    println!("{}", cli::error_output(message, suggestion, next, format));
+    std::process::exit(code)
+}
+
+/// Turn a clap outcome into an exit.
+///
+/// `--help` and `--version` are successful requests for information, so they
+/// keep clap's own rendering and exit 0. Everything else is a usage error: it
+/// goes to stdout in the resolved format and exits [`EXIT_USAGE`]. The format
+/// has to be read off the raw arguments, because the parse that would have
+/// produced the flags is the one that just failed.
+fn exit_from_clap(e: &clap::Error) -> ! {
+    use clap::error::ErrorKind;
+    if matches!(
+        e.kind(),
+        ErrorKind::DisplayHelp
+            | ErrorKind::DisplayVersion
+            | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+    ) {
+        print!("{e}");
+        std::process::exit(0)
+    }
+
+    // clap renders the problem, the usage line and its own hint as one block.
+    // The first line is the problem; the rest is the suggestion, which is what
+    // an agent needs to fix the call.
+    let rendered = e.render().to_string();
+    let message = rendered
+        .lines()
+        .find(|l| !l.trim().is_empty())
+        .unwrap_or("invalid arguments")
+        .trim_start_matches("error: ")
+        .to_string();
+
+    println!(
+        "{}",
+        cli::error_output(
+            &message,
+            "this binary's commands and flags are listed by --help",
+            "talos-cli --help",
+            format_from_raw_args(),
+        )
+    );
+    std::process::exit(EXIT_USAGE)
+}
+
+/// Resolve the output format from unparsed `argv`, for the failure paths that
+/// have no parsed [`Cli`] to read it from.
+fn format_from_raw_args() -> Format {
+    let args: Vec<String> = std::env::args().collect();
+    let has = |flag: &str| args.iter().any(|a| a == flag);
+    Format::resolve(FormatFlags {
+        json: has("--json"),
+        pretty: has("--pretty"),
+        text: has("--text"),
+        toon: has("--toon"),
+    })
+}

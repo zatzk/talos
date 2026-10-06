@@ -1,6 +1,6 @@
 //! Loading and seeding of the settings config file.
 //!
-//! `~/.config/thurbox/settings.toml` holds the user-tunable scalars and
+//! `~/.config/talos/settings.toml` holds the user-tunable scalars and
 //! feature flags (see [`crate::session::settings::Settings`]). On first run the file is seeded
 //! fully commented-out, so a fresh install runs on the built-in defaults. A
 //! malformed file degrades to the defaults with a startup warning.
@@ -11,12 +11,12 @@ use crate::session::settings::{NotificationBackend, Settings};
 
 /// Seed contents for `settings.toml` on first run: every knob documented with
 /// its default, all commented out.
-pub const SEED_SETTINGS_TOML: &str = r#"# Thurbox settings  —  ~/.config/thurbox/settings.toml
+pub const SEED_SETTINGS_TOML: &str = r#"# Talos settings  —  ~/.config/talos/settings.toml
 #
 # Scalar tuning knobs. Every entry below is commented out and shows its
 # default; uncomment to change. Read once at startup.
 #
-# Unknown keys are reported on startup (and fail `thurbox-cli config
+# Unknown keys are reported on startup (and fail `talos-cli config
 # validate`) but don't break the load.
 
 config_version = 1
@@ -50,16 +50,16 @@ config_version = 1
 # How often each session's git working tree is re-examined (seconds), for the
 # diffstat and ahead/behind beside it in the session list. `0` turns it off.
 #
-# This is the one knob that governs how much `git` thurbox runs, and the work is
+# This is the one knob that governs how much `git` talos runs, and the work is
 # per session: raise it on an instance holding many sessions, or where a process
-# launch is expensive for reasons outside thurbox (an endpoint-protection agent
+# launch is expensive for reasons outside talos (an endpoint-protection agent
 # that scans every one). A session whose answer stops changing is backed off to
 # 12x this on its own, so the cost of a dormant session is already small.
 # git_poll_secs = 5
 
 # Feature flags: turn whole TUI features off. All default to true.
 # Disabling `automations` also stops the TUI firing schedules and arming
-# the heartbeat on startup; explicit `thurbox-cli automation`
+# the heartbeat on startup; explicit `talos-cli automation`
 # commands (and an already-armed heartbeat window) keep working. Data is
 # never touched, so re-enabling a flag is lossless.
 # [features]
@@ -77,16 +77,16 @@ config_version = 1
 #
 # `version_check` and `auto_update` are ON by default for 1.0: both reach the
 # network (GitHub) on startup. `version_check` only *notifies* (TUI header
-# "update available" badge + `thurbox-cli version --check`); `auto_update` goes
+# "update available" badge + `talos-cli version --check`); `auto_update` goes
 # further and silently downloads, verifies, and replaces the installed binaries
 # when a newer release exists (the new version applies on the next launch); it
 # also auto-refreshes any installed extension that the upgrade left stale
-# (self-heal, TUI startup + headless tick). `thurbox-cli update` does the same
+# (self-heal, TUI startup + headless tick). `talos-cli update` does the same
 # binary update on demand. Set either to `false` to opt out.
 #
 # Neither crosses a MAJOR version. A 1.x install is told 2.x exists and is never
 # moved onto it, because 2.x replaced the whole interface with the Lua plugin
-# kernel. `thurbox-cli update --force` is the deliberate way across.
+# kernel. `talos-cli update --force` is the deliberate way across.
 # version_check = true    # GitHub update check (TUI badge + `version --check`)
 # auto_update = true      # silently download+verify+replace binaries on startup
 
@@ -94,7 +94,7 @@ config_version = 1
 # selects the session in the running TUI); macOS shows a passive banner only.
 # Under WSL (no dbus notification daemon) the `auto` backend delivers a Windows
 # toast via powershell.exe instead — click-to-focus is unavailable on that path.
-# Run `thurbox-cli notify` to see the detected backend, or `--test` to fire a
+# Run `talos-cli notify` to see the detected backend, or `--test` to fire a
 # sample. The dispatcher only starts when [features] notifications = true.
 # [notifications]
 # also_on_waiting = false       # also fire when a session finishes (Working → Done)
@@ -167,7 +167,7 @@ config_version = 1
 # auto_update = false
 "#;
 
-/// Path to the settings file: `~/.config/thurbox/settings.toml`.
+/// Path to the settings file: `~/.config/talos/settings.toml`.
 pub fn settings_config_path() -> Option<PathBuf> {
     crate::paths::config_file().map(|p| p.with_file_name("settings.toml"))
 }
@@ -247,7 +247,7 @@ pub fn load_quiet() -> Settings {
 /// rolled back in the next release (#1227). Left in place it would be an
 /// "unknown field" warning on every start; removing it is what makes the note
 /// a one-time one. Called by the interface at start and nowhere else, because
-/// `thurbox-cli` (run by every agent hook) would take the key before the note
+/// `talos-cli` (run by every agent hook) would take the key before the note
 /// could ever be shown. Silent for `classic`: that arrangement is the one still
 /// shipped, so nothing on screen changed.
 pub fn retire_layout_preset() -> Option<String> {
@@ -628,7 +628,7 @@ mod tests {
         save_settings(&s).unwrap();
 
         let raw = std::fs::read_to_string(settings_config_path().unwrap()).unwrap();
-        assert!(raw.contains("# Thurbox settings"));
+        assert!(raw.contains("# Talos settings"));
         assert!(raw.contains("Common recipes"));
     }
 

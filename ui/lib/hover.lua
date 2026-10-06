@@ -16,7 +16,7 @@ local theme = require("lib.theme")
 local hover = {}
 
 local function current()
-  return (thurbox and thurbox.hover) or {}
+  return (talos and talos.hover) or {}
 end
 
 --- Is the pointer over the node that carries this `role`?

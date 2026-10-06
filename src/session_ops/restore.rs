@@ -50,10 +50,10 @@ pub struct RestoreReport {
 /// costs them nothing.
 ///
 /// No worktrees at all still counts as lossy: that is every session predating
-/// `created_by_thurbox`, and the conservative reading is the one that cannot
+/// `created_by_talos`, and the conservative reading is the one that cannot
 /// lose someone's work by being wrong.
 fn force_delete_was_lossy(worktrees: &[SharedWorktree]) -> bool {
-    worktrees.is_empty() || worktrees.iter().any(|w| w.created_by_thurbox)
+    worktrees.is_empty() || worktrees.iter().any(|w| w.created_by_talos)
 }
 
 /// Why this restore should stop and ask first, if it should — `None` when it
@@ -97,10 +97,10 @@ pub fn restore_refusal(
     }
     let gone = worktrees
         .iter()
-        .find(|w| !w.created_by_thurbox && !w.worktree_path.is_dir())?;
+        .find(|w| !w.created_by_talos && !w.worktree_path.is_dir())?;
     Some(format!(
         "'{name}' opened the worktree at {}, and it is no longer on disk; \
-         restoring cannot bring back a directory thurbox never created",
+         restoring cannot bring back a directory talos never created",
         gone.worktree_path.display()
     ))
 }
@@ -146,11 +146,11 @@ fn free_the_name_advice(db: &Database, live_name: &str, live_id: SessionId) -> S
     match declaring_extension(db, live_name) {
         Some(ext) => format!(
             "'{live_name}' is a session the active extension '{ext}' declares, so self-heal \
-             recreates it within a minute of any rename — `thurbox-cli extension deactivate \
+             recreates it within a minute of any rename — `talos-cli extension deactivate \
              {ext}` first, then restore this one"
         ),
         None => format!(
-            "`thurbox-cli session rename {live_id} <other-name>` frees the name without \
+            "`talos-cli session rename {live_id} <other-name>` frees the name without \
              destroying anything, and this one can then be restored"
         ),
     }
@@ -331,18 +331,18 @@ pub fn restore_session_headless(
 
 /// Re-attach each worktree whose branch still exists.
 ///
-/// A worktree that cannot come back — its branch gone, or, for one thurbox only
+/// A worktree that cannot come back — its branch gone, or, for one talos only
 /// borrowed, its directory gone — is skipped rather than failing the restore:
 /// the others are still worth having, and the report says how many came back.
 /// v1's `App::recreate_worktrees`, lifted here so both interfaces share it.
 pub fn recreate_worktrees(worktrees: &[SharedWorktree]) -> Vec<WorktreeInfo> {
     let mut recovered = Vec::new();
     for worktree in worktrees {
-        // Never thurbox's to re-create: the directory was the user's all along
+        // Never talos's to re-create: the directory was the user's all along
         // and force-delete left it in place, so it is still checked out and
         // still registered with git. `add_existing_worktree` would only fail on
         // it and drop it from the restored session.
-        if !worktree.created_by_thurbox {
+        if !worktree.created_by_talos {
             // The user's directory, so its continued existence is theirs to
             // decide: if they removed it, there is nothing to re-attach and
             // counting it as recovered would be a lie. Symmetric with the
@@ -362,7 +362,7 @@ pub fn recreate_worktrees(worktrees: &[SharedWorktree]) -> Vec<WorktreeInfo> {
                 repo_path: worktree.repo_path.clone(),
                 worktree_path: worktree.worktree_path.clone(),
                 branch: worktree.branch.clone(),
-                created_by_thurbox: false,
+                created_by_talos: false,
             });
             continue;
         }
@@ -378,7 +378,7 @@ pub fn recreate_worktrees(worktrees: &[SharedWorktree]) -> Vec<WorktreeInfo> {
                 repo_path: worktree.repo_path.clone(),
                 worktree_path: path,
                 branch: worktree.branch.clone(),
-                created_by_thurbox: true,
+                created_by_talos: true,
             }),
             Err(e) => tracing::warn!("could not recreate worktree {}: {e}", worktree.branch),
         }
@@ -486,7 +486,7 @@ mod tests {
             repo_path: std::path::PathBuf::from("/definitely/not/a/repo"),
             worktree_path: std::path::PathBuf::from("/definitely/not/a/worktree"),
             branch: "feat/gone".into(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         }];
         assert!(recreate_worktrees(&worktrees).is_empty());
     }
@@ -495,13 +495,13 @@ mod tests {
     fn a_borrowed_worktree_whose_directory_is_gone_is_skipped_too() {
         // The user deleted their own checkout between the force-delete and the
         // restore. Handing the row back regardless gives the session a cwd that
-        // is not there, which the thurbox arm already refuses to do via
+        // is not there, which the talos arm already refuses to do via
         // `branch_exists`.
         let worktrees = vec![SharedWorktree {
             repo_path: std::path::PathBuf::from("/definitely/not/a/repo"),
             worktree_path: std::path::PathBuf::from("/definitely/not/a/worktree"),
             branch: "feat/borrowed".into(),
-            created_by_thurbox: false,
+            created_by_talos: false,
         }];
         assert!(recreate_worktrees(&worktrees).is_empty());
     }
@@ -513,23 +513,23 @@ mod tests {
             repo_path: dir.path().to_path_buf(),
             worktree_path: dir.path().to_path_buf(),
             branch: "feat/borrowed".into(),
-            created_by_thurbox: false,
+            created_by_talos: false,
         }];
         let recovered = recreate_worktrees(&worktrees);
         assert_eq!(recovered.len(), 1);
         assert_eq!(recovered[0].worktree_path, dir.path());
-        assert!(!recovered[0].created_by_thurbox);
+        assert!(!recovered[0].created_by_talos);
     }
 
     /// The backend a session on this machine carries.
     const LOCAL: &str = "local-tmux";
 
-    fn worktree(created_by_thurbox: bool) -> SharedWorktree {
+    fn worktree(created_by_talos: bool) -> SharedWorktree {
         SharedWorktree {
             repo_path: std::path::PathBuf::from("/repo"),
             worktree_path: std::path::PathBuf::from("/repo/.worktrees/mine"),
             branch: "feat/x".into(),
-            created_by_thurbox,
+            created_by_talos,
         }
     }
 
@@ -544,7 +544,7 @@ mod tests {
     }
 
     #[test]
-    fn one_worktree_thurbox_created_makes_the_whole_restore_lossy() {
+    fn one_worktree_talos_created_makes_the_whole_restore_lossy() {
         // `git worktree remove --force` ran on that one, so something was
         // destroyed even though its neighbours survived.
         assert!(force_delete_was_lossy(&[worktree(false), worktree(true)]));
@@ -571,7 +571,7 @@ mod tests {
             repo_path: dir.path().to_path_buf(),
             worktree_path: dir.path().to_path_buf(),
             branch: "feat/borrowed".into(),
-            created_by_thurbox: false,
+            created_by_talos: false,
         };
         assert_eq!(restore_refusal("borrowed", true, LOCAL, &[present]), None);
     }
@@ -596,7 +596,7 @@ mod tests {
 
     #[test]
     fn a_lossy_force_delete_keeps_the_uncommitted_work_message() {
-        // Thurbox made this one, so `git worktree remove --force` took the
+        // Talos made this one, so `git worktree remove --force` took the
         // directory: the older refusal is the accurate one and wins.
         let reason = restore_refusal("mine", true, LOCAL, &[worktree(true)])
             .expect("a lossy force-delete is a refusal");
@@ -649,7 +649,7 @@ mod tests {
 
     #[test]
     fn a_session_with_no_worktrees_stays_lossy() {
-        // Every row predating `created_by_thurbox` looks like this, and the
+        // Every row predating `created_by_talos` looks like this, and the
         // conservative reading is the one that cannot lose work by being wrong.
         assert!(force_delete_was_lossy(&[]));
     }

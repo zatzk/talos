@@ -1,6 +1,6 @@
 # Configuration Reference
 
-Every knob thurbox reads, where it lives, and how it behaves. One file
+Every knob talos reads, where it lives, and how it behaves. One file
 per audience/lifecycle: hand-edited registries are TOML, the
 machine-written keybindings are JSON, and concurrently-written runtime
 state lives in SQLite (see ADR-8/ADR-19 in `ARCHITECTURE.md` for the
@@ -12,27 +12,27 @@ maintain, the lock is a record nothing hand-edits. It is the same split
 `.bundled.json` and `ui.json` already make, and the reason is the same —
 a merge conflict in the record must not dirty the half a person wrote.
 
-Dev builds (version `0.0.0-dev`) use `thurbox-dev` in place of
-`thurbox` in every path below, plus a `thurbox-dev` tmux socket, so a
+Dev builds (version `0.0.0-dev`) use `talos-dev` in place of
+`talos` in every path below, plus a `talos-dev` tmux socket, so a
 development checkout never touches your real setup.
 
 ## Files at a glance
 
 | File | Format | Edited by | Read | Purpose |
 |------|--------|-----------|------|---------|
-| `~/.config/thurbox/agents.toml` | TOML | you | **live** (content poll) | coding-agent CLI definitions |
-| `~/.config/thurbox/hosts.toml` | TOML | you | startup | remote SSH hosts + local WSL distros |
-| `~/.config/thurbox/settings.toml` | TOML | you + `Ctrl+,` panel | **live** (feature flags) / startup (rest) | tuning knobs + feature flags |
-| `~/.config/thurbox/themes.toml` | TOML | you | startup | custom theme palettes |
-| `~/.config/thurbox/hooks.toml` | TOML | you | on each session operation | **session lifecycle hooks** — your commands, run before/after a session is created, deleted, restarted or restored |
-| `~/.config/thurbox/ui/` | Lua | you | **live** (watched, 120 ms debounce; `F10` forces) | **the interface itself** — one file per pane, plus `layout.lua`, `lib/`, `AGENTS.md`/`README.md` for whoever edits it, and a directory per plugin installed from a repository (its own working copy, `.git` included) |
-| `~/.config/thurbox/ui/plugins.toml` | TOML | you (or `thurbox-cli plugin`) | on each `plugin` command | **what the interface is composed of**: a source, a destination file and an optional pin, per installed pane |
-| `~/.config/thurbox/ui/plugins.lock` | TOML | `thurbox-cli plugin` | on each `plugin` command | what each entry resolved to, and the digest of every file delivered. Machine-written — commit it beside the spec and the same interface reproduces elsewhere |
-| `~/.config/thurbox/ui.json` | JSON | `F1` / Interface tab (or you) | startup | your decisions *about* the interface: rebound chords, plugins turned off, files trusted, plugin settings, and the action band's order (`"pills": { "<action>": <priority> }`, replacing what the declaring plugin chose — an entry naming an action nothing declares is ignored, not drawn). Written back only by a registry that **read** it (`registry::Origin`), so a process holding no decisions cannot empty it |
-| `~/.config/thurbox/extensions/<name>.toml` | TOML | `thurbox-cli extension install` | startup + tick | extension manifests (self-healed resources) |
-| `~/.config/thurbox/keybindings.json` | JSON | — | **never** | v1's chord overrides. **Ignored**: rebindings live in `ui.json`. Left alone rather than deleted, so going back to 1.x still finds it |
-| `~/.local/share/thurbox/thurbox.db` | SQLite | thurbox | live | sessions, automations, tasks, theme, editor command |
-| `~/.local/share/thurbox/thurbox.log` | text | thurbox | — | logs (incl. config warnings). Rotated daily into `thurbox.log.<date>`; the 30 most recent are kept and older ones deleted at startup |
+| `~/.config/talos/agents.toml` | TOML | you | **live** (content poll) | coding-agent CLI definitions |
+| `~/.config/talos/hosts.toml` | TOML | you | startup | remote SSH hosts + local WSL distros |
+| `~/.config/talos/settings.toml` | TOML | you + `Ctrl+,` panel | **live** (feature flags) / startup (rest) | tuning knobs + feature flags |
+| `~/.config/talos/themes.toml` | TOML | you | startup | custom theme palettes |
+| `~/.config/talos/hooks.toml` | TOML | you | on each session operation | **session lifecycle hooks** — your commands, run before/after a session is created, deleted, restarted or restored |
+| `~/.config/talos/ui/` | Lua | you | **live** (watched, 120 ms debounce; `F10` forces) | **the interface itself** — one file per pane, plus `layout.lua`, `lib/`, `AGENTS.md`/`README.md` for whoever edits it, and a directory per plugin installed from a repository (its own working copy, `.git` included) |
+| `~/.config/talos/ui/plugins.toml` | TOML | you (or `talos-cli plugin`) | on each `plugin` command | **what the interface is composed of**: a source, a destination file and an optional pin, per installed pane |
+| `~/.config/talos/ui/plugins.lock` | TOML | `talos-cli plugin` | on each `plugin` command | what each entry resolved to, and the digest of every file delivered. Machine-written — commit it beside the spec and the same interface reproduces elsewhere |
+| `~/.config/talos/ui.json` | JSON | `F1` / Interface tab (or you) | startup | your decisions *about* the interface: rebound chords, plugins turned off, files trusted, plugin settings, and the action band's order (`"pills": { "<action>": <priority> }`, replacing what the declaring plugin chose — an entry naming an action nothing declares is ignored, not drawn). Written back only by a registry that **read** it (`registry::Origin`), so a process holding no decisions cannot empty it |
+| `~/.config/talos/extensions/<name>.toml` | TOML | `talos-cli extension install` | startup + tick | extension manifests (self-healed resources) |
+| `~/.config/talos/keybindings.json` | JSON | — | **never** | v1's chord overrides. **Ignored**: rebindings live in `ui.json`. Left alone rather than deleted, so going back to 1.x still finds it |
+| `~/.local/share/talos/talos.db` | SQLite | talos | live | sessions, automations, tasks, theme, editor command |
+| `~/.local/share/talos/talos.log` | text | talos | — | logs (incl. config warnings). Rotated daily into `talos.log.<date>`; the 30 most recent are kept and older ones deleted at startup |
 
 `agents.toml` and `settings.toml` reload **live**: the TUI checks them about
 once per second and applies edits without a restart. The agent registry is
@@ -102,8 +102,8 @@ back to the built-ins.
 Check everything from the command line:
 
 ```bash
-thurbox-cli config validate   # strict parse of every file; exit 1 on problems
-thurbox-cli config show       # effective config + where each value came from
+talos-cli config validate   # strict parse of every file; exit 1 on problems
+talos-cli config show       # effective config + where each value came from
 ```
 
 `validate` fails on unknown keys (they are typos or leftovers either
@@ -120,7 +120,7 @@ naming it) and the rest still load; only a document-level syntax error
 falls back to the built-ins. Either way the error is shown.
 
 The file is **seeded once** and never rewritten — so it stays yours to
-edit, but a thurbox **update that adds a new built-in agent does not
+edit, but a talos **update that adds a new built-in agent does not
 merge it into an existing `agents.toml`**. To pick up a newly-bundled
 agent, add its `[[agents]]` block by hand (copy it from this file's
 built-in list) or delete `agents.toml` to re-seed the full set. The
@@ -145,36 +145,36 @@ resume_latest = false       # true = id-less "resume last session in cwd"
                             #   hooks under this custom agent's name too
 ```
 
-`{id}` is substituted with the thurbox-generated session UUID. `{home}`
+`{id}` is substituted with the talos-generated session UUID. `{home}`
 is substituted with the resolved home dir at spawn time (the remote home
 for an SSH/WSL host) — for an agent that wants a session *file path*
 rather than a bare id. The built-in `omp` (Oh My Pi) uses it: it generates
-its own internal id and won't take thurbox's, but its `--session <path>`
-creates a fresh session at a missing path, so thurbox maps its UUID to a
-deterministic `--session {home}/.omp/agent/sessions/thurbox-{id}.jsonl`
+its own internal id and won't take talos's, but its `--session <path>`
+creates a fresh session at a missing path, so talos maps its UUID to a
+deterministic `--session {home}/.omp/agent/sessions/talos-{id}.jsonl`
 (creation) / `--resume` the same (restart). `{home}` is expanded by
-thurbox, not the shell — args are POSIX-quoted, so a literal `~` would
+talos, not the shell — args are POSIX-quoted, so a literal `~` would
 never expand. `omp` ships no `fork_args`, so `Ctrl+F` starts a fresh
-session (OMP has no way to pin a fork's target file to a thurbox UUID).
+session (OMP has no way to pin a fork's target file to a talos UUID).
 Groups
 are emitted only when their driving value exists; precedence is
 fork > resume > new-session. See the seeded file's comments and
-the `thurbox-agents` skill for the `resume_latest` semantics.
+the `talos-agents` skill for the `resume_latest` semantics.
 
 ### How `command` is resolved
 
-For a **local** session, thurbox resolves a bare `command` against **its own
+For a **local** session, talos resolves a bare `command` against **its own
 `PATH`** and hands the multiplexer the absolute path it found. It does that
 because the multiplexer would otherwise resolve the name itself, in an
-environment thurbox neither chose nor can see:
+environment talos neither chose nor can see:
 
 - tmux copies the *client's* `PATH` into a new pane only for an **unattached**
-  client, so a window created over thurbox's (attached) control-mode connection
+  client, so a window created over talos's (attached) control-mode connection
   — a restart, a plugin program, the companion shell pane — got the `PATH` of
   whatever first started the tmux **server**.
 - a window command that reaches tmux as a **single** argument is run by tmux's
   `default-shell`, not `execvp` — so an agent with no args was launched by a
-  shell thurbox never chose, under that shell's `PATH` and quoting.
+  shell talos never chose, under that shell's `PATH` and quoting.
 
 Under zsh/bash those `PATH`s agree, because the interactive additions live in
 `~/.zshenv` / `~/.profile`, which any shell that starts a tmux server sources.
@@ -183,14 +183,14 @@ fish applies — so a server started from anything else never sees the agent, fo
 the life of that server, and the spawn fails with a shell's `command not found`
 (exit **127**; an `execvp` failure is exit 1).
 
-That is not the only thing a 127 there can mean, and thurbox does not read the
+That is not the only thing a 127 there can mean, and talos does not read the
 exit status as the verdict at all — see
 [FEATURES.md](FEATURES.md#session-creation) for the hook that also produces
 one.
 
 Resolution is **best-effort and never a new way to fail**: a `command` that is
 already a path, that nothing on `PATH` matches (a shell function or alias, or a
-binary installed after thurbox started), or that runs on Windows is passed
+binary installed after talos started), or that runs on Windows is passed
 through verbatim, exactly as before. A **remote** (SSH/WSL) session is not
 resolved either — its `PATH` is the host's: the host's login-shell `PATH`
 (read once per host, see [hosts.toml](#hoststoml) → `path_prepend`) ahead of
@@ -205,7 +205,7 @@ shadow the real one, which is the dependence this removes rather than moves.
 
 ### What happens when it is *not* installed
 
-thurbox starts with no multiplexer and no agent on the machine, and that is
+talos starts with no multiplexer and no agent on the machine, and that is
 deliberate — browsing, reading and configuring must work on a fresh box. So the
 same lookup runs a second time, as a **preflight**, in the places where knowing
 early is worth something:
@@ -218,11 +218,11 @@ early is worth something:
 - the **empty session list** — the one screen a first run always reaches — says
   the multiplexer is missing, with the fix.
 - a **spawn failure** caused by a missing binary names the binary, the
-  directories thurbox searched and the one thing to do about it, instead of the
+  directories talos searched and the one thing to do about it, instead of the
   launcher's errno or the multiplexer's exit code.
-- `thurbox-cli doctor` answers the whole question directly: the multiplexer and
+- `talos-cli doctor` answers the whole question directly: the multiplexer and
   its version, every registered agent's `command`, the launcher for each
-  configured host, and the full search path. It is the companion to `thurbox-cli
+  configured host, and the full search path. It is the companion to `talos-cli
   session doctor`, which asks whether an *existing* session's status hooks are
   wired.
 
@@ -232,7 +232,7 @@ render, a keystroke or a list row. Two things are reported as **unknown** rather
 than missing, because in both cases nothing was looked at: a **remote host**,
 whose binaries live on the host, and a **relative** `command` such as
 `./bin/agent`, which is resolved by whoever launches it from the *session's*
-own directory. Answering the latter from thurbox's working directory would call
+own directory. Answering the latter from talos's working directory would call
 a binary that launches fine missing, and one that does not present — the same
 "absolute only" rule the resolver above is written under, for the same reason.
 
@@ -241,7 +241,7 @@ The advice is platform-specific and never invented. A Windows user is pointed at
 command depends on a distribution, the package name is given and the link is
 tmux's own [install page](https://github.com/tmux/tmux/wiki/Installing) rather
 than a guessed invocation. A missing **agent** is answered with the `agents.toml`
-entry that decides what gets run, because thurbox bakes in no knowledge of any
+entry that decides what gets run, because talos bakes in no knowledge of any
 agent's installer.
 
 `hook_schema` is optional. Custom agents are agent-neutral, so the built-in
@@ -279,42 +279,42 @@ configured hosts, error shown.
 | `destination` | for ssh | — | ssh target (`user@host` or `~/.ssh/config` alias) |
 | `distro` | no | `name` | WSL distro name (`kind = "wsl"` only) |
 | `ssh_opts` | no | `[]` | extra ssh flags, one token per element (ssh only) |
-| `socket` | no | `thurbox` | host `tmux -L` socket |
-| `session` | no | `thurbox` | host tmux session name |
-| `worktrees_dir` | no | host `$HOME/.local/share/thurbox/worktrees` | absolute worktrees dir on the host/distro |
+| `socket` | no | `talos` | host `tmux -L` socket |
+| `session` | no | `talos` | host tmux session name |
+| `worktrees_dir` | no | host `$HOME/.local/share/talos/worktrees` | absolute worktrees dir on the host/distro |
 | `multiplexer` | no | platform default | host preference for new sessions; an explicit per-create choice wins. Names are `tmux`, `psmux`, `rmux`, and `herdr` (no Herdr adapter yet). Use `psmux` for a native Windows SSH host |
 | `platform` | no | `windows` if `multiplexer = "psmux"`, else `posix` | the host's OS: `posix` or `windows`. Decides its shell and paths, independent of `multiplexer` (ssh only — a WSL distro is always `posix`) |
-| `share_sessions` | no | `true` | the host's own database is the record of its sessions: mirrored here, operated through the host's `thurbox-cli` (provisioned under `~/.local/share/thurbox/bin/` — `thurbox-dev/bin/` for a dev build — there when missing); `false` = drive the host from here as before |
+| `share_sessions` | no | `true` | the host's own database is the record of its sessions: mirrored here, operated through the host's `talos-cli` (provisioned under `~/.local/share/talos/bin/` — `talos-dev/bin/` for a dev build — there when missing); `false` = drive the host from here as before |
 | `path_prepend` | no | `[]` | directories put first on the agent's `PATH` on the host, absolute or `~/`-rooted (`~` = the host's `$HOME`) — for what the host's login shell cannot report |
 
 **The agent's `PATH` on a host.** ssh and `wsl.exe` hand a command a
 non-login environment — `wsl.exe -e` skips the user's shell entirely, so
 not even `~/.zshenv` is read — which has none of `~/.local/bin`,
-`~/.cargo/bin`, nvm/fnm and the like. So thurbox reads the host's login
+`~/.cargo/bin`, nvm/fnm and the like. So talos reads the host's login
 `PATH` once per host and process (`$SHELL -lc`, the passwd shell when
 `$SHELL` is unset, and `/bin/sh -lc`; stdin closed, never `-i`, 5 s each
 under `timeout`, 15 s overall) and gives every command it runs there —
-the delegated `thurbox-cli`, and so the agent's pane — `path_prepend`,
+the delegated `talos-cli`, and so the agent's pane — `path_prepend`,
 then the login shells' `PATH`, then the launcher's own (on WSL that
 includes the Windows `PATH` WSL appends unless `appendWindowsPath =
 false`), each directory once. A host whose shells cannot be read keeps
 the launcher's `PATH` with a warning in the log; session creation never
 waits longer than the timeout on it, and never fails for it.
 
-**SSH** auth comes entirely from your `~/.ssh/config`; thurbox never
+**SSH** auth comes entirely from your `~/.ssh/config`; talos never
 handles credentials. **WSL** distros are reached with
 `wsl.exe -d <distro>` and need no config entry at all — they are
 **auto-discovered** (`wsl.exe -l -q`) and appear in the host picker
 and `--host` automatically; add a `kind = "wsl"` entry only to override
 a default (e.g. `worktrees_dir`). Discovery also works from *inside* a
 distro (interop puts `wsl.exe` on `PATH` there), and excludes the distro
-thurbox is itself running in: that one is this machine, sessions on it
+talos is itself running in: that one is this machine, sessions on it
 are ordinary **local** sessions created with no `--host`. An entry whose
 `distro` is that one is ignored with a startup warning. An entry merely
 *named* after it — reaching a sibling — works as written and keeps its
-sessions, but it records them under the very name an older thurbox
+sessions, but it records them under the very name an older talos
 mislabelled *local* sessions with; the two are indistinguishable, so
-thurbox warns and leaves every row under that name alone (any local
+talos warns and leaves every row under that name alone (any local
 session still recorded there stays recorded there). Name a **new** entry
 after the distro it reaches and there is nothing to warn about; renaming
 an **existing** one moves no row, and leaves its recorded sessions
@@ -331,23 +331,23 @@ cached for the process lifetime).
 
 A host's **platform** (`posix` or `windows`) is its operating system, and it is
 a choice of its own: not the multiplexer, not the way the host is reached, and
-not the OS thurbox itself runs on. It decides the host's shell and path
+not the OS talos itself runs on. It decides the host's shell and path
 semantics — PowerShell, `%USERPROFILE%` and no `/bin/sh` on Windows; `sh -c`,
 `$HOME` and `/bin/sh` as the server's `default-command` on POSIX — so a Windows
-thurbox driving a WSL distro pins `/bin/sh` there, and a Windows host on a
+talos driving a WSL distro pins `/bin/sh` there, and a Windows host on a
 multiplexer other than psmux still gets PowerShell.
 
 An entry that does not set `platform` keeps the meaning it always had:
 `multiplexer = "psmux"` is Windows, anything else POSIX. A WSL distro is POSIX
 whatever its entry says. What a multiplexer can do is not the platform's to
-say either: whether thurbox polls a backend for dead panes is whether that
+say either: whether talos polls a backend for dead panes is whether that
 multiplexer reports a closed window (tmux does; psmux and RMUX need polling).
 
 ### Multiplexer choice and existing sessions
 
 Host and multiplexer are separate choices. `hosts.toml` names the host's
 preference; top-level `multiplexer` in `settings.toml` names the local
-preference. `thurbox-cli session create --multiplexer <name>` overrides either
+preference. `talos-cli session create --multiplexer <name>` overrides either
 for one creation. The TUI asks for a host and then shows the registered
 multiplexers for it. The order is explicit choice, configured host or local
 preference, then platform default (`tmux` on POSIX, `psmux` on native Windows).
@@ -360,7 +360,7 @@ of another offered multiplexer before continuing.
 Names are `tmux`, `psmux`, `rmux`, and `herdr`. A configured choice without a
 registered implementation is shown as unavailable and creation refuses it
 before making a worktree or pane.
-When creation is delegated to a host's own Thurbox CLI, that CLI advertises
+When creation is delegated to a host's own Talos CLI, that CLI advertises
 whether it accepts a multiplexer choice. Older compatible CLIs can still use
 their platform default; a non-default choice requires updating the host CLI.
 
@@ -444,7 +444,7 @@ the tmux compatibility version, not the RMUX release.
 
 Recorded integration evidence is tmux 3.2/3.2a and 3.5a/3.7c (ADR-12),
 psmux 3.3.8 on Windows 11 (ADR-13), and RMUX 0.10.0 on Linux
-([#1322](https://github.com/Thurbeen/thurbox/pull/1322)). This is historical
+([#1322](https://github.com/zatzk/talos/pull/1322)). This is historical
 evidence, not a claim that every platform was retested for this doc change.
 The latest upstream stable releases checked on 2026-10-03 were tmux 3.7c,
 psmux 3.3.8, and RMUX 0.10.0.
@@ -471,27 +471,27 @@ multiplexer = "rmux"
 For an SSH host, add `multiplexer = "rmux"` to its `[[hosts]]` entry. For WSL,
 add a configured `kind = "wsl"` entry matching the discovered distro and set
 that same preference; install RMUX inside the distro. An explicit
-`thurbox-cli session create --multiplexer rmux` overrides the preference
+`talos-cli session create --multiplexer rmux` overrides the preference
 (add the usual session name, repository and agent arguments).
 Existing tmux and psmux rows retain their recorded routes.
 
-| RMUX placement | Thurbox integration evidence |
+| RMUX placement | Talos integration evidence |
 | --- | --- |
 | Local Linux | Live creation, TUI attachment, input and pane-deletion/relaunch in #1322 |
-| Local macOS | Upstream ships macOS binaries; thurbox integration unverified |
+| Local macOS | Upstream ships macOS binaries; talos integration unverified |
 | SSH host | Adapter and route construction covered; real-host execution unverified |
 | WSL distro | Picker and route construction covered; distro execution unverified |
-| Native Windows | Upstream ships Windows binaries; thurbox integration unverified, so keep the psmux default |
+| Native Windows | Upstream ships Windows binaries; talos integration unverified, so keep the psmux default |
 
 RMUX 0.10.0 rejects `pause-after`, `refresh-client -A`, and subscriptions
-(`refresh-client -B`). Thurbox omits those commands, uses one reply block for
+(`refresh-client -B`). Talos omits those commands, uses one reply block for
 command lists, and polls pane liveness and remote hook options. Output buffering
 therefore relies on RMUX rather than tmux's pause/resume mechanism. See
 [ADR-31](ARCHITECTURE.md#adr-31-tmux-and-psmux-are-peer-adapters-over-one-tmux-protocol-server)
-and [#1320](https://github.com/Thurbeen/thurbox/pull/1320).
+and [#1320](https://github.com/zatzk/talos/pull/1320).
 
 If RMUX is absent from the local picker, check `rmux -V` in the environment
-that launches thurbox. For a host, check it on that host or inside the WSL
+that launches talos. For a host, check it on that host or inside the WSL
 distro. A version rejection needs an upgrade on the session machine.
 RMUX 0.9.x daemons cannot talk to a 0.10.0 client: stop the old server before
 upgrading, using `rmux -L <socket> kill-server` for each affected socket.
@@ -500,12 +500,12 @@ preference does not convert existing sessions, so use the recorded route's
 multiplexer when attaching manually or stopping a server.
 
 A socket learned from a host's own CLI (`version --json`'s `tmux_socket`) is
-kept per **host**, not per route: it is the address of the thurbox instance
+kept per **host**, not per route: it is the address of the talos instance
 there (ADR-12), which every multiplexer on that host runs under. Why routes
 are read this way, and what it costs, is ADR-28 in `docs/ARCHITECTURE.md`.
 
 Manual deletion of an agent pane or window means the agent should run again.
-Once the backend **confirms absence**, Thurbox relaunches the same session ID,
+Once the backend **confirms absence**, Talos relaunches the same session ID,
 agent, and worktree once. An exited pane still held by the server remains
 visible for inspection. A backend that is unreachable or has not verified the
 window cannot authorize a relaunch. A session intentionally parked with
@@ -516,7 +516,7 @@ have live tests; Herdr remains unverified.
 ## hooks.toml
 
 Declares **session lifecycle hooks**: your own shell commands, run by
-thurbox before and after it creates, deletes, restarts or restores a
+talos before and after it creates, deletes, restarts or restores a
 session. Seeded fully commented-out (a fresh install runs nothing); read
 **each time an event fires**, so an edit is in force at the next
 operation with no restart. Malformed file → no hooks run, warning in the
@@ -524,18 +524,18 @@ log, and `config validate` fails.
 
 > Not the `hooks/` **directory** beside it. That is the home of the
 > built-in `hooks` *extension*, which installs status-hook files **into**
-> the agent CLIs so they can tell thurbox what they are doing
+> the agent CLIs so they can tell talos what they are doing
 > (see [Session status](#session-status)). `hooks.toml` is the other
-> direction: thurbox telling *your* scripts what *it* is doing.
+> direction: talos telling *your* scripts what *it* is doing.
 
 ```toml
 [[hooks]]
 event = "session.pre_create"
-command = 'case "$THURBOX_BRANCH" in main|master) echo "refusing: protected branch" >&2; exit 1;; esac'
+command = 'case "$TALOS_BRANCH" in main|master) echo "refusing: protected branch" >&2; exit 1;; esac'
 
 [[hooks]]
 event = "session.post_create"
-command = '[ -n "$THURBOX_CWD" ] && cp -n .env.local "$THURBOX_CWD/.env"; true'
+command = '[ -n "$TALOS_CWD" ] && cp -n .env.local "$TALOS_CWD/.env"; true'
 timeout_secs = 120
 ```
 
@@ -550,10 +550,10 @@ timeout_secs = 120
 
 | Operation | Events | Fired by |
 |-----------|--------|----------|
-| create (incl. fork) | `session.pre_create` / `session.post_create` | the creation flow, `Ctrl+F`, `thurbox-cli session create`, a `spawn` automation, an extension's sessions |
-| delete (soft or force) | `session.pre_delete` / `session.post_delete` | `Ctrl+D`, `thurbox-cli session delete [--force]`, extension uninstall |
-| restart | `session.pre_restart` / `session.post_restart` | `Ctrl+R`, `thurbox-cli session restart` |
-| restore (incl. undo) | `session.pre_restore` / `session.post_restore` | `Ctrl+Z`/`Ctrl+U`, `thurbox-cli session restore` |
+| create (incl. fork) | `session.pre_create` / `session.post_create` | the creation flow, `Ctrl+F`, `talos-cli session create`, a `spawn` automation, an extension's sessions |
+| delete (soft or force) | `session.pre_delete` / `session.post_delete` | `Ctrl+D`, `talos-cli session delete [--force]`, extension uninstall |
+| restart | `session.pre_restart` / `session.post_restart` | `Ctrl+R`, `talos-cli session restart` |
+| restore (incl. undo) | `session.pre_restore` / `session.post_restore` | `Ctrl+Z`/`Ctrl+U`, `talos-cli session restore` |
 
 Hooks fire **once per operation whichever interface asked**, because
 every interface ends in the same pipeline (`session_ops`). Hooks for one
@@ -563,9 +563,9 @@ event run one at a time, in file order.
 the operation is aborted before it has done anything — no worktree, no
 process, no row changed — with the hook's command, exit status and the
 tail of its stderr as the reported reason (the in-flight error in the
-TUI, the error and exit status of `thurbox-cli`). Later hooks for that
+TUI, the error and exit status of `talos-cli`). Later hooks for that
 event do not run. **A `post_*` hook is informational**: every one runs,
-a failure is logged to `thurbox.log` and carried in the CLI's JSON
+a failure is logged to `talos.log` and carried in the CLI's JSON
 (`hook_failures`), and never fails the operation. Each `post_*` is also
 delivered to interface plugins as an event of the same name (`events = {
 "session.post_create" }` + `on_event`; `docs/PLUGINS.md` → Events) — the
@@ -576,35 +576,35 @@ empty) when the fact is not known at that moment:
 
 | Variable | Meaning |
 |----------|---------|
-| `THURBOX_HOOK_EVENT` | the event name, e.g. `session.post_create` |
-| `THURBOX_SESSION` | the thurbox session id (at `pre_create`: the id it will have if creation succeeds) |
-| `THURBOX_SESSION_ID` | the agent's own conversation id |
-| `THURBOX_SESSION_NAME` | the session name |
-| `THURBOX_AGENT` | the agent name |
-| `THURBOX_REPO` | the primary repository path |
-| `THURBOX_CWD` | the directory the agent runs in (the worktree, or the symlink workspace of a multi-repo session); unset at `pre_create` |
-| `THURBOX_BRANCH` / `THURBOX_BASE_BRANCH` | the worktree branch and what it was created from (base: create events only) |
-| `THURBOX_HOST` | the remote host name; unset for a local session |
-| `THURBOX_PARENT_SESSION` | the parent session id (a fork, or `--parent`) |
-| `THURBOX_TASK` | the originating task id, for a task-spawned session |
-| `THURBOX_CONFIG_DIR` / `THURBOX_DATA_DIR` | so a `thurbox-cli` run inside the hook hits the database of the thurbox that fired it |
+| `TALOS_HOOK_EVENT` | the event name, e.g. `session.post_create` |
+| `TALOS_SESSION` | the talos session id (at `pre_create`: the id it will have if creation succeeds) |
+| `TALOS_SESSION_ID` | the agent's own conversation id |
+| `TALOS_SESSION_NAME` | the session name |
+| `TALOS_AGENT` | the agent name |
+| `TALOS_REPO` | the primary repository path |
+| `TALOS_CWD` | the directory the agent runs in (the worktree, or the symlink workspace of a multi-repo session); unset at `pre_create` |
+| `TALOS_BRANCH` / `TALOS_BASE_BRANCH` | the worktree branch and what it was created from (base: create events only) |
+| `TALOS_HOST` | the remote host name; unset for a local session |
+| `TALOS_PARENT_SESSION` | the parent session id (a fork, or `--parent`) |
+| `TALOS_TASK` | the originating task id, for a task-spawned session |
+| `TALOS_CONFIG_DIR` / `TALOS_DATA_DIR` | so a `talos-cli` run inside the hook hits the database of the talos that fired it |
 
 The same facts — plus `worktrees` (`repo_path`, `worktree_path`,
 `branch`), `additional_dirs`, `force` (delete) and `force_deleted`
 (restore) — arrive as **one JSON object on stdin** (`jq -r .cwd`).
 
 **Where and how it runs.** In the primary repository when that is a
-directory on this machine, otherwise in thurbox's own working directory
+directory on this machine, otherwise in talos's own working directory
 — the repository is the one path that exists at every event (at
 `pre_create` the worktree is not made; at `post_delete` it is gone).
 With **no terminal**: stdin is the JSON, stdout/stderr are captured and
 only their tail (500 chars) is reported, so a hook can neither draw on
 nor read from the TUI's screen. A hook for a **remote** (SSH/WSL)
-session still runs **locally**; `THURBOX_HOST` names the host and the
-paths are the host's — `ssh "$THURBOX_HOST" …` from the hook is your
+session still runs **locally**; `TALOS_HOST` names the host and the
+paths are the host's — `ssh "$TALOS_HOST" …` from the hook is your
 call.
 
-`thurbox-cli config validate` strict-parses the file; `config show`
+`talos-cli config validate` strict-parses the file; `config show`
 lists the hooks in force.
 
 ## settings.toml
@@ -617,7 +617,7 @@ lists the hooks in force.
 > Four flags gate surfaces the interface **no longer draws**: `code_review`,
 > `file_viewer`, `info_panel` and `tasks` (which still gates its CLI). They
 > are accepted and preserved untouched so an existing file does not fail
-> `thurbox-cli config validate`, and simply not listed in the panel, since a
+> `talos-cli config validate`, and simply not listed in the panel, since a
 > row that gates nothing reads as broken. `automations` is honoured, but it
 > arms the headless heartbeat rather than an in-TUI scheduler.
 >
@@ -698,15 +698,15 @@ That is a round trip and a parse, about 10 ms for a 200x50 pane with 1,000
 lines of history, so switching to a session hidden longer than this takes that
 long to draw. A search whose strip was just opened reads each such session the
 same way before the first keystroke. `0` keeps every grid for as long as the
-session runs, which is how thurbox behaved before (ADR-P27 in
+session runs, which is how talos behaved before (ADR-P27 in
 [PERFORMANCE.md](PERFORMANCE.md)). psmux (Windows) cannot hand a pane back in
 step with its output, so its sessions always keep their grids. Read at startup.
 
-### `git_poll_secs` — how much `git` thurbox runs
+### `git_poll_secs` — how much `git` talos runs
 
 The diffstat and the ahead/behind beside each session come from `git`, and
 they are *polled*: every session, every `git_poll_secs`. So this one number,
-times the session count, is thurbox's whole git load — and a session whose
+times the session count, is talos's whole git load — and a session whose
 branch is ahead of the default and has not landed yet pays for the merge
 check as well, which is seven subprocesses rather than one.
 
@@ -730,14 +730,14 @@ and rechecked on the first poll at least a minute later — so its age is bounde
 by a minute or by that session's own interval, whichever is longer.
 
 Raise `git_poll_secs` on an instance holding many sessions, and set it to `0`
-where a process launch is expensive for reasons outside thurbox — **Microsoft
+where a process launch is expensive for reasons outside talos — **Microsoft
 Defender / Intune on macOS, or Defender for Endpoint on Windows, scans every
 process as it is created**, which turns a poll into an antivirus workload. At
 `0` nothing is statted, so the session list shows no diffstat and **a delete
 always asks for confirmation** — the confirmation reads a session's git state to
 describe what may be lost, and "could not be read" is reported rather than
 treated as clean. It is the same prompt
-a remote session already gets. `thurbox-cli` is unaffected. Read once at
+a remote session already gets. `talos-cli` is unaffected. Read once at
 startup, so a change applies on the next launch.
 
 ### `[features]` — whole-feature switches
@@ -758,8 +758,8 @@ Five keys are **accepted and ignored**: `tasks`, `file_viewer`,
 `info_panel`, `code_review` and `global_search`. They gated v1 panes the
 binary no longer draws, and nothing reads them now — not even the plugins
 that give `code_review` and `info_panel` back
-([`thurbox-code-review`](https://github.com/Thurbeen/thurbox-code-review),
-[`thurbox-info-panel`](https://github.com/Thurbeen/thurbox-info-panel)),
+([`talos-code-review`](https://github.com/zatzk/talos-code-review),
+[`talos-info-panel`](https://github.com/zatzk/talos-info-panel)),
 which are switched on and off from the Interface tab like any other pane.
 They are still parsed rather than rejected, so an existing `settings.toml`
 keeps loading instead of failing on an unknown key — but setting one has no
@@ -773,13 +773,13 @@ effect in either direction. Same for `three_panel_min_cols` above.
 | `mouse` | `true` | mouse capture: clicks, wheel, drag-select, hover, scrollbars |
 | `notifications` | `true` | OS desktop notifications when a session needs attention |
 | `soft_delete` | `true` | TUI `Ctrl+D` asks, then soft-deletes (Ctrl+Z undo); off = hard delete after the same confirmation prompt |
-| `version_check` | `true` | GitHub update check: TUI header "update available" badge + `thurbox-cli version --check` |
-| `auto_update` | `true` | Silent self-update **within the current major**: download + verify + replace the binaries on startup + `thurbox-cli update`; also auto-refreshes stale extensions |
+| `version_check` | `true` | GitHub update check: TUI header "update available" badge + `talos-cli version --check` |
+| `auto_update` | `true` | Silent self-update **within the current major**: download + verify + replace the binaries on startup + `talos-cli update`; also auto-refreshes stale extensions |
 
 `automations = false` is a full stop on the TUI side: the pane
 disappears (the session list takes the whole left column and `j`/`k`
 wrap within it), and the TUI neither fires due schedules nor arms the
-heartbeat keeper on startup. Explicit `thurbox-cli automation`
+heartbeat keeper on startup. Explicit `talos-cli automation`
 commands still work — and `automation create` still arms the
 heartbeat, so an already-armed keeper window (or an OS timer from
 `packaging/`) keeps firing schedules externally. Disabling
@@ -800,25 +800,25 @@ cancel), since the teardown is irreversible. The row is marked
 **first**, before anything comes down: a crash partway through the
 teardown would otherwise leave an active session whose worktrees are
 already gone. It is marked force-deleted with it, so `Ctrl+U` lists it
-and refuses — unless every worktree was one thurbox merely opened
+and refuses — unless every worktree was one talos merely opened
 rather than created, in which case nothing was lost and the restore
 stands (which re-spawns it fresh). This flag governs the TUI only:
-`thurbox-cli session delete` always soft-deletes unless you pass
+`talos-cli session delete` always soft-deletes unless you pass
 `--force`, regardless of the setting.
 With `soft_delete = true`, the TUI also asks before the reversible delete and
 records the `Ctrl+Z` undo target only after the answer is yes.
 
 `version_check` (on by default for 1.0) enables the update check — it
 makes a network call. On launch the TUI reads a cached result
-(`~/.local/share/thurbox/version-check.json`) and, if it is older than
+(`~/.local/share/talos/version-check.json`) and, if it is older than
 24 h, fires a single best-effort background fetch of GitHub's latest
-release (`api.github.com/repos/Thurbeen/thurbox/releases/latest`, via
+release (`api.github.com/repos/zatzk/talos/releases/latest`, via
 `curl`/`wget` — no new dependency); a newer release shows a `⬆ vX.Y.Z
 available` badge next to the version in the header. The fetch never runs
 on the render path and never blocks startup; failures are silent. Dev
 builds (`0.0.0-dev`) never show the badge. The same flag enables
-`thurbox-cli version --check`, which fetches fresh on demand and reports
-current vs. latest (`thurbox-cli version` with no flag always prints the
+`talos-cli version --check`, which fetches fresh on demand and reports
+current vs. latest (`talos-cli version` with no flag always prints the
 current version, regardless of the flag).
 
 `auto_update` (on by default for 1.0) goes a step further than
@@ -832,14 +832,14 @@ dependency), verifies the SHA256 **in process** (`sha2`, so the check does not
 depend on the local `PATH` — shelling out to `sha256sum`/`shasum` made it
 impossible on native Windows, issue #1182), extracts it
 (`tar`, or PowerShell's `Expand-Archive` for Windows' zip), and atomically
-replaces the installed `thurbox`/`thurbox-cli`
+replaces the installed `talos`/`talos-cli`
 binaries in place — mirroring `scripts/install.sh`. The download is verified
 **before** any installed file is touched, so a failed/corrupt download leaves
 the current binaries untouched; the whole step runs before the TUI takes the
 terminal and is best-effort (any failure is logged and startup continues on
 the current version). The replaced binary takes effect on the **next launch**
 (the running process keeps its open file), so the TUI shows an "Updated to
-vX.Y.Z — restart to apply" status line. `thurbox-cli update` performs the
+vX.Y.Z — restart to apply" status line. `talos-cli update` performs the
 same update on demand (with `--force` to bypass the up-to-date, dev-build and
 major-version guards); dev builds (`0.0.0-dev`) never auto-update. The default install
 location (`~/.local/bin`) is user-writable; a system-wide install in a
@@ -853,21 +853,21 @@ unpacker is chosen by the archive's extension. And a rename cannot replace an
 executable a process is running from — Windows keeps its image mapped — so the
 swap there is Win32 `ReplaceFile` (through PowerShell's
 `[System.IO.File]::Replace`), which moves the replaced binary aside to
-`.thurbox.exe.old` instead of deleting it. That works while thurbox runs, and the
+`.talos.exe.old` instead of deleting it. That works while talos runs, and the
 running process keeps its old image until the next launch, as on Unix. The swap
-is one system call, so a thurbox killed or closed mid-update leaves the old
+is one system call, so a talos killed or closed mid-update leaves the old
 binary or the new one, never neither. The `.old` file is removed by the next
-update, once nothing runs from it; updating again while a thurbox still does is
-refused with nothing changed. Re-running `install.ps1` over a running thurbox
+update, once nothing runs from it; updating again while a talos still does is
+refused with nothing changed. Re-running `install.ps1` over a running talos
 works the same way: it renames each installed binary to `.<name>.old` rather
 than deleting it, and names the process to close when even that is refused.
 
 **Auto-update never crosses a major version.** A 1.x install is told that 2.x
-exists (the badge, and `thurbox-cli version --check`, both report it) and is
+exists (the badge, and `talos-cli version --check`, both report it) and is
 never moved onto it; it keeps updating along 1.x. This is not conservatism about
 version numbers — 2.x replaced v1's compiled-in interface with the Lua plugin
 kernel, so a silent crossing would hand someone a different program under the
-same binary name. `thurbox-cli update --force` is the deliberate way across, and
+same binary name. `talos-cli update --force` is the deliberate way across, and
 the first v2 launch of a profile with v1 history still asks before anything
 changes. The guard is `agent::version_check::crosses_major`, and it applies to
 every future major too.
@@ -884,7 +884,7 @@ extension only goes stale (`installed_with` ≠ the running binary) right after 
 upgrade. The self-heal pass — which already runs on TUI startup and on the
 headless `automation tick` — then refreshes each stale extension in place
 (re-fetching it from its recorded source) instead of only nudging you to run
-`thurbox-cli extension update`. The staleness check is local and network-free,
+`talos-cli extension update`. The staleness check is local and network-free,
 so a launch where nothing is stale does no extra work; a refresh runs at most
 once per extension per binary version. With `auto_update` off, the nudge is
 shown and you update extensions by hand.
@@ -926,8 +926,8 @@ inside the TUI, so a headless `automation tick` never notifies.
 | Backend | When | Click-to-focus |
 |---------|------|----------------|
 | `dbus` | normal Linux desktop with a running notification daemon (`org.freedesktop.Notifications`) | **yes** — clicking the banner writes a focus request the running TUI reads next tick and switches to that session |
-| `windows` (toast) | **native Windows**, or **WSL** / any Linux with no dbus daemon — delivers a Windows toast via `powershell.exe` (WSL needs interop, on by default) | no (a Windows toast can't call back into the thurbox process) |
-| `macos` | macOS native banner. Uses **`terminal-notifier`** when it's in `PATH` (own bundle + icon, looks like a real app notification — `brew install terminal-notifier`), otherwise the built-in **`osascript`** `display notification` (attributed to Apple's Script Editor). The `UNUserNotificationCenter` click API needs a signed `.app` bundle, which thurbox is not, so the `osascript` path is informational | **with `terminal-notifier`** — clicking the banner runs `thurbox-cli session focus <id>`, which writes the same metadata row the dbus path does and the TUI picks it up next tick. Without `terminal-notifier` (osascript fallback): no |
+| `windows` (toast) | **native Windows**, or **WSL** / any Linux with no dbus daemon — delivers a Windows toast via `powershell.exe` (WSL needs interop, on by default) | no (a Windows toast can't call back into the talos process) |
+| `macos` | macOS native banner. Uses **`terminal-notifier`** when it's in `PATH` (own bundle + icon, looks like a real app notification — `brew install terminal-notifier`), otherwise the built-in **`osascript`** `display notification` (attributed to Apple's Script Editor). The `UNUserNotificationCenter` click API needs a signed `.app` bundle, which talos is not, so the `osascript` path is informational | **with `terminal-notifier`** — clicking the banner runs `talos-cli session focus <id>`, which writes the same metadata row the dbus path does and the TUI picks it up next tick. Without `terminal-notifier` (osascript fallback): no |
 
 `auto` prefers `dbus` whenever a daemon answers, and only falls back to
 the Windows toast when no dbus service is reachable. Force a specific
@@ -941,8 +941,8 @@ logfile, so the user saw nothing. Delivery errors are now recorded and
 surfaced by the diagnostic:
 
 ```bash
-thurbox-cli notify          # show the detected backend + last delivery error
-thurbox-cli notify --test   # fire a sample notification to confirm it works
+talos-cli notify          # show the detected backend + last delivery error
+talos-cli notify --test   # fire a sample notification to confirm it works
 ```
 
 | Key | Default | Purpose |
@@ -960,16 +960,16 @@ you), and with `also_on_waiting = true` also on `Working → Done`.
 ## Session status
 
 Each session's state (Blocked / Working / Done / Idle) is driven by
-**agent hooks** that call `thurbox-cli session signal --state
+**agent hooks** that call `talos-cli session signal --state
 <working|blocked|done|idle>`. The state is persisted on the `sessions` row
 (`hook_state`, `hook_state_at`, `seen_at` — schema v34) and survives the TUI
 being closed; a hook fired headlessly is picked up via `PRAGMA data_version`.
-Identity comes from the injected `THURBOX_SESSION` env var, so a hook passes
+Identity comes from the injected `TALOS_SESSION` env var, so a hook passes
 no id. A finished turn shows `Done` (blue) — for the session you're watching too
 — and becomes `Idle` once you switch focus off it.
 
 The hooks are wired up automatically by the built-in **hooks** extension
-(auto-activated on first run). Opt out with `thurbox-cli extension deactivate
+(auto-activated on first run). Opt out with `talos-cli extension deactivate
 hooks`. The status colours are tunable theme keys (`status_working` /
 `status_blocked` / `status_done` / `status_idle` / `status_unreachable` /
 `status_running` / `status_unknown` — see `themes.toml`). `status_running` is
@@ -979,24 +979,24 @@ from `status_idle`, which is the agent's own report that it is at rest.
 `status_error` is a separate role, for a failed *command* in the list, not a
 session state.
 
-The wiring is applied **only to agents thurbox launches** — it never edits your
-own global agent config (e.g. your personal `~/.claude/settings.json`). thurbox's
+The wiring is applied **only to agents talos launches** — it never edits your
+own global agent config (e.g. your personal `~/.claude/settings.json`). talos's
 managed hook config lives per agent, applied by injecting a flag into
 `agents.toml` or by a reversible merge into / managed file in the agent's own
 config dir:
 
 | Agent | On-disk location | How it's applied |
 |-------|------------------|------------------|
-| claude | `~/.config/thurbox/hooks/claude.json` | `--settings` flag (claude merges it with your own settings) |
+| claude | `~/.config/talos/hooks/claude.json` | `--settings` flag (claude merges it with your own settings) |
 | aider | — (no file) | `--notifications-command` flag |
-| opencode | `~/.config/opencode/plugin/thurbox-status.js` | managed plugin file |
-| codex | `~/.codex/hooks.json` | reversible JSON-merge of thurbox's entries |
+| opencode | `~/.config/opencode/plugin/talos-status.js` | managed plugin file |
+| codex | `~/.codex/hooks.json` | reversible JSON-merge of talos's entries |
 | vibe | `~/.vibe/hooks.toml` | managed file (refused if you already have one) |
-| antigravity | `~/.gemini/settings.json` | reversible JSON-merge of thurbox's entries |
+| antigravity | `~/.gemini/settings.json` | reversible JSON-merge of talos's entries |
 
-The home dir is `~/.config/thurbox/hooks` on a release build and
-`~/.config/thurbox-dev/hooks` on a dev build. Because claude *merges* the
-`--settings` file, your own hooks still fire inside a thurbox session — both run.
+The home dir is `~/.config/talos/hooks` on a release build and
+`~/.config/talos-dev/hooks` on a dev build. Because claude *merges* the
+`--settings` file, your own hooks still fire inside a talos session — both run.
 Hand-edits to a managed file are rewritten from the embedded payload on the next
 TUI start / heartbeat tick; to customize, deactivate the extension and wire the
 hook yourself, or edit the payload under `extensions/hooks/` and reinstall. Full
@@ -1051,24 +1051,24 @@ Maps `Action` names to one or more chord strings:
   readline / shell line-editing chords (`Ctrl+A` start-of-line, `Ctrl+E`
   end-of-line, `Ctrl+W` delete-word, `Ctrl+U` kill-line, `Ctrl+R`
   reverse-search, `Ctrl+D` EOF, plus `Ctrl+B/F/O/P/S`) are **forwarded to the
-  agent CLI** instead of triggering their thurbox command, so your terminal
-  muscle memory works inside a session. Those thurbox commands stay reachable
+  agent CLI** instead of triggering their talos command, so your terminal
+  muscle memory works inside a session. Those talos commands stay reachable
   from the **session list** (focus it with `Ctrl+H`) and via their `F`-key
   alternates (`F2` info panel, `F3` file viewer, `F5` tasks). Rebinding such an
   action to a key that isn't a bare `Ctrl+<letter>` makes it work in the
   terminal too. Navigation/quit chords (`Ctrl+H/J/K/L`, `Ctrl+Q`, `Ctrl+N`) are
   **never** forwarded — they're how you leave the terminal.
 - Action names and defaults: see the
-  [Keybindings page](https://thurbox.thurbeen.eu/docs/keybindings.html), the
+  [Keybindings page](https://talos.zatzk.com/docs/keybindings.html), the
   live `F1` registry, or `src/session/keybindings.rs`.
 
 ## extensions/
 
 Each opt-in extension is described by a single `extension.toml` manifest.
-`thurbox-cli extension install` writes the home-resolved copy to
-`~/.config/thurbox/extensions/<name>.toml` (thurbox never seeds this dir). The
+`talos-cli extension install` writes the home-resolved copy to
+`~/.config/talos/extensions/<name>.toml` (talos never seeds this dir). The
 install **home** (where payload files land and the session runs) defaults to
-`~/.config/thurbox/extensions/<name>/` — a sibling dir of that manifest —
+`~/.config/talos/extensions/<name>/` — a sibling dir of that manifest —
 unless the manifest pins a `home` or you pass `--home`. The manifest has two
 halves — an **install** spec and a **runtime** spec.
 
@@ -1081,10 +1081,10 @@ format supports is shown once:
 
 ```toml
 name = "fleet"
-description = "Control-plane session: the repo map and thurbox orchestration"
+description = "Control-plane session: the repo map and talos orchestration"
 config_version = 1              # manifest *format* version (for migrations)
 version = "1.0.0"              # the extension's own version (bumped by its author)
-min_thurbox_version = "2.19.0"  # minimum thurbox; older binaries get a warning
+min_talos_version = "2.19.0"  # minimum talos; older binaries get a warning
 # home = "~/fleet"              # OPTIONAL; default is <config>/extensions/<name>.
                                 # {home} is substituted everywhere it appears
 
@@ -1154,24 +1154,24 @@ prompt = "tick"
 Manage extensions with the CLI:
 
 ```bash
-thurbox-cli extension install ./my-ext     # from a local dir: fetch + lay files
+talos-cli extension install ./my-ext     # from a local dir: fetch + lay files
                                            #   + agents + activate
-thurbox-cli extension install <url> --home ~/x    # from a URL, custom home
-thurbox-cli extension install git+https://github.com/you/my-ext  # clone a repo
-thurbox-cli extension uninstall <name>     # reverse install (keep home dir)
-thurbox-cli extension uninstall <name> --purge    # also delete the home dir
-thurbox-cli extension list                 # installed + active/healthy + version/stale
-thurbox-cli extension update <name>        # re-fetch from recorded source (refresh)
-thurbox-cli extension update --all         # update every installed extension
-thurbox-cli extension update <name> --force # also overwrite user-edited seed files
-thurbox-cli extension activate <name>      # (re)create resources + mark active
-thurbox-cli extension deactivate <name>    # tear down + stop self-heal
-thurbox-cli extension deactivate <name> --force --purge  # also kill tmux + drop manifest
-thurbox-cli extension status [<name>]      # per-resource presence + version/stale
+talos-cli extension install <url> --home ~/x    # from a URL, custom home
+talos-cli extension install git+https://github.com/you/my-ext  # clone a repo
+talos-cli extension uninstall <name>     # reverse install (keep home dir)
+talos-cli extension uninstall <name> --purge    # also delete the home dir
+talos-cli extension list                 # installed + active/healthy + version/stale
+talos-cli extension update <name>        # re-fetch from recorded source (refresh)
+talos-cli extension update --all         # update every installed extension
+talos-cli extension update <name> --force # also overwrite user-edited seed files
+talos-cli extension activate <name>      # (re)create resources + mark active
+talos-cli extension deactivate <name>    # tear down + stop self-heal
+talos-cli extension deactivate <name> --force --purge  # also kill tmux + drop manifest
+talos-cli extension status [<name>]      # per-resource presence + version/stale
 ```
 
 A bare name installs from the official source
-(`raw.githubusercontent.com/Thurbeen/thurbox/<ref>/extensions/<name>`,
+(`raw.githubusercontent.com/zatzk/talos/<ref>/extensions/<name>`,
 fetched via curl/wget) — `<ref>` is the running binary's release tag
 (`main` for dev builds), so a fetched extension matches your binary.
 **No extension ships under a bare name today**: `extensions/` holds only the
@@ -1185,7 +1185,7 @@ validated against traversal (no absolute paths or `..`), and a
 `--force`). Payload files are fetched as **text** (specs/scripts/JSON),
 not binaries.
 
-While an extension is **active**, thurbox **self-heals** its declared
+While an extension is **active**, talos **self-heals** its declared
 resources: on TUI startup and on every `automation tick` it re-creates
 any session/automation that has been deleted. So deleting them by hand is
 a no-op (they come back); `extension deactivate` is the real off-switch.
@@ -1201,32 +1201,32 @@ into the discovery-dir copy so staleness can be detected:
 | Field | Where set | Purpose |
 |-------|-----------|---------|
 | `version` | source manifest | the extension's own semver (author-bumped) |
-| `min_thurbox_version` | source manifest | minimum thurbox; older binaries warn |
-| `installed_with` | stamped on install | the thurbox version that installed it |
+| `min_talos_version` | source manifest | minimum talos; older binaries warn |
+| `installed_with` | stamped on install | the talos version that installed it |
 | `source` | stamped on install | the target it was installed from |
 
 A **bare-name** install (`extension install <name>`) fetches from the
 official source **pinned to the running binary's release tag**, so the
-extension you get always matches your thurbox. When you later **upgrade
-thurbox**, the on-disk copy is now older than the binary — thurbox
+extension you get always matches your talos. When you later **upgrade
+talos**, the on-disk copy is now older than the binary — talos
 flags it as `stale` (in `extension list`/`status`, and as a one-line
 nudge from self-heal at startup). Run `extension update <name>` (or
 `--all`) to re-fetch from the recorded `source`; because a bare name
 re-resolves against the *new* binary's tag, this pulls the version that
-matches your upgraded thurbox. Updates honour the same file rules as
+matches your upgraded talos. Updates honour the same file rules as
 install — user-edited `substitute` files and `if_absent` seeds are
 preserved unless you pass `--force`.
 
-`min_thurbox_version` is a **soft** gate: an extension authored for a
-newer thurbox still installs on an older binary, but install/activate and
+`min_talos_version` is a **soft** gate: an extension authored for a
+newer talos still installs on an older binary, but install/activate and
 self-heal emit a compatibility warning so the mismatch is visible.
 **Dev builds** (`0.0.0-dev`) skip both the staleness and compatibility
 checks — their version doesn't order against release tags.
 
 **Rollback.** There's no version snapshot store: to roll an extension
 back, install from a URL or repository that names the version you want —
-for a bare-name extension that is a specific thurbox tag, `extension install
-https://raw.githubusercontent.com/Thurbeen/thurbox/v0.112.0/extensions/<name>`
+for a bare-name extension that is a specific talos tag, `extension install
+https://raw.githubusercontent.com/zatzk/talos/v0.112.0/extensions/<name>`
 — or downgrade the binary and run `extension update`, which re-resolves
 the bare name to that older tag.
 
@@ -1237,141 +1237,141 @@ Live in the `metadata` table and apply immediately (no restart):
 | Key | Set via | Purpose |
 |-----|---------|---------|
 | `active_theme` | `Ctrl+Y` / `F4` picker | TUI palette (fifteen built-ins) |
-| `editor_command` | `thurbox-cli editor set "<cmd>"` | what `Ctrl+O` runs |
-| `editor_mode` | `thurbox-cli editor mode <auto\|terminal\|gui>` | how `Ctrl+O` runs the editor: `auto` (default) detects terminal vs GUI and gives terminal editors a real TTY (tmux popup / TUI suspend); `terminal` forces the TTY path; `gui` forces detached |
-| `active_extensions` | `thurbox-cli extension activate/deactivate` | JSON array of active extensions to self-heal |
-| `builtin_hooks_optout` | `thurbox-cli extension deactivate hooks` | `1` when the user opted out of the auto-activated hooks extension |
-| `perf_snapshot` | the TUI, while perf timing is active (`THURBOX_PERF_LOG` or an open perf HUD) | JSON perf snapshot read by `thurbox-cli perf` (see `docs/PERFORMANCE.md`) |
+| `editor_command` | `talos-cli editor set "<cmd>"` | what `Ctrl+O` runs |
+| `editor_mode` | `talos-cli editor mode <auto\|terminal\|gui>` | how `Ctrl+O` runs the editor: `auto` (default) detects terminal vs GUI and gives terminal editors a real TTY (tmux popup / TUI suspend); `terminal` forces the TTY path; `gui` forces detached |
+| `active_extensions` | `talos-cli extension activate/deactivate` | JSON array of active extensions to self-heal |
+| `builtin_hooks_optout` | `talos-cli extension deactivate hooks` | `1` when the user opted out of the auto-activated hooks extension |
+| `perf_snapshot` | the TUI, while perf timing is active (`TALOS_PERF_LOG` or an open perf HUD) | JSON perf snapshot read by `talos-cli perf` (see `docs/PERFORMANCE.md`) |
 | `host_probe_backoff:<backend>` | the teardown sweep, when a host's windows could not be listed | `<attempted_at_millis>:<failures>` — how long that host is left alone before the sweep asks again (ADR-26). Not user-set; the row is deleted the first time the host answers |
-| `session_reap_backoff:<session id>` | the teardown sweep, when a soft-deleted row's reap did not reach its host | `<attempted_at_millis>:<failures>` — the same curve, per row rather than per host, for a host that answers `list-windows` while its own `thurbox-cli` does not run (ADR-26). Not user-set; the row is deleted the moment the reap comes off, and by a restore, which ends the delete it belonged to |
+| `session_reap_backoff:<session id>` | the teardown sweep, when a soft-deleted row's reap did not reach its host | `<attempted_at_millis>:<failures>` — the same curve, per row rather than per host, for a host that answers `list-windows` while its own `talos-cli` does not run (ADR-26). Not user-set; the row is deleted the moment the reap comes off, and by a restore, which ends the delete it belonged to |
 | `session_name_claim:<backend>:<name>` | a creator holding a session name while it spawns — extension self-heal today | `<expires_at_millis>` — the claim that stops two unattended creators both deciding one name is free (issue #1192). Not user-set; deleted when the creation finishes, and taken over once it expires |
 
 These are in the DB rather than a file because they are written
-concurrently by multiple thurbox processes (TUI, CLI, MCP) and picked
+concurrently by multiple talos processes (TUI, CLI, MCP) and picked
 up live via `PRAGMA data_version` polling.
 
 ## Environment variables
 
-User-set (read by thurbox):
+User-set (read by talos):
 
 | Variable | Used for |
 |----------|----------|
 | `XDG_CONFIG_HOME`, `XDG_DATA_HOME` | config/data roots |
 | `VISUAL`, then `EDITOR` | `Ctrl+O` editor when `editor_command` is unset |
 | `SHELL` | the `Ctrl+T` companion shell pane (fallback `/bin/sh`). For a remote/WSL session the pane uses the **host's** `$SHELL` as an interactive login shell (the SSH-login environment), not the local one. |
-| `RUST_LOG` | log filter for `thurbox.log` |
-| `THURBOX_PERF_LOG` | opt-in performance logging: a one-shot `startup` phase breakdown at first paint, per-session `restore_adopt`/`adopt_split` lines, steady-state `perf_window` lines (~10 s cadence), and wall-clock frame/tick timing collection. Any value enables it. See `docs/PERFORMANCE.md`. |
-| `THURBOX_SOCKET` | overrides the **local** multiplexer socket name, winning over the data-dir derivation below. For test/sandbox tooling: Unix scoping uses `TMUX_TMPDIR`, but psmux (Windows) resolves every `-L <name>` machine-wide, so this is the only way to fully scope an instance there. Remote hosts are unaffected (socket from `hosts.toml`). Empty = unset. |
-| `THURBOX_UI_INSTANCE` | selects a running TUI for `thurbox-cli ui state` and `ui action` when `--instance` is omitted. |
-| `WSL_DISTRO_NAME` | set by WSL itself, not by you: it is how thurbox knows which distro it is running inside. That distro is *this machine*, so it is never offered as a host and a `hosts.toml` entry pointing at it is ignored — see [hosts.toml](#hoststoml) |
+| `RUST_LOG` | log filter for `talos.log` |
+| `TALOS_PERF_LOG` | opt-in performance logging: a one-shot `startup` phase breakdown at first paint, per-session `restore_adopt`/`adopt_split` lines, steady-state `perf_window` lines (~10 s cadence), and wall-clock frame/tick timing collection. Any value enables it. See `docs/PERFORMANCE.md`. |
+| `TALOS_SOCKET` | overrides the **local** multiplexer socket name, winning over the data-dir derivation below. For test/sandbox tooling: Unix scoping uses `TMUX_TMPDIR`, but psmux (Windows) resolves every `-L <name>` machine-wide, so this is the only way to fully scope an instance there. Remote hosts are unaffected (socket from `hosts.toml`). Empty = unset. |
+| `TALOS_UI_INSTANCE` | selects a running TUI for `talos-cli ui state` and `ui action` when `--instance` is omitted. |
+| `WSL_DISTRO_NAME` | set by WSL itself, not by you: it is how talos knows which distro it is running inside. That distro is *this machine*, so it is never offered as a host and a `hosts.toml` entry pointing at it is ignored — see [hosts.toml](#hoststoml) |
 
-Set **by** thurbox into every spawned agent process (not user-set;
-`session_ops::inject_thurbox_env` / `App::build_spawn_inputs`). An
-agent — or a `thurbox-cli` call running inside the session — reads
+Set **by** talos into every spawned agent process (not user-set;
+`session_ops::inject_talos_env` / `App::build_spawn_inputs`). An
+agent — or a `talos-cli` call running inside the session — reads
 these to prove its own identity without scraping panes or names:
 
 | Variable | Set into agent process |
 |----------|------------------------|
-| `THURBOX_SESSION` | the stable thurbox `SessionId` (the registry key); read back by `thurbox-cli message`/`inbox` for self-identity, and by `session signal` — see below |
-| `THURBOX_SESSION_ID` | the agent's own conversation id (`agent_session_id`); consumed by the metrics statusline. Distinct from `THURBOX_SESSION` |
-| `THURBOX_TASK` | the originating task id; task-spawned sessions only (headless `task run`) |
-| `THURBOX_METRICS_DIR` | metrics output dir |
-| `THURBOX_CONFIG_DIR` / `THURBOX_DATA_DIR` | the resolved config/data dirs, so the agent's `thurbox-cli` (its status hook) targets the same DB the TUI reads — independent of XDG, which `thurbox-cli` is on PATH, or a stale tmux-server env. Also honored if you set them yourself to relocate thurbox's state. |
-| `THURBOX_SOCKET` | the multiplexer socket that instance's sessions live on, so an in-session `thurbox-cli` reaches the same server instead of re-deriving one from the session's own environment |
-| `THURBOX_SOCKET_FOR` | the data dir that injected `THURBOX_SOCKET` belongs to. Read only to tell an inherited socket from one you exported: a child that points `THURBOX_DATA_DIR` somewhere else no longer matches, and derives its own socket instead of creating windows on the spawning instance's server |
+| `TALOS_SESSION` | the stable talos `SessionId` (the registry key); read back by `talos-cli message`/`inbox` for self-identity, and by `session signal` — see below |
+| `TALOS_SESSION_ID` | the agent's own conversation id (`agent_session_id`); consumed by the metrics statusline. Distinct from `TALOS_SESSION` |
+| `TALOS_TASK` | the originating task id; task-spawned sessions only (headless `task run`) |
+| `TALOS_METRICS_DIR` | metrics output dir |
+| `TALOS_CONFIG_DIR` / `TALOS_DATA_DIR` | the resolved config/data dirs, so the agent's `talos-cli` (its status hook) targets the same DB the TUI reads — independent of XDG, which `talos-cli` is on PATH, or a stale tmux-server env. Also honored if you set them yourself to relocate talos's state. |
+| `TALOS_SOCKET` | the multiplexer socket that instance's sessions live on, so an in-session `talos-cli` reaches the same server instead of re-deriving one from the session's own environment |
+| `TALOS_SOCKET_FOR` | the data dir that injected `TALOS_SOCKET` belongs to. Read only to tell an inherited socket from one you exported: a child that points `TALOS_DATA_DIR` somewhere else no longer matches, and derives its own socket instead of creating windows on the spawning instance's server |
 
-A pane's **`PATH`** is the `PATH` of the thurbox that spawned it, which tmux
-copies in by itself. thurbox adds one thing to it: the directory holding its own
-`thurbox-cli`, in front, prepended and never replacing what was there. Without
-it a session spawned by a `thurbox-cli` running over ssh — which on a
+A pane's **`PATH`** is the `PATH` of the talos that spawned it, which tmux
+copies in by itself. talos adds one thing to it: the directory holding its own
+`talos-cli`, in front, prepended and never replacing what was there. Without
+it a session spawned by a `talos-cli` running over ssh — which on a
 shared-sessions host is every session, since the local TUI delegates
 `session create` to the host's CLI — inherits sshd's `PATH` for a
 non-interactive command (`/usr/local/bin:/usr/bin:/bin:/usr/games`), which has
-no `~/.local/bin` on it. The bare `thurbox-cli` the status hooks call then
+no `~/.local/bin` on it. The bare `talos-cli` the status hooks call then
 resolves to nothing and the `|| true` after it hides that. It arrives as an
 `env PATH=…` prefix on the window command rather than as one more injected
 variable, because `PATH` is the one tmux will not take that way: both
 `new-window -e PATH=…` and `set-environment -g PATH …` are ignored (verified
 against tmux 3.5a).
 
-`THURBOX_SESSION` is a **stable integration contract**, not an internal
+`TALOS_SESSION` is a **stable integration contract**, not an internal
 detail of the hooks extension. It is set on the pane, so every process
 started inside it inherits it — including an agent a driver of your own
 launches there, and that agent's own hooks. Anything in the pane can
 therefore report state with
 
 ```bash
-thurbox-cli session signal --state <working|blocked|done|idle>
+talos-cli session signal --state <working|blocked|done|idle>
 ```
 
 and no arguments at all; from outside the pane, pass `--session <uuid>`.
-That is the supported way to give thurbox agent state for a session it
+That is the supported way to give talos agent state for a session it
 did not wire — for instance one created with a bare interactive shell as
 its "agent" because a harness owns the real launch.
 
-Two caveats. A **remote** session's `thurbox-cli` writes the *host's*
+Two caveats. A **remote** session's `talos-cli` writes the *host's*
 database: on a shared host (`share_sessions = true`, the default) that is
 correct and the observer mirrors it, but on a non-shared host the signal
-never reaches the local database — thurbox rewrites its own hooks to a
+never reaches the local database — talos rewrites its own hooks to a
 tmux pane option there for exactly this reason. And every shipped hook
-command ends in `|| true`, so a failed signal is silent; `thurbox-cli
+command ends in `|| true`, so a failed signal is silent; `talos-cli
 session doctor` is how to check the wiring.
 
-Set **by** thurbox into every [lifecycle hook](#hookstoml) it runs
-(`session_ops::lifecycle_hooks`), beside `THURBOX_SESSION`,
-`THURBOX_SESSION_ID`, `THURBOX_TASK` and the location overrides above:
+Set **by** talos into every [lifecycle hook](#hookstoml) it runs
+(`session_ops::lifecycle_hooks`), beside `TALOS_SESSION`,
+`TALOS_SESSION_ID`, `TALOS_TASK` and the location overrides above:
 
 | Variable | Set into hook process |
 |----------|-----------------------|
-| `THURBOX_HOOK_EVENT` | the event, e.g. `session.pre_delete` |
-| `THURBOX_SESSION_NAME`, `THURBOX_AGENT` | the session's name and agent |
-| `THURBOX_REPO`, `THURBOX_CWD` | the primary repository, and the directory the agent runs in |
-| `THURBOX_BRANCH`, `THURBOX_BASE_BRANCH` | the worktree branch and its base |
-| `THURBOX_HOST` | the remote host name (local: unset) |
-| `THURBOX_PARENT_SESSION` | the parent session id |
+| `TALOS_HOOK_EVENT` | the event, e.g. `session.pre_delete` |
+| `TALOS_SESSION_NAME`, `TALOS_AGENT` | the session's name and agent |
+| `TALOS_REPO`, `TALOS_CWD` | the primary repository, and the directory the agent runs in |
+| `TALOS_BRANCH`, `TALOS_BASE_BRANCH` | the worktree branch and its base |
+| `TALOS_HOST` | the remote host name (local: unset) |
+| `TALOS_PARENT_SESSION` | the parent session id |
 
 Set **at build time** (not runtime):
 
 | Variable | Used for |
 |----------|----------|
-| `THURBOX_RELEASE_VERSION` | read by `build.rs` to inject the binary version at build (CI release workflow sets it, e.g. `v1.0.0`); absent → falls back to `CARGO_PKG_VERSION` |
+| `TALOS_RELEASE_VERSION` | read by `build.rs` to inject the binary version at build (CI release workflow sets it, e.g. `v1.0.0`); absent → falls back to `CARGO_PKG_VERSION` |
 
 Editor resolution order: DB `editor_command` → `$VISUAL` → `$EDITOR` →
 error toast.
 
-### Relocating an instance (`THURBOX_DATA_DIR`)
+### Relocating an instance (`TALOS_DATA_DIR`)
 
-`THURBOX_CONFIG_DIR` and `THURBOX_DATA_DIR` move thurbox's config and its
+`TALOS_CONFIG_DIR` and `TALOS_DATA_DIR` move talos's config and its
 database. Because the database *is* the record of which sessions exist, an
 instance whose data dir has moved also gets a **multiplexer socket of its own**
-— `thurbox-<digest of the data dir>` (`thurbox-dev-…` on a dev build) — instead
+— `talos-<digest of the data dir>` (`talos-dev-…` on a dev build) — instead
 of creating its windows on the server holding your everyday sessions. That is
 what makes a scratch instance safe to run a real `session create` in, and it is
 also why its `automation-heartbeat` window is reclaimable: killing that
-instance's server (`tmux -L "$(thurbox-cli version --json | jq -r .tmux_socket)"
+instance's server (`tmux -L "$(talos-cli version --json | jq -r .tmux_socket)"
 kill-server`) takes the whole instance with it and touches nothing else.
 
 Three rules keep the ordinary case ordinary:
 
-- **The default instance never moves.** It stays on `thurbox`
-  (`thurbox-dev` for a dev build), including when `THURBOX_DATA_DIR` merely
-  restates the default — which is exactly what thurbox injects into every
+- **The default instance never moves.** It stays on `talos`
+  (`talos-dev` for a dev build), including when `TALOS_DATA_DIR` merely
+  restates the default — which is exactly what talos injects into every
   session it spawns.
 - **A relocated *config* dir alone changes nothing.** It shares the default
   instance's database, and therefore its sessions and their server.
-- **`THURBOX_SOCKET` wins over both**, so anything that needs the socket *by
+- **`TALOS_SOCKET` wins over both**, so anything that needs the socket *by
   name* (the dev sandbox, whose teardown kills it) keeps naming it — **unless it
-  was inherited from another instance.** thurbox injects the socket into every
-  pane it spawns, paired with `THURBOX_SOCKET_FOR`, the data dir it belongs to.
-  A `thurbox-cli` inside that pane which relocates *itself* — a sandbox, a test
-  harness, an agent exporting its own `THURBOX_DATA_DIR` — no longer matches
+  was inherited from another instance.** talos injects the socket into every
+  pane it spawns, paired with `TALOS_SOCKET_FOR`, the data dir it belongs to.
+  A `talos-cli` inside that pane which relocates *itself* — a sandbox, a test
+  harness, an agent exporting its own `TALOS_DATA_DIR` — no longer matches
   that pairing, so the inherited name is dropped and the derivation runs. An
   override you export yourself carries no pairing and still wins outright.
   Without this, isolating the database silently left the tmux server shared,
   which looks contained and is not.
 
-Ask a build which server it is on rather than assuming: `thurbox-cli version
---json` reports the socket in force as `tmux_socket`, and `thurbox-cli config
+Ask a build which server it is on rather than assuming: `talos-cli version
+--json` reports the socket in force as `tmux_socket`, and `talos-cli config
 show` prints it under `Sessions`.
 
 `session create --json` reports `tmux_socket` too, as the socket of the server
@@ -1391,28 +1391,28 @@ one.
 sessions are still on the default server, and its database still lists them —
 on the new socket they read as sessions whose window is gone. There is no
 migration: point that instance back at the old server with
-`THURBOX_SOCKET=thurbox` if you want them, or let it create fresh ones.
+`TALOS_SOCKET=talos` if you want them, or let it create fresh ones.
 
 ### Several instances on one server
 
-Two thurbox instances that share a server — the same data dir on one machine,
+Two talos instances that share a server — the same data dir on one machine,
 or a lead over ssh and one locally — show the same sessions, and a pane can be
 only one size. There is **no setting** for this: the instance you type into
 sizes the pane, and the others show its screen as it is, with blank margins or
 cropped to its bottom rows, and say so on the pane's bottom row (`120×41 · sized
-by another thurbox · type here to resize`). Focusing a pane there, or typing into
+by another talos · type here to resize`). Focusing a pane there, or typing into
 it, hands the size over; when the sizing instance goes, the one left takes its own size back.
-The name of the instance sizing a window is the window option `@thurbox_sizer`
-(`tmux -L <socket> show-options -w -t <pane> @thurbox_sizer`). Why it works
+The name of the instance sizing a window is the window option `@talos_sizer`
+(`tmux -L <socket> show-options -w -t <pane> @talos_sizer`). Why it works
 this way, and what it costs, is ADR-27 in `docs/ARCHITECTURE.md`. On a Windows
 host (psmux) the last instance to paint a pane still sizes it.
 
 ## Local UI control
 
 Every running TUI advertises a random instance ID under its data profile's
-`ui-control/` directory. Run `thurbox-cli ui instances --json` to list reachable
+`ui-control/` directory. Run `talos-cli ui instances --json` to list reachable
 screens with their PID, local/SSH label and terminal hint.
-`thurbox-cli ui --instance <id> state --json` reports the focused pane,
+`talos-cli ui --instance <id> state --json` reports the focused pane,
 selected session ID, arranged slots with rects and visible panes, panel state, kernel modal and its
 selection, open plugin floats, active search query and result selection, and
 the action catalog revision. Plugin-owned details are limited to each plugin's
@@ -1422,21 +1422,21 @@ projections by plugin file path, so two panes with the same display name remain
 distinct. If a combined snapshot exceeds the local reply limit, the command
 returns an explicit `state_too_large` error. A command
 without `--instance` uses the sole reachable screen, or refuses with an
-ambiguity error listing IDs when several are running. `THURBOX_UI_INSTANCE`
+ambiguity error listing IDs when several are running. `TALOS_UI_INSTANCE`
 selects a default for scripts. Closed or crashed screens cannot be targeted;
 stale discovery records are removed when discovered.
 
-`thurbox-cli ui --instance <id> watch --json` writes an initial snapshot and
+`talos-cli ui --instance <id> watch --json` writes an initial snapshot and
 then JSON lines for changes to focus, layout, overlays, selection, search, and
 action outcomes. `--since <revision>` resumes after a known revision. The
 per-instance buffer holds 256 deltas; an expired or future cursor yields a
 `resync_required` response containing a fresh snapshot. `--once` returns one batch as
 a JSON document for polling callers. This stream is UI state only;
-`thurbox-cli watch` continues to stream durable session events.
+`talos-cli watch` continues to stream durable session events.
 
 List the target's live actions and their argument types, ownership, effect,
 destructive classification, availability and current chords with
-`thurbox-cli ui --instance <id> actions --json`. `thurbox-cli schema --instance
+`talos-cli ui --instance <id> actions --json`. `talos-cli schema --instance
 <id> --json` includes those same descriptors beside the CLI command tree.
 Both read the running interface, so reloading a plugin updates them together.
 When no TUI is running, `schema` marks its UI portion `no_running_ui` and still
@@ -1444,8 +1444,8 @@ lists headless CLI commands. With several running TUIs, select one explicitly.
 The two initial typed actions are:
 
 ```sh
-thurbox-cli ui --instance <id> action session.focus --session <session-uuid> --json
-thurbox-cli ui --instance <id> action search.open --query 'error handling' --json
+talos-cli ui --instance <id> action session.focus --session <session-uuid> --json
+talos-cli ui --instance <id> action search.open --query 'error handling' --json
 ```
 
 `session.focus` requires a session visible to the target TUI and a focusable
@@ -1459,14 +1459,14 @@ Any non-destructive declared action can be called by its catalog name. Use
 `--arg name=value` for an argument; `--session` and `--query` remain shortcuts
 for the first two actions. A destructive action needs an explicit session UUID.
 Its first request exits with a structured `confirmation_required` result and an
-opaque `result.error.ticket`; it changes nothing. Run `thurbox-cli ui --instance
+opaque `result.error.ticket`; it changes nothing. Run `talos-cli ui --instance
 <id> confirm <ticket> --json` as a separate step. A ticket expires after 30
 seconds, works once for the same local peer and instance, and is refused if
 the action catalog or target changes. A confirmation queues the normal session
 operation; its later success or failure is reported through the ordinary TUI
 command status. An addressed destructive key cannot bypass this step.
 For input owned by an active modal or plugin, use addressed operations such as
-`thurbox-cli ui --instance <id> input modal --key esc`,
+`talos-cli ui --instance <id> input modal --key esc`,
 `input search --input-text 'term'`, or `input agent --scroll down`. These operations
 refuse an inactive target. Keys and text are refused for session terminals;
 agent terminal bytes stay on the session input path.

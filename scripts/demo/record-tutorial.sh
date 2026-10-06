@@ -11,12 +11,12 @@
 #   * The profile starts with ZERO sessions and an EMPTY repo memory. The
 #     tutorial's subject is the first launch, and a seeded list would show a
 #     screen the reader cannot have yet.
-#   * agents.toml is left for thurbox to seed, so the agent step shows the
+#   * agents.toml is left for talos to seed, so the agent step shows the
 #     built-in registry a fresh install really has. (Only when `claude` — the
 #     seeded default — is installed; otherwise two stub agents are registered, so
 #     the agent step is still reached rather than skipped.)
 #   * It is NOT a VHS tape. VHS drives a TUI through ttyd and a headless browser;
-#     stills need neither. thurbox runs in a detached tmux session, `tmux
+#     stills need neither. talos runs in a detached tmux session, `tmux
 #     send-keys` presses the keys, and each screenshot is `capture-pane -e`
 #     rasterised by agg — the same asciicast→agg→ffmpeg chain
 #     scripts/demo/record-doom.sh uses, minus the recording step. The consequence
@@ -25,7 +25,7 @@
 #     are of an interface nobody runs. Here `Ctrl+/` is sent as its actual byte.
 #
 # Isolation is the shared dev-sandbox helper, in its full flavor: a throwaway
-# HOME/XDG/TMUX_TMPDIR, so this can touch neither your thurbox profile, nor your
+# HOME/XDG/TMUX_TMPDIR, so this can touch neither your talos profile, nor your
 # tmux server, nor your agent credentials.
 #
 # Requirements: cargo, git, tmux, agg, ffmpeg, python3, jq, sqlite3. A coding
@@ -56,7 +56,7 @@ mkdir -p "$OUT_DIR"
 OUT_DIR="$(cd "$OUT_DIR" && pwd)"
 
 # The theme every clip in scripts/demo/record.sh is recorded in, so the tutorial
-# and the demo videos show the same thurbox.
+# and the demo videos show the same talos.
 THEME="${THEME:-doom}"
 # 140x38 at font size 18 lands around 1500x970 — comfortably past the 80-column
 # two-panel threshold in ui/layout.lua, and under the ~1568px long edge above
@@ -73,9 +73,9 @@ LINE_HEIGHT="${LINE_HEIGHT:-1.2}"
 FONT_DIR="${FONT_DIR:-$REPO_ROOT/target/fonts}"
 FONT_FAMILY="${FONT_FAMILY:-JetBrains Mono,DejaVu Sans Mono,Noto Sans Symbols 2}"
 # The recording server's socket. Its own name, and inside the sandbox's private
-# TMUX_TMPDIR, so it can reach neither your tmux nor thurbox's own `thurbox-dev`
+# TMUX_TMPDIR, so it can reach neither your tmux nor talos's own `talos-dev`
 # server.
-SOCK="thurbox-tutorial-rec"
+SOCK="talos-tutorial-rec"
 
 for bin in cargo git tmux agg ffmpeg python3 jq sqlite3; do
     command -v "$bin" >/dev/null 2>&1 || die "$bin not found on PATH"
@@ -114,11 +114,11 @@ ensure_fonts() {
 ensure_fonts
 
 # --- Build the dev binaries (BEFORE the HOME override, so cargo finds ~/.cargo) -
-log "Building thurbox (dev) ..."
-cargo build --bin thurbox --bin thurbox-cli >&2
-THURBOX_BIN="$REPO_ROOT/target/debug/thurbox"
-CLI_BIN="$REPO_ROOT/target/debug/thurbox-cli"
-[ -x "$THURBOX_BIN" ] || die "dev binary not found at $THURBOX_BIN"
+log "Building talos (dev) ..."
+cargo build --bin talos --bin talos-cli >&2
+TALOS_BIN="$REPO_ROOT/target/debug/talos"
+CLI_BIN="$REPO_ROOT/target/debug/talos-cli"
+[ -x "$TALOS_BIN" ] || die "dev binary not found at $TALOS_BIN"
 
 HAS_CLAUDE=0
 command -v claude >/dev/null 2>&1 && HAS_CLAUDE=1
@@ -130,7 +130,7 @@ command -v claude >/dev/null 2>&1 && HAS_CLAUDE=1
 tbx_sandbox_init_full fresh
 
 # The repo picker prints the ABSOLUTE path of a remembered repository, so the
-# sandbox's `mktemp` home would put `/tmp/thurbox-sandbox.4tGnQx/home/code/…` in
+# sandbox's `mktemp` home would put `/tmp/talos-sandbox.4tGnQx/home/code/…` in
 # the screenshot a reader is meant to recognise their own `~/code` in. HOME is
 # therefore a short, stable symlink to it: the isolation is unchanged (it points
 # inside the sandbox, and teardown still removes the root), and the tilde
@@ -142,7 +142,7 @@ fi
 ln -sfn "$HOME" "$HOME_LINK"
 export HOME="$HOME_LINK"
 # Same reasoning one level down: the worktree a session runs in is printed by
-# `thurbox-cli session list`, and it is built under XDG_DATA_HOME. Pointing the
+# `talos-cli session list`, and it is built under XDG_DATA_HOME. Pointing the
 # XDG roots at their DEFAULT places inside the (now short) home keeps every path
 # in a screenshot the shape a reader's own would be, and stays inside the
 # sandbox — these resolve through the symlink to the sandbox root.
@@ -155,8 +155,8 @@ mkdir -p "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_STATE_HOME" "$XDG_CACHE_HOME"
 # Derived AFTER the overrides above, or the theme and the tripwire below would be
 # written to and read from a profile the TUI never opens — which is a run of
 # screenshots in the wrong theme, with nothing failing.
-CFG_DIR="$XDG_CONFIG_HOME/thurbox-dev"
-DB_FILE="$XDG_DATA_HOME/thurbox-dev/thurbox.db"
+CFG_DIR="$XDG_CONFIG_HOME/talos-dev"
+DB_FILE="$XDG_DATA_HOME/talos-dev/talos.db"
 mkdir -p "$CFG_DIR" "$(dirname "$DB_FILE")"
 
 cleanup() {
@@ -187,8 +187,8 @@ for repo in api-server web-app; do
     # is a screenshot, and it should show what a reader's own repository most
     # likely has.
     git init -q -b main "$dir"
-    git -C "$dir" -c user.email=tutorial@thurbox -c user.name=tutorial add -A
-    git -C "$dir" -c user.email=tutorial@thurbox -c user.name=tutorial \
+    git -C "$dir" -c user.email=tutorial@talos -c user.name=tutorial add -A
+    git -C "$dir" -c user.email=tutorial@talos -c user.name=tutorial \
         commit -q -m "chore: init $repo"
 done
 
@@ -238,9 +238,9 @@ for byte in sys.argv[1].encode():
 print(f"{h:016x}")
 PYHASH
 )
-WORKTREE_DIR="$XDG_DATA_HOME/thurbox-dev/worktrees/$REPO_HASH/$TUTORIAL_BRANCH"
+WORKTREE_DIR="$XDG_DATA_HOME/talos-dev/worktrees/$REPO_HASH/$TUTORIAL_BRANCH"
 
-# Each path twice: as thurbox spells it, and resolved. HOME is a symlink (above),
+# Each path twice: as talos spells it, and resolved. HOME is a symlink (above),
 # and an agent that canonicalises its cwd would not find the trust entry filed
 # under the pretty spelling — which is the trust dialog back over the headline
 # screenshot.
@@ -285,7 +285,7 @@ sqlite3 "$DB_FILE" \
 sessions=$(sqlite3 "$DB_FILE" \
     "SELECT count(*) FROM sessions WHERE deleted_at IS NULL" 2>/dev/null || echo 0)
 [ "$sessions" = "0" ] || die "sandbox is not empty ($sessions session(s)) — \
-THURBOX_CONFIG_DIR/THURBOX_DATA_DIR may point at your real data. Aborting."
+TALOS_CONFIG_DIR/TALOS_DATA_DIR may point at your real data. Aborting."
 
 # --- The recording terminal --------------------------------------------------
 # `status off` because the pane has to own every row it was given, and
@@ -302,10 +302,10 @@ set -g escape-time 0
 TMUXCONF
 
 tmux -L "$SOCK" -f "$TMUX_CONF" new-session -d -s tut -x "$COLS" -y "$ROWS" \
-    "$THURBOX_BIN"
+    "$TALOS_BIN"
 
 # The pane every helper below acts on. The run drives two in turn: the TUI, then
-# a shell for the `thurbox-cli` still, once the TUI has quit and taken its window
+# a shell for the `talos-cli` still, once the TUI has quit and taken its window
 # with it.
 TARGET=tut
 
@@ -374,7 +374,7 @@ PYCAST
 log "Driving the TUI (${COLS}x${ROWS}, theme: $THEME) -> $OUT_DIR"
 rm -f "$OUT_DIR"/*.png
 
-# thurbox boots, resolves its interface and paints the first frame.
+# talos boots, resolves its interface and paints the first frame.
 sleep 6
 # 01 — first launch: an empty session list beside an empty centre pane.
 shot first-launch
@@ -454,7 +454,7 @@ send Escape; sleep 1
 # Quit: detaches, leaving every agent running under the sandbox's tmux.
 send C-q; sleep 3
 
-# 15 — the other half of the tutorial: the same sessions from `thurbox-cli`,
+# 15 — the other half of the tutorial: the same sessions from `talos-cli`,
 # which is what an agent inside a session reaches for. Its own tmux session
 # because the TUI's window closed with the TUI.
 tmux -L "$SOCK" -f "$TMUX_CONF" new-session -d -s cli -x "$COLS" -y "$ROWS" \
@@ -463,11 +463,11 @@ TARGET=cli
 sleep 1
 # A bare `$` reads as a prompt in a doc; `bash-5.2$` reads as this machine.
 run "PS1='\$ '; clear" 1
-run "thurbox-cli session list" 3
+run "talos-cli session list" 3
 # A session created with no TUI running at all: it appears in the list, and in
 # the TUI within a tick, because both binaries share one database.
-run "thurbox-cli session create --name docs --repo-path ~/code/web-app" 6
-run "thurbox-cli session list" 3
+run "talos-cli session create --name docs --repo-path ~/code/web-app" 6
+run "talos-cli session list" 3
 shot cli
 
 count=$(find "$OUT_DIR" -maxdepth 1 -name '*.png' | wc -l | tr -d ' ')

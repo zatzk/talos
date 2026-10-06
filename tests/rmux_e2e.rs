@@ -6,12 +6,12 @@ use std::path::Path;
 use std::process::Command;
 use std::time::{Duration, Instant};
 
-use thurbox::backend::rmux::Rmux;
-use thurbox::backend::tmux_compat::server::TmuxCompatible;
-use thurbox::backend::wiring;
-use thurbox::session::{Multiplexer, Route};
-use thurbox::session_ops::{delete, rename, restart, restore, spawn};
-use thurbox::storage::Database;
+use talos::backend::rmux::Rmux;
+use talos::backend::tmux_compat::server::TmuxCompatible;
+use talos::backend::wiring;
+use talos::session::{Multiplexer, Route};
+use talos::session_ops::{delete, rename, restart, restore, spawn};
+use talos::storage::Database;
 
 #[path = "support/tmux_server.rs"]
 mod tmux_server;
@@ -23,7 +23,7 @@ struct RmuxServer {
 
 impl RmuxServer {
     fn new() -> Self {
-        let socket = format!("thurbox-rmux-e2e-{}", std::process::id());
+        let socket = format!("talos-rmux-e2e-{}", std::process::id());
         let scope = tmux_server::TmuxServer::pin(&socket);
         Self {
             socket,
@@ -78,8 +78,8 @@ fn rmux_create_restart_rename_restore_relaunch_and_delete() {
     git(&repo, &["add", "."]);
     git(&repo, &["commit", "-qm", "init"]);
 
-    thurbox::paths::set_test_dir(root.path());
-    let config = thurbox::paths::config_file()
+    talos::paths::set_test_dir(root.path());
+    let config = talos::paths::config_file()
         .unwrap()
         .parent()
         .unwrap()
@@ -109,7 +109,7 @@ fn rmux_create_restart_rename_restore_relaunch_and_delete() {
     assert!(backends.supports(&Route::local(Some(Multiplexer::Tmux))));
     assert!(backends.supports(&Route::local(Some(Multiplexer::Psmux))));
     assert!(backends.supports(&Route::remote(
-        thurbox::session::Via::Ssh,
+        talos::session::Via::Ssh,
         "down",
         Some(Multiplexer::Rmux),
     )));
@@ -141,12 +141,12 @@ fn rmux_create_restart_rename_restore_relaunch_and_delete() {
         "Grok rejects bare shell variables: {hook}"
     );
     let hook_pane = backend
-        .create_window(&thurbox::backend::WindowSpec {
-            owner: thurbox::backend::Owner::new(
+        .create_window(&talos::backend::WindowSpec {
+            owner: talos::backend::Owner::new(
                 "00000000-0000-4000-8000-0000000000ee",
                 "hook-probe",
             ),
-            role: thurbox::backend::WindowRole::Agent,
+            role: talos::backend::WindowRole::Agent,
             command: "sh",
             args: &["-c".into(), format!("{hook}blocked; sleep 3")],
             cwd: None,

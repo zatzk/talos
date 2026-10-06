@@ -15,7 +15,7 @@
 # and a pane of your own in a slot the layout does not place. Everything lives
 # in a throwaway HOME/config/data/tmux under $TMPDIR and is removed afterwards.
 #
-# The thurbox theme is the shipped `default`, written to metadata.active_theme
+# The talos theme is the shipped `default`, written to metadata.active_theme
 # explicitly rather than left to whatever a fresh profile falls back to.
 #
 # Needs: vhs (+ ttyd, ffmpeg), sqlite3, python3, tmux.
@@ -33,12 +33,12 @@ trap 'tmux -S "$ROOT/tmux/tmux-$(id -u)/tbx-demo" kill-server 2>/dev/null || tru
 
 export HOME=$ROOT/home
 export XDG_CONFIG_HOME=$ROOT/home/.config XDG_DATA_HOME=$ROOT/home/.local/share
-export THURBOX_CONFIG_DIR=$ROOT/config THURBOX_DATA_DIR=$ROOT/data
-export TMUX_TMPDIR=$ROOT/tmux THURBOX_SOCKET=tbx-demo
+export TALOS_CONFIG_DIR=$ROOT/config TALOS_DATA_DIR=$ROOT/data
+export TMUX_TMPDIR=$ROOT/tmux TALOS_SOCKET=tbx-demo
 printf '[features]\nautomations = false\nversion_check = false\nauto_update = false\n' \
     >"$ROOT/config/settings.toml"
 
-CLI=$BIN_DIR/thurbox-cli
+CLI=$BIN_DIR/talos-cli
 UI=$ROOT/config/ui
 cp -r "$REPO/examples/panes/top" "$REPO/examples/panes/tasks" "$ROOT/pkgs/"
 "$CLI" plugin list --text >/dev/null
@@ -64,7 +64,7 @@ json.dump(
 )
 PY
 "$CLI" session list --text >/dev/null 2>&1 || true
-sqlite3 "$ROOT/data/thurbox.db" "INSERT INTO metadata (key, value) VALUES ('active_theme', 'default')
+sqlite3 "$ROOT/data/talos.db" "INSERT INTO metadata (key, value) VALUES ('active_theme', 'default')
   ON CONFLICT(key) DO UPDATE SET value = excluded.value;"
 
 # Walk the panes down to the edited one, press `r` once (which, on this branch,
@@ -77,7 +77,7 @@ Set Width 1500
 Set Height 860
 Set Padding 12
 Hide
-Type "env HOME=$HOME XDG_CONFIG_HOME=$XDG_CONFIG_HOME XDG_DATA_HOME=$XDG_DATA_HOME THURBOX_CONFIG_DIR=$THURBOX_CONFIG_DIR THURBOX_DATA_DIR=$THURBOX_DATA_DIR TMUX_TMPDIR=$TMUX_TMPDIR THURBOX_SOCKET=$THURBOX_SOCKET PATH=$BIN_DIR:/usr/bin:/bin $BIN_DIR/thurbox"
+Type "env HOME=$HOME XDG_CONFIG_HOME=$XDG_CONFIG_HOME XDG_DATA_HOME=$XDG_DATA_HOME TALOS_CONFIG_DIR=$TALOS_CONFIG_DIR TALOS_DATA_DIR=$TALOS_DATA_DIR TMUX_TMPDIR=$TMUX_TMPDIR TALOS_SOCKET=$TALOS_SOCKET PATH=$BIN_DIR:/usr/bin:/bin $BIN_DIR/talos"
 Enter
 Sleep 4s
 Show

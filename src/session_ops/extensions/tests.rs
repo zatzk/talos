@@ -43,7 +43,7 @@ fn flow_def() -> ExtensionDef {
         description: None,
         config_version: Some(1),
         version: None,
-        min_thurbox_version: None,
+        min_talos_version: None,
         installed_with: None,
         source: None,
         home: None,
@@ -342,7 +342,7 @@ requires_dir = '{plugin_dir}'
     // The plugin payload carries the managed marker so uninstall can remove it.
     std::fs::write(
         src.path().join("status.js"),
-        "// thurbox `extension install` managed\n",
+        "// talos `extension install` managed\n",
     )
     .unwrap();
 
@@ -424,7 +424,7 @@ requires_dir = '{agent_dir}'
     .unwrap();
     std::fs::write(
             src.path().join("gemini-hooks.json"),
-            r#"{"hooks":{"BeforeTool":[{"hooks":[{"type":"command","command":"thurbox-cli session signal --state working || true"}]}],"AfterAgent":[{"hooks":[{"type":"command","command":"thurbox-cli session signal --state done || true"}]}]}}"#,
+            r#"{"hooks":{"BeforeTool":[{"hooks":[{"type":"command","command":"talos-cli session signal --state working || true"}]}],"AfterAgent":[{"hooks":[{"type":"command","command":"talos-cli session signal --state done || true"}]}]}}"#,
         )
         .unwrap();
 
@@ -525,10 +525,10 @@ requires_dir = '{missing}'
 }
 
 /// The whole point of a TOML `[[config_merges]]`: kimi's hooks live in the same
-/// file as the rest of the user's configuration, and thurbox's entries have to
+/// file as the rest of the user's configuration, and talos's entries have to
 /// come back out without taking anything of theirs with them — including a hook
-/// they wired to `thurbox-cli session signal` themselves, which
-/// `extensions/hooks/README.md` tells them to do for an agent thurbox does not
+/// they wired to `talos-cli session signal` themselves, which
+/// `extensions/hooks/README.md` tells them to do for an agent talos does not
 /// instrument. Identifying our entries by that command's presence deleted it.
 #[test]
 fn toml_config_merge_uninstall_keeps_a_user_hook_that_calls_the_signal_command() {
@@ -543,7 +543,7 @@ fn toml_config_merge_uninstall_keeps_a_user_hook_that_calls_the_signal_command()
                      model = \"kimi-code/k3\"\n\n\
                      [[hooks]]\n\
                      event = \"Stop\"\n\
-                     command = \"thurbox-cli session signal --state done || true\"\n";
+                     command = \"talos-cli session signal --state done || true\"\n";
     std::fs::write(&config, users_own).unwrap();
     let home = temp.path().join("hookshome");
 
@@ -568,10 +568,10 @@ format = "toml"
     .unwrap();
     std::fs::write(
         src.path().join("kimi-hooks.toml"),
-        "# managed by thurbox `extension install`\n\
+        "# managed by talos `extension install`\n\
          [[hooks]]\n\
          event = \"SessionStart\"\n\
-         command = \"thurbox-cli session signal --state idle || true\"\n",
+         command = \"talos-cli session signal --state idle || true\"\n",
     )
     .unwrap();
 
@@ -632,9 +632,9 @@ format = "toml"
     std::fs::write(src.path().join("extension.toml"), &manifest).unwrap();
     let payload = |event: &str, state: &str, timeout: u32| {
         format!(
-            "# managed by thurbox `extension install`\n\
+            "# managed by talos `extension install`\n\
              [[hooks]]\nevent = \"{event}\"\n\
-             command = \"thurbox-cli session signal --state {state} || true\"\n\
+             command = \"talos-cli session signal --state {state} || true\"\n\
              timeout = {timeout}\n"
         )
     };
@@ -745,7 +745,7 @@ requires_dir = '{agent_dir}'
     };
     std::fs::write(
         src.path().join("codex-hooks.json"),
-        payload("thurbox-cli session signal --state done || true"),
+        payload("talos-cli session signal --state done || true"),
     )
     .unwrap();
 
@@ -762,7 +762,7 @@ requires_dir = '{agent_dir}'
     // A later version fixes the command.
     std::fs::write(
         src.path().join("codex-hooks.json"),
-        payload("thurbox-cli session signal --state done >/dev/null 2>&1 || true; echo '{}'"),
+        payload("talos-cli session signal --state done >/dev/null 2>&1 || true; echo '{}'"),
     )
     .unwrap();
     let report = install_extension(
@@ -808,10 +808,10 @@ requires_dir = '{agent_dir}'
 
 /// Install identifies its own entries by the ownership stamp, and this is why.
 ///
-/// `extensions/hooks/README.md` invites a user to wire an agent thurbox does
+/// `extensions/hooks/README.md` invites a user to wire an agent talos does
 /// not instrument by calling `session signal` themselves, in whichever file
 /// that agent reads — which for antigravity is the same shared
-/// `~/.gemini/settings.json` thurbox merges into. Identifying our entries by
+/// `~/.gemini/settings.json` talos merges into. Identifying our entries by
 /// that command would delete theirs, and because install runs at startup and on
 /// every heartbeat tick it would delete it again every time they put it back.
 /// The stamp is ours alone, so theirs survives — including under an event our
@@ -830,15 +830,15 @@ fn json_config_merge_keeps_a_user_signal_hook_even_under_an_event_it_owns() {
     let users_own = serde_json::json!({
         "hooks": {
             // Added after the first install, below: this is the hook a user
-            // writes on a thurbox that already owns the file.
+            // writes on a talos that already owns the file.
             "PreToolUse": [
-                {"hooks": [{"type": "command", "command": "thurbox-cli session signal --state working  # mine"}]}
+                {"hooks": [{"type": "command", "command": "talos-cli session signal --state working  # mine"}]}
             ],
             "AfterAgent": [
-                {"hooks": [{"type": "command", "command": "thurbox-cli session signal --state done"}]}
+                {"hooks": [{"type": "command", "command": "talos-cli session signal --state done"}]}
             ]
         },
-        "customCommands": {"status": "thurbox-cli session signal --state working"}
+        "customCommands": {"status": "talos-cli session signal --state working"}
     });
     let mut seeded = users_own.clone();
     seeded["hooks"]
@@ -868,12 +868,12 @@ requires_dir = '{agent_dir}'
     .unwrap();
     std::fs::write(
         src.path().join("gemini-hooks.json"),
-        r#"{"hooks":{"PreToolUse":[{"hooks":[{"type":"command","command":"thurbox-cli session signal --state working || true  # managed by thurbox `extension install`"}]}]}}"#,
+        r#"{"hooks":{"PreToolUse":[{"hooks":[{"type":"command","command":"talos-cli session signal --state working || true  # managed by talos `extension install`"}]}]}}"#,
     )
     .unwrap();
 
     let target = src.path().to_string_lossy().to_string();
-    // Establish our stamp first — after this the file is one thurbox has
+    // Establish our stamp first — after this the file is one talos has
     // written, which is the state every install but the very first one sees.
     install_extension(
         &db,
@@ -972,7 +972,7 @@ requires_dir = '{agent_dir}'
     .unwrap();
     let payload = |event: &str, state: &str| {
         format!(
-            r#"{{"hooks":{{"{event}":[{{"hooks":[{{"type":"command","command":"thurbox-cli session signal --state {state} || true  # managed by thurbox `extension install`"}}]}}]}}}}"#
+            r#"{{"hooks":{{"{event}":[{{"hooks":[{{"type":"command","command":"talos-cli session signal --state {state} || true  # managed by talos `extension install`"}}]}}]}}}}"#
         )
     };
     std::fs::write(
@@ -1013,7 +1013,7 @@ requires_dir = '{agent_dir}'
     );
 }
 
-/// The upgrade path: entries written before thurbox stamped ownership carry no
+/// The upgrade path: entries written before talos stamped ownership carry no
 /// stamp, and leaving one behind leaves its broken command firing beside the
 /// fixed one — which for codex is the bug this whole change exists to remove.
 #[test]
@@ -1028,7 +1028,7 @@ fn json_config_merge_replaces_an_unstamped_entry_from_an_older_payload() {
     // What hooks < 1.11 left on disk: our command, no stamp.
     std::fs::write(
         &settings,
-        r#"{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"thurbox-cli session signal --state done || true"}]}]}}"#,
+        r#"{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"talos-cli session signal --state done || true"}]}]}}"#,
     )
     .unwrap();
     let home = temp.path().join("hookshome");
@@ -1053,7 +1053,7 @@ requires_dir = '{agent_dir}'
     .unwrap();
     std::fs::write(
         src.path().join("codex-hooks.json"),
-        r#"{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"thurbox-cli session signal --state done >/dev/null 2>&1 || true; echo '{}'  # managed by thurbox `extension install`"}]}]}}"#,
+        r#"{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"talos-cli session signal --state done >/dev/null 2>&1 || true; echo '{}'  # managed by talos `extension install`"}]}]}}"#,
     )
     .unwrap();
 
@@ -1160,15 +1160,15 @@ fn config_merge_refuses_an_unreadable_target_instead_of_overwriting_it() {
             "json",
             "settings.json",
             "gemini-hooks.json",
-            r#"{"hooks":{"Stop":[{"command":"thurbox-cli session signal --state done"}]}}"#,
+            r#"{"hooks":{"Stop":[{"command":"talos-cli session signal --state done"}]}}"#,
             "",
         ),
         (
             "toml",
             "config.toml",
             "kimi-hooks.toml",
-            "# managed by thurbox `extension install`\n[[hooks]]\nevent = \"Stop\"\n\
-             command = \"thurbox-cli session signal --state done\"\n",
+            "# managed by talos `extension install`\n[[hooks]]\nevent = \"Stop\"\n\
+             command = \"talos-cli session signal --state done\"\n",
             "format = \"toml\"",
         ),
     ] {
@@ -1275,7 +1275,7 @@ requires_dir = '{agent_dir}'
     .unwrap();
     std::fs::write(
             src.path().join("gemini-hooks.json"),
-            r#"{"hooks":{"AfterAgent":[{"hooks":[{"type":"command","command":"thurbox-cli session signal --state done || true"}]}]}}"#,
+            r#"{"hooks":{"AfterAgent":[{"hooks":[{"type":"command","command":"talos-cli session signal --state done || true"}]}]}}"#,
         )
         .unwrap();
 
@@ -1326,7 +1326,7 @@ requires_dir = '{req}'
     .unwrap();
     std::fs::write(
         src.path().join("status.js"),
-        "// thurbox `extension install`\n",
+        "// talos `extension install`\n",
     )
     .unwrap();
 
@@ -1404,7 +1404,7 @@ fn install_skips_user_modified_substitute_file() {
     // Template carries the managed marker so a fresh install owns it.
     std::fs::write(
         src.path().join("settings.json"),
-        "thurbox `extension install` managed {home}",
+        "talos `extension install` managed {home}",
     )
     .unwrap();
     let target = src.path().to_string_lossy().to_string();
@@ -1525,7 +1525,7 @@ fn install_home_override_and_manifest_home_beat_default() {
 // OS handle to that working dir and only releases it on `kill-server`
 // (`kill-window`/`respawn-pane`/waiting do NOT release it — verified directly
 // in the Windows VM), so `remove_dir_all(flowhome)` hits os error 32. This is
-// an upstream psmux limitation, not a thurbox bug; `force_teardown`'s
+// an upstream psmux limitation, not a talos bug; `force_teardown`'s
 // pane-reap + `remove_dir_all_resilient` are partial mitigations but cannot
 // free a *server*-held handle without killing the shared server.
 #[cfg_attr(windows, ignore = "psmux leaks the pane cwd handle until kill-server")]
@@ -1768,7 +1768,7 @@ fn heal_nudges_stale_extension_when_auto_update_off() {
     assert!(
         messages
             .iter()
-            .any(|m| m.contains("run `thurbox-cli extension update flow`")),
+            .any(|m| m.contains("run `talos-cli extension update flow`")),
         "got: {messages:?}"
     );
     // The discovery copy is untouched — still the old version, never fetched.
@@ -1821,13 +1821,13 @@ fn heal_does_not_auto_update_a_current_extension() {
 
 #[test]
 fn heal_warns_without_auto_updating_when_binary_too_old() {
-    // Binary older than the extension's `min_thurbox_version`: an update
+    // Binary older than the extension's `min_talos_version`: an update
     // can't help (the matching extension version targets a newer binary), so
     // even with auto_update on we only warn and never call update_extension.
     // No install/source needed — the compat branch returns before touching db.
     let db = Database::open_in_memory().unwrap();
     let mut def = flow_def();
-    def.min_thurbox_version = Some("5.0.0".into());
+    def.min_talos_version = Some("5.0.0".into());
     let mut messages = Vec::new();
     let updated = heal_version_drift(
         &db,
@@ -1842,7 +1842,7 @@ fn heal_warns_without_auto_updating_when_binary_too_old() {
     assert!(!updated, "compat warning is not an auto-update");
     assert_eq!(messages.len(), 1, "got: {messages:?}");
     assert!(
-        messages[0].contains("wants thurbox >= 5.0.0"),
+        messages[0].contains("wants talos >= 5.0.0"),
         "got: {messages:?}"
     );
 }
@@ -1876,7 +1876,7 @@ fn heal_falls_back_to_nudge_when_auto_update_fetch_fails() {
     assert!(
         messages
             .iter()
-            .any(|m| m.contains("run `thurbox-cli extension update flow`")),
+            .any(|m| m.contains("run `talos-cli extension update flow`")),
         "falls back to the manual nudge; got: {messages:?}"
     );
     // The discovery copy is untouched — the failed fetch wrote nothing.
@@ -1894,7 +1894,7 @@ fn update_errors_when_no_recorded_source() {
     let temp = tempfile::TempDir::new().unwrap();
     let _guard = crate::paths::TestPathGuard::new(temp.path());
     let db = Database::open_in_memory().unwrap();
-    // A manifest installed by an older thurbox carries no `source`.
+    // A manifest installed by an older talos carries no `source`.
     crate::agent::extension_config::write_manifest(&ExtensionDef {
         name: "legacy".into(),
         ..Default::default()

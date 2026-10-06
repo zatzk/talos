@@ -1,15 +1,15 @@
-//! `thurbox-cli session doctor` — whether a session's status hooks are
+//! `talos-cli session doctor` — whether a session's status hooks are
 //! actually wired, and whether what they last reported is believable.
 //!
 //! Every shipped hook command ends in `|| true` (or `;; esac; true`), which is
-//! deliberate — a missing `thurbox-cli`, a locked database or a hook firing
-//! outside a thurbox session must never break the agent. The cost is that a
+//! deliberate — a missing `talos-cli`, a locked database or a hook firing
+//! outside a talos session must never break the agent. The cost is that a
 //! signal which never lands looks exactly like an agent that simply has not
 //! signalled yet, and there was no way to tell the two apart. This is that way:
 //! it inspects the wiring rather than the silence, in the spirit of
-//! `thurbox-cli notify`.
+//! `talos-cli notify`.
 //!
-//! It reads; it never repairs. `thurbox-cli extension reinstall hooks` is the
+//! It reads; it never repairs. `talos-cli extension reinstall hooks` is the
 //! repair, and the report says so.
 
 use serde_json::{json, Value};
@@ -36,7 +36,7 @@ enum Level {
     Ok,
     /// Something is limited or unverifiable, but state can still flow.
     Warn,
-    /// No state can reach thurbox from this session at all.
+    /// No state can reach talos from this session at all.
     Fail,
 }
 
@@ -53,9 +53,9 @@ impl Level {
 /// Diagnose one session, or every active session when `uuid` is `None`.
 ///
 /// Exits non-zero when any session's wiring is `Fail` — something that must
-/// work for state to reach thurbox does not. A `Warn` (partial coverage, an
+/// work for state to reach talos does not. A `Warn` (partial coverage, an
 /// unreadable remote pane, a pane that disagrees with the last report, an agent
-/// thurbox ships no hooks for that is signalling anyway) prints and exits 0:
+/// talos ships no hooks for that is signalling anyway) prints and exits 0:
 /// those are facts to know, not breakage to fix, and a permanent non-zero exit
 /// for `aider`'s one-state coverage — or for a driver reporting its own state
 /// exactly as documented — would be noise rather than signal.
@@ -75,7 +75,7 @@ pub fn run(
     let hooks_active = crate::session_ops::builtin_hooks::hooks_enabled(db);
     // Resolved once: the same answer for every session, and each probe is a
     // directory walk.
-    let cli_on_path = thurbox_cli_on_path();
+    let cli_on_path = talos_cli_on_path();
 
     let mut reports = Vec::new();
     for session in &sessions {
@@ -99,7 +99,7 @@ pub fn run(
     // Named for the *wiring*, not the outcome: a session can be reporting right
     // now through a route this build did not install (a driver calling `session
     // signal` itself) while a check below it is still broken, and claiming no
-    // state reaches thurbox would be false for exactly that row.
+    // state reaches talos would be false for exactly that row.
     let failure = match broken.len() {
         0 => None,
         _ => Some(format!(
@@ -222,43 +222,43 @@ fn diagnose(
             key: "extension",
             level: Level::Fail,
             detail: "the hooks extension is deactivated — no agent is wired to report \
-                     (`thurbox-cli extension activate hooks`)"
+                     (`talos-cli extension activate hooks`)"
                 .into(),
         }
     });
 
     findings.push(match hook.coverage {
         // A `--command` session runs whatever the caller asked for — a shell, a
-        // REPL, a build watcher — and thurbox never had an agent to wire. There
+        // REPL, a build watcher — and talos never had an agent to wire. There
         // is no breakage here to report, and reporting one made bare `doctor`
-        // fail the whole machine over the exact session shape thurbox
+        // fail the whole machine over the exact session shape talos
         // advertises for drivers.
         // Presumed alongside None: the pane naming an agent does not make hooks
-        // expected. Nothing declared one, so there is still no wiring thurbox
+        // expected. Nothing declared one, so there is still no wiring talos
         // owns here — only a better guess at who to name in the advice.
         Coverage::None | Coverage::Presumed if !hooks_expected => Finding {
             key: "coverage",
             level: Level::Ok,
             detail: format!(
                 "'{agent}' is this session's own command, not an agent from agents.toml, so \
-                 thurbox wired no hooks and none are expected — declare what actually runs \
-                 in the pane with `thurbox-cli session reports-as {} {}` if it is a \
-                 coding agent, or have your driver call `thurbox-cli session signal`",
+                 talos wired no hooks and none are expected — declare what actually runs \
+                 in the pane with `talos-cli session reports-as {} {}` if it is a \
+                 coding agent, or have your driver call `talos-cli session signal`",
                 session.name,
                 hook.detected_agent().unwrap_or("<agent>"),
             ),
         },
-        // Nothing thurbox ships wires this agent — but a driver that owns the
+        // Nothing talos ships wires this agent — but a driver that owns the
         // agent launch is *documented* to call `session signal` itself, and
-        // when it does, state is demonstrably reaching thurbox. Failing that
+        // when it does, state is demonstrably reaching talos. Failing that
         // session would hand the one integration shape this exists for a
         // permanently non-zero `doctor`.
         Coverage::None if hook.reported => Finding {
             key: "coverage",
             level: Level::Warn,
             detail: format!(
-                "thurbox ships no status hooks for agent '{agent}', but signals are arriving — \
-                 something in the pane is calling `thurbox-cli session signal`, so this \
+                "talos ships no status hooks for agent '{agent}', but signals are arriving — \
+                 something in the pane is calling `talos-cli session signal`, so this \
                  session reports what that caller chooses to report"
             ),
         },
@@ -266,23 +266,23 @@ fn diagnose(
             key: "coverage",
             level: Level::Fail,
             detail: format!(
-                "thurbox ships no status hooks for agent '{agent}' — set `hook_schema` in \
+                "talos ships no status hooks for agent '{agent}' — set `hook_schema` in \
                  agents.toml if it speaks a built-in's hook format, or have your driver call \
-                 `thurbox-cli session signal --state <s>` (identity comes from the injected \
-                 $THURBOX_SESSION, so it needs no arguments)"
+                 `talos-cli session signal --state <s>` (identity comes from the injected \
+                 $TALOS_SESSION, so it needs no arguments)"
             ),
         },
         // Resolved from the agent found holding the pane, not from either name
         // the row carries — so what those states are worth depends on whether
-        // the driver that launched it wired anything, which thurbox cannot see.
+        // the driver that launched it wired anything, which talos cannot see.
         // Warn rather than Ok for exactly that gap, and name the fix.
         Coverage::Presumed => Finding {
             key: "coverage",
             level: Level::Warn,
             detail: format!(
-                "no agent thurbox recognises is declared for this session, but its pane is \
+                "no agent talos recognises is declared for this session, but its pane is \
                  running '{}' — which can report {} once its hooks are wired. Declare it with \
-                 `thurbox-cli session reports-as {} {}` so coverage stops depending on \
+                 `talos-cli session reports-as {} {}` so coverage stops depending on \
                  what a process listing happens to see",
                 hook.detected_agent().unwrap_or(agent),
                 hook.states_reportable().join(", "),
@@ -311,30 +311,30 @@ fn diagnose(
 
     findings.push(match hook_cli(backends, session, remote, cli_on_path) {
         // A remote session's hooks are rewritten to `tmux set-option -p
-        // @thurbox_state` and never invoke `thurbox-cli` at all; on a shared
+        // @talos_state` and never invoke `talos-cli` at all; on a shared
         // host they run the *host's* CLI. Either way this machine's PATH says
         // nothing about them, so it must not decide the verdict.
         HookCli::Remote => Finding {
             key: "cli",
             level: Level::Warn,
             detail: "this session's hooks run on its own host, which cannot be checked from \
-                     here — the local `thurbox-cli` is not what they resolve"
+                     here — the local `talos-cli` is not what they resolve"
                 .into(),
         },
         HookCli::OnPanePath(path) => Finding {
             key: "cli",
             level: Level::Ok,
             detail: format!(
-                "hook commands resolve `thurbox-cli` to {path} on this pane's own PATH"
+                "hook commands resolve `talos-cli` to {path} on this pane's own PATH"
             ),
         },
         // See the `Unread` arms below for why `hooks_expected` splits this in
-        // two: the binary is only this session's to need when something thurbox
+        // two: the binary is only this session's to need when something talos
         // installed, or a driver of its own, actually runs it.
         HookCli::NotOnPanePath if !hooks_expected => Finding {
             key: "cli",
             level: Level::Warn,
-            detail: "`thurbox-cli` is not on this pane's PATH — nothing thurbox installed for \
+            detail: "`talos-cli` is not on this pane's PATH — nothing talos installed for \
                      this session runs it, but a driver calling `session signal` from the pane \
                      needs it"
                 .into(),
@@ -342,12 +342,12 @@ fn diagnose(
         HookCli::NotOnPanePath => Finding {
             key: "cli",
             level: Level::Fail,
-            detail: "`thurbox-cli` is not on this pane's PATH — every hook command is \
-                     `… || true`, so its signals fail silently. A session started before thurbox \
+            detail: "`talos-cli` is not on this pane's PATH — every hook command is \
+                     `… || true`, so its signals fail silently. A session started before talos \
                      put its CLI on a pane's PATH picks it up on restart"
                 .into(),
         },
-        // A live pane whose PATH thurbox did not write. Warn rather than Ok:
+        // A live pane whose PATH talos did not write. Warn rather than Ok:
         // the check cannot see what its hooks resolve, and answering with this
         // command's own PATH is the confusion that reported healthy wiring for
         // panes that could find no binary at all. Warn rather than Fail because
@@ -356,8 +356,8 @@ fn diagnose(
         HookCli::PaneUnverifiable => Finding {
             key: "cli",
             level: Level::Warn,
-            detail: "this pane carries a PATH thurbox did not write, so what its hooks resolve \
-                     cannot be read from here — a session started before thurbox put its CLI on \
+            detail: "this pane carries a PATH talos did not write, so what its hooks resolve \
+                     cannot be read from here — a session started before talos put its CLI on \
                      a pane's PATH picks it up on restart"
                 .into(),
         },
@@ -377,29 +377,29 @@ fn diagnose(
             key: "cli",
             level: Level::Ok,
             detail: format!(
-                "this machine's PATH resolves `thurbox-cli` to {path}; this session has no pane \
+                "this machine's PATH resolves `talos-cli` to {path}; this session has no pane \
                  here whose own PATH could be read"
             ),
         },
-        // Nothing thurbox installed for this session invokes the binary, so
+        // Nothing talos installed for this session invokes the binary, so
         // "every hook command fails silently" is not true of it, and the
         // verdict — the maximum over the findings — would otherwise come back
         // `fail` for a session the coverage check has just declared healthy.
         // Still worth saying: a driver reporting from the pane with `session
-        // signal` does need the binary. A session with an agent thurbox ships
+        // signal` does need the binary. A session with an agent talos ships
         // no hooks for is the other way round — its driver's `session signal`
         // *is* the only route, so a missing binary there is a genuine failure.
         HookCli::NoPane(None) if !hooks_expected => Finding {
             key: "cli",
             level: Level::Warn,
-            detail: "`thurbox-cli` is not on PATH — nothing thurbox installed for this session \
+            detail: "`talos-cli` is not on PATH — nothing talos installed for this session \
                      runs it, but a driver calling `session signal` from the pane needs it"
                 .into(),
         },
         HookCli::NoPane(None) => Finding {
             key: "cli",
             level: Level::Fail,
-            detail: "`thurbox-cli` is not on PATH — every hook command is `… || true`, so its \
+            detail: "`talos-cli` is not on PATH — every hook command is `… || true`, so its \
                      signals fail silently"
                 .into(),
         },
@@ -503,7 +503,7 @@ fn pane_finding(hook: &Assessment) -> Option<Finding> {
 /// The check that separates "the agent has not signalled yet" from "nothing was
 /// ever installed for it to signal with". Presence alone is not enough — a file
 /// can sit at that path for reasons of the user's own — so the payload must
-/// also carry the signal marker every thurbox-managed hook command has.
+/// also carry the signal marker every talos-managed hook command has.
 ///
 /// `None` for an agent with no file to check (aider's whole wiring is a launch
 /// arg, and the launch already happened), and a warning rather than a verdict
@@ -534,8 +534,8 @@ fn payload_finding(hook: &Assessment, remote: bool) -> Option<Finding> {
             key: "payload",
             level: Level::Fail,
             detail: format!(
-                "{} exists but carries no thurbox hook — a file of your own is there, so \
-                 thurbox refused to write over it (`thurbox-cli extension reinstall hooks`)",
+                "{} exists but carries no talos hook — a file of your own is there, so \
+                 talos refused to write over it (`talos-cli extension reinstall hooks`)",
                 path.display()
             ),
         },
@@ -544,7 +544,7 @@ fn payload_finding(hook: &Assessment, remote: bool) -> Option<Finding> {
             level: Level::Fail,
             detail: format!(
                 "{} is unreadable ({e}) — this agent has no hooks installed \
-                 (`thurbox-cli extension reinstall hooks`)",
+                 (`talos-cli extension reinstall hooks`)",
                 path.display()
             ),
         },
@@ -569,7 +569,7 @@ fn hook_file_path(hook: &Assessment) -> Option<std::path::PathBuf> {
     Some(crate::paths::expand_tilde(file))
 }
 
-/// What a hook running in this session's pane would resolve `thurbox-cli` to.
+/// What a hook running in this session's pane would resolve `talos-cli` to.
 enum HookCli {
     /// The session runs on another machine, so no local answer applies.
     Remote,
@@ -577,7 +577,7 @@ enum HookCli {
     OnPanePath(String),
     /// Read from the pane's own `PATH`: it resolves none.
     NotOnPanePath,
-    /// The pane is there and its `PATH` is not one thurbox wrote, so whether
+    /// The pane is there and its `PATH` is not one talos wrote, so whether
     /// its hooks can resolve the binary is **unknown**. Never healthy: this is
     /// exactly the shape that used to report `ok` while nothing worked.
     PaneUnverifiable,
@@ -642,7 +642,7 @@ fn hook_cli(
     }
 }
 
-/// What **this command's** `PATH` resolves `thurbox-cli` to — the fallback
+/// What **this command's** `PATH` resolves `talos-cli` to — the fallback
 /// [`hook_cli`] reports when a pane's own `PATH` cannot be read, and never the
 /// first answer: a hook runs in the pane, so the pane's `PATH` is the one that
 /// decides, and answering with this one is the confusion the `cli` check was
@@ -655,11 +655,11 @@ fn hook_cli(
 ///
 /// Resolved once for the whole run: the same answer for every session, and each
 /// probe is a directory walk.
-fn thurbox_cli_on_path() -> Option<String> {
+fn talos_cli_on_path() -> Option<String> {
     resolve_cli_on(&std::env::var_os("PATH")?)
 }
 
-/// `thurbox-cli` on `path`, spelled the way a `PATH` lookup spells it. Shared
+/// `talos-cli` on `path`, spelled the way a `PATH` lookup spells it. Shared
 /// by the pane's `PATH` and this process's, so the two cannot disagree about
 /// what counts as finding one.
 ///
@@ -667,7 +667,7 @@ fn thurbox_cli_on_path() -> Option<String> {
 /// going through `to_string_lossy` first would replace the offending bytes and
 /// then fail to find a binary that is sitting right there.
 fn resolve_cli_on(path: &std::ffi::OsStr) -> Option<String> {
-    let name = format!("thurbox-cli{}", std::env::consts::EXE_SUFFIX);
+    let name = format!("talos-cli{}", std::env::consts::EXE_SUFFIX);
     std::env::split_paths(path)
         .map(|dir| dir.join(&name))
         .find(|candidate| candidate.is_file())
@@ -738,12 +738,12 @@ mod tests {
             .unwrap()
             .detail;
         assert!(detail.contains("session signal"), "got {detail}");
-        assert!(detail.contains("THURBOX_SESSION"), "got {detail}");
+        assert!(detail.contains("TALOS_SESSION"), "got {detail}");
     }
 
     #[test]
     fn an_uncovered_agent_that_is_actually_signalling_warns_rather_than_fails() {
-        // The firstmate shape: the driver owns the agent launch (so thurbox
+        // The firstmate shape: the driver owns the agent launch (so talos
         // wired nothing) and reports state itself through the documented
         // `session signal`. State is demonstrably arriving, so a `fail` verdict
         // — and the non-zero exit with it — would be false for this row.
@@ -769,7 +769,7 @@ mod tests {
 
     #[test]
     fn a_missing_binary_is_reported_rather_than_swallowed() {
-        // Every hook command is `… || true`, so a `thurbox-cli` that is not on
+        // Every hook command is `… || true`, so a `talos-cli` that is not on
         // PATH looks exactly like an agent that has not signalled. This is the
         // whole reason the subcommand exists.
         let hook = Assessment::from_hooks(&registry(), "claude", Some("working"), Some(0), None, 0);
@@ -836,7 +836,7 @@ mod tests {
 
     #[test]
     fn a_command_session_expects_no_hooks_and_is_never_a_failure() {
-        // The shape thurbox advertises for drivers: `--command $SHELL --arg -i`,
+        // The shape talos advertises for drivers: `--command $SHELL --arg -i`,
         // named after the command's file stem. There is no wiring here to be
         // broken, and failing it made bare `doctor` — which diagnoses every
         // active session — fail the whole machine because one shell existed.
@@ -912,7 +912,7 @@ mod tests {
     fn a_missing_cli_does_not_undo_the_no_hooks_expected_carve_out() {
         // The verdict is the maximum over the findings, so an unconditional
         // `fail` here came back as the session's verdict however healthy the
-        // coverage check had just declared it. Nothing thurbox installed for a
+        // coverage check had just declared it. Nothing talos installed for a
         // command session runs the binary, so its absence cannot be what stops
         // state arriving — it is still worth saying, because a driver calling
         // `session signal` from the pane needs it.
@@ -928,7 +928,7 @@ mod tests {
         assert_eq!(level_of(&report, "cli"), Level::Warn);
         assert_ne!(report.verdict, Level::Fail);
 
-        // A registry agent thurbox ships no hooks for is the other way round:
+        // A registry agent talos ships no hooks for is the other way round:
         // its driver's `session signal` is the only route state can take, so a
         // binary that is not on PATH really is what breaks it.
         let owned =
@@ -939,8 +939,8 @@ mod tests {
 
     #[test]
     fn a_remote_verdict_does_not_depend_on_this_machines_cli_install() {
-        // Run by absolute path (`./target/debug/thurbox-cli`, or the
-        // provisioned one under the data dir), nothing named `thurbox-cli` is
+        // Run by absolute path (`./target/debug/talos-cli`, or the
+        // provisioned one under the data dir), nothing named `talos-cli` is
         // on PATH. That says nothing about a session whose hooks fire on
         // another host, so it must not turn into a failure.
         let hook =

@@ -12,10 +12,10 @@
 //! session that goes quiet and then prints again has to be `working` once more
 //! without waiting for a hook that is never coming.
 
-use thurbox::kernel::snapshot::SnapshotStore;
-use thurbox::session::SessionId;
-use thurbox::storage::Database;
-use thurbox::sync::SharedSession;
+use talos::kernel::snapshot::SnapshotStore;
+use talos::session::SessionId;
+use talos::storage::Database;
+use talos::sync::SharedSession;
 
 /// The guard every tmux server in this file is reaped by — see its own doc.
 #[path = "support/tmux_server.rs"]
@@ -43,7 +43,7 @@ fn detached(_id: &str) -> Option<u64> {
 
 fn store_with_working_session() -> (tempfile::TempDir, SnapshotStore, String) {
     let home = tempfile::tempdir().expect("tempdir");
-    let path = home.path().join("thurbox.db");
+    let path = home.path().join("talos.db");
     let row = SharedSession {
         id: SessionId::default(),
         name: "long-turn".into(),
@@ -65,7 +65,7 @@ fn store_with_working_session() -> (tempfile::TempDir, SnapshotStore, String) {
     database.set_hook_state(row.id, "working").expect("signal");
     let mut store = SnapshotStore::with_database(
         Database::open(&path).expect("db"),
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
     );
     store.refresh();
     (home, store, row.id.to_string())
@@ -134,7 +134,7 @@ fn a_session_that_prints_again_goes_back_to_working() {
 #[test]
 fn a_blocked_session_is_never_time_gated() {
     let (home, mut store, id) = store_with_working_session();
-    let database = Database::open(&home.path().join("thurbox.db")).expect("db");
+    let database = Database::open(&home.path().join("talos.db")).expect("db");
     let parsed: SessionId = id.parse().expect("id");
     database.set_hook_state(parsed, "blocked").expect("signal");
     store.refresh();
@@ -147,12 +147,12 @@ fn a_blocked_session_is_never_time_gated() {
 // --- what actually holds the pane ------------------------------------------
 
 /// A socket of this test's own, so it can never see — or kill — a real session.
-const PROBE_SOCKET: &str = "thurbox-probe-test";
+const PROBE_SOCKET: &str = "talos-probe-test";
 
 /// The tmux session name the local backend groups its windows under. Mirrors
-/// `backend::tmux_compat::server::TMUX_SESSION`, which is private — and is `thurbox-dev` here,
+/// `backend::tmux_compat::server::TMUX_SESSION`, which is private — and is `talos-dev` here,
 /// because a test build carries the same `dev_build` marker a dev binary does.
-const TMUX_SESSION: &str = "thurbox-dev";
+const TMUX_SESSION: &str = "talos-dev";
 
 /// The externally-driven registry: the session's own "agent" is a bare shell,
 /// because the driver owns the real agent launch and starts it in the pane.
@@ -236,7 +236,7 @@ fn settle(store: &mut SnapshotStore, id: &str, want: &str) -> String {
 /// R1 + R3, end to end and through a real process tree: the interface's own
 /// derivation, the pane probe that feeds it, and the name it publishes.
 ///
-/// The captain's symptom lives exactly here — a driver asks thurbox for a bare
+/// The captain's symptom lives exactly here — a driver asks talos for a bare
 /// shell, starts an agent in the pane itself, and nothing is wired to report a
 /// turn. The interface used to draw the green hollow `idle` dot for that, which
 /// says the agent reported it is at rest. It now says an agent is running,
@@ -249,15 +249,15 @@ fn an_agent_a_driver_started_is_seen_and_named_by_the_interface() {
     }
     let home = tempfile::tempdir().expect("tempdir");
     let _server = TmuxServer::pin(PROBE_SOCKET);
-    let guard = thurbox::paths::TestPathGuard::new(home.path());
-    let agents = thurbox::agent::agent_config::agents_config_path().expect("agents path");
+    let guard = talos::paths::TestPathGuard::new(home.path());
+    let agents = talos::agent::agent_config::agents_config_path().expect("agents path");
     std::fs::create_dir_all(agents.parent().expect("config dir")).expect("mkdir");
     std::fs::write(&agents, AGENTS_TOML).expect("write agents.toml");
 
     let row = SharedSession {
         id: SessionId::default(),
         name: "driver-owned".into(),
-        // What the driver asked thurbox for. thurbox wires no hooks for it.
+        // What the driver asked talos for. talos wires no hooks for it.
         agent: "shell".into(),
         // Empty, so the pane is resolved by window name.
         backend_id: String::new(),
@@ -272,13 +272,13 @@ fn an_agent_a_driver_started_is_seen_and_named_by_the_interface() {
         tombstone: false,
         tombstone_at: None,
     };
-    let path = home.path().join("thurbox.db");
+    let path = home.path().join("talos.db");
     Database::open(&path)
         .expect("db")
         .upsert_session(&row)
         .expect("persist");
 
-    // The driver's shape: thurbox opened a pane, the driver started an agent in
+    // The driver's shape: talos opened a pane, the driver started an agent in
     // it, and nothing was ever wired to report a turn.
     let claude = fake_agent(&home.path().join("bin"), "claude");
     tmux(&["new-session", "-d", "-s", TMUX_SESSION, "-n", "bash", "sh"]);
@@ -293,7 +293,7 @@ fn an_agent_a_driver_started_is_seen_and_named_by_the_interface() {
 
     let mut store = SnapshotStore::with_database(
         Database::open(&path).expect("db"),
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
     );
     let id = row.id.to_string();
 
@@ -338,7 +338,7 @@ fn an_agent_a_driver_started_is_seen_and_named_by_the_interface() {
     assert_eq!(detected_of(&store, &id), None);
 }
 
-fn row_of<'a>(store: &'a SnapshotStore, id: &str) -> &'a thurbox::kernel::snapshot::SessionRow {
+fn row_of<'a>(store: &'a SnapshotStore, id: &str) -> &'a talos::kernel::snapshot::SessionRow {
     store
         .current()
         .sessions

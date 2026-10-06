@@ -8,7 +8,7 @@
 //!
 //! ```sh
 //! cargo bench --bench frame_cost                 # the default sweep
-//! THURBOX_BENCH_SESSIONS=1,20,100 cargo bench --bench frame_cost
+//! TALOS_BENCH_SESSIONS=1,20,100 cargo bench --bench frame_cost
 //! ```
 //!
 //! Every phase is named after the thing the loop does, so a row here maps onto
@@ -21,13 +21,13 @@ use std::time::{Duration, Instant};
 use ratatui::backend::TestBackend;
 use ratatui::Terminal;
 
-use thurbox::kernel::host::{Epoch, LuaHost, Published, RenderContext};
-use thurbox::kernel::inventory::Trust;
-use thurbox::kernel::paint::PlaceholderSurfaces;
-use thurbox::kernel::registry::Registry;
-use thurbox::kernel::snapshot::{SessionRow, Snapshot};
-use thurbox::kernel::theme::Themes;
-use thurbox::session::SessionState;
+use talos::kernel::host::{Epoch, LuaHost, Published, RenderContext};
+use talos::kernel::inventory::Trust;
+use talos::kernel::paint::PlaceholderSurfaces;
+use talos::kernel::registry::Registry;
+use talos::kernel::snapshot::{SessionRow, Snapshot};
+use talos::kernel::theme::Themes;
+use talos::session::SessionState;
 
 static SCREEN: std::sync::OnceLock<(u16, u16)> = std::sync::OnceLock::new();
 #[allow(non_snake_case)]
@@ -50,8 +50,8 @@ fn screen() -> (u16, u16) {
             .unwrap_or(fallback)
     };
     (
-        parse("THURBOX_BENCH_WIDTH", 200),
-        parse("THURBOX_BENCH_HEIGHT", 50),
+        parse("TALOS_BENCH_WIDTH", 200),
+        parse("TALOS_BENCH_HEIGHT", 50),
     )
 }
 
@@ -87,7 +87,7 @@ fn registry(host: &LuaHost) -> Registry {
 /// per group, live panes, and a git stat block — the shape the session list
 /// spends its time on.
 fn snapshot(sessions: usize) -> Snapshot {
-    let repos = ["/src/thurbox", "/src/thurview", "/src/thurspace"];
+    let repos = ["/src/talos", "/src/thurview", "/src/thurspace"];
     let rows = (0..sessions)
         .map(|nth| {
             let repo = repos[nth % repos.len()];
@@ -134,17 +134,17 @@ fn snapshot(sessions: usize) -> Snapshot {
 struct World {
     themes: Themes,
     registry: Registry,
-    diffs: thurbox::kernel::diff::DiffStore,
-    repos: thurbox::kernel::repos::RepoStore,
-    inventory: Vec<thurbox::kernel::inventory::Row>,
+    diffs: talos::kernel::diff::DiffStore,
+    repos: talos::kernel::repos::RepoStore,
+    inventory: Vec<talos::kernel::inventory::Row>,
 }
 
 impl World {
     fn new(host: &LuaHost) -> Self {
-        let sources = thurbox::kernel::bundled::sources(&ui_dir());
+        let sources = talos::kernel::bundled::sources(&ui_dir());
         let visible: HashSet<usize> = (0..host.plugins.len()).collect();
         let placed: HashSet<String> = host.plugins.iter().map(|p| p.slot.clone()).collect();
-        let inventory = thurbox::kernel::inventory::rows(
+        let inventory = talos::kernel::inventory::rows(
             &host.plugins,
             &sources,
             &visible,
@@ -156,8 +156,8 @@ impl World {
         World {
             themes: themes(),
             registry: registry(host),
-            diffs: thurbox::kernel::diff::DiffStore::new(),
-            repos: thurbox::kernel::repos::RepoStore::with_hosts(Default::default()),
+            diffs: talos::kernel::diff::DiffStore::new(),
+            repos: talos::kernel::repos::RepoStore::with_hosts(Default::default()),
             inventory,
         }
     }
@@ -253,7 +253,7 @@ fn placed_panes(host: &LuaHost) -> Vec<(usize, String, ratatui::layout::Rect)> {
     let area = ratatui::layout::Rect::new(0, 0, WIDTH(), HEIGHT());
     let region = host.arrangement(WIDTH(), HEIGHT()).expect("arrangement");
     let mut out = Vec::new();
-    for slot in thurbox::kernel::layout::resolve(&region, area) {
+    for slot in talos::kernel::layout::resolve(&region, area) {
         for &index in host.in_slot(&slot.slot) {
             let Some(plugin) = host.plugins.get(index) else {
                 continue;
@@ -263,7 +263,7 @@ fn placed_panes(host: &LuaHost) -> Vec<(usize, String, ratatui::layout::Rect)> {
             // bundled interface has one occupant per slot either way, so the
             // distinction costs nothing to ignore here — but say so, because an
             // interface with two panes in `center` would need it.
-            if host.slot_mode(&slot.slot) == thurbox::kernel::layout::SlotMode::Switch {
+            if host.slot_mode(&slot.slot) == talos::kernel::layout::SlotMode::Switch {
                 break;
             }
         }
@@ -291,7 +291,7 @@ fn float_probe(host: &LuaHost, frame: u64) {
 }
 
 fn main() {
-    let counts: Vec<usize> = std::env::var("THURBOX_BENCH_SESSIONS")
+    let counts: Vec<usize> = std::env::var("TALOS_BENCH_SESSIONS")
         .ok()
         .map(|spec| {
             spec.split(',')
@@ -305,7 +305,7 @@ fn main() {
     let panes = placed_panes(&host);
 
     println!(
-        "thurbox frame cost — {}x{}, sessions: {counts:?}",
+        "talos frame cost — {}x{}, sessions: {counts:?}",
         WIDTH(),
         HEIGHT()
     );
@@ -494,13 +494,13 @@ fn main() {
                     HEIGHT(),
                 ));
                 measure(9, 200, || {
-                    thurbox::kernel::paint::normalize_ambiguous_width(&mut buffer);
+                    talos::kernel::paint::normalize_ambiguous_width(&mut buffer);
                 })
             })
             .collect(),
     ));
 
-    let sources = thurbox::kernel::bundled::sources(&ui_dir());
+    let sources = talos::kernel::bundled::sources(&ui_dir());
     let visible: HashSet<usize> = (0..host.plugins.len()).collect();
     let placed: HashSet<String> = host.plugins.iter().map(|p| p.slot.clone()).collect();
     rows.push((
@@ -509,7 +509,7 @@ fn main() {
             .iter()
             .map(|_| {
                 measure(9, 200, || {
-                    let _ = thurbox::kernel::inventory::rows(
+                    let _ = talos::kernel::inventory::rows(
                         &host.plugins,
                         &sources,
                         &visible,
@@ -536,7 +536,7 @@ fn render_panes(
     panes: &[(usize, String, ratatui::layout::Rect)],
     frame: u64,
 ) -> Vec<(
-    std::rc::Rc<thurbox::kernel::node::Node>,
+    std::rc::Rc<talos::kernel::node::Node>,
     ratatui::layout::Rect,
 )> {
     panes
@@ -561,16 +561,16 @@ fn render_panes(
 fn paint(
     terminal: &mut Terminal<TestBackend>,
     trees: &[(
-        std::rc::Rc<thurbox::kernel::node::Node>,
+        std::rc::Rc<talos::kernel::node::Node>,
         ratatui::layout::Rect,
     )],
 ) {
     terminal
         .draw(|frame| {
             for (tree, rect) in trees {
-                thurbox::kernel::paint::render(frame, *rect, tree, &PlaceholderSurfaces);
+                talos::kernel::paint::render(frame, *rect, tree, &PlaceholderSurfaces);
             }
-            thurbox::kernel::paint::normalize_ambiguous_width(frame.buffer_mut());
+            talos::kernel::paint::normalize_ambiguous_width(frame.buffer_mut());
         })
         .expect("draw");
 }
@@ -691,7 +691,7 @@ fn agent_screen(rows: u16, cols: u16) -> vt100::Parser {
     let mut parser = vt100::Parser::new(rows, cols, 0);
     for nth in 0..rows {
         let line = if nth % 12 == 0 {
-            format!("\x1b[33m  see https://github.com/Thurbeen/thurbox/pull/{nth} for the rest\x1b[0m\r\n")
+            format!("\x1b[33m  see https://github.com/zatzk/talos/pull/{nth} for the rest\x1b[0m\r\n")
         } else if nth % 3 == 0 {
             format!("\x1b[1m  * step {nth}\x1b[0m: rewrote src/kernel/host/publish.rs and re-ran the suite\r\n")
         } else {
@@ -724,11 +724,11 @@ fn output_frame() {
     let mut terminal = Terminal::new(TestBackend::new(WIDTH(), HEIGHT())).expect("term");
 
     let extract = measure(9, 100, || {
-        let _ = thurbox::kernel::terminal::links::extract_screen_rows(parser.screen());
+        let _ = talos::kernel::terminal::links::extract_screen_rows(parser.screen());
     });
-    let rows = thurbox::kernel::terminal::links::extract_screen_rows(parser.screen());
+    let rows = talos::kernel::terminal::links::extract_screen_rows(parser.screen());
     let detect = measure(9, 100, || {
-        let _ = thurbox::kernel::terminal::links::detect_urls(&rows);
+        let _ = talos::kernel::terminal::links::detect_urls(&rows);
     });
     let surface = measure(9, 100, || {
         terminal

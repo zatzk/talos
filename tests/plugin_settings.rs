@@ -9,10 +9,10 @@
 use ratatui::backend::TestBackend;
 use ratatui::Terminal;
 
-use thurbox::kernel::host::{LuaHost, Published, RenderContext};
-use thurbox::kernel::registry::{Registry, Value};
-use thurbox::kernel::snapshot::{SessionRow, Snapshot};
-use thurbox::kernel::theme::Themes;
+use talos::kernel::host::{LuaHost, Published, RenderContext};
+use talos::kernel::registry::{Registry, Value};
+use talos::kernel::snapshot::{SessionRow, Snapshot};
+use talos::kernel::theme::Themes;
 
 fn host() -> LuaHost {
     let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui");
@@ -26,7 +26,7 @@ fn row(name: &str, repo: &str) -> SessionRow {
         id: format!("{name}-0000"),
         name: name.into(),
         agent: "claude".into(),
-        status: thurbox::session::SessionState::Idle,
+        status: talos::session::SessionState::Idle,
         cwd: None,
         repo: Some(repo.into()),
         repos: vec![repo.into()],
@@ -84,7 +84,7 @@ fn session_list(host: &LuaHost, registry: &Registry) -> String {
     session_list_of(
         host,
         registry,
-        vec![row("one", "thurbox"), row("two", "website")],
+        vec![row("one", "talos"), row("two", "website")],
     )
 }
 
@@ -95,10 +95,10 @@ fn session_list_of(host: &LuaHost, registry: &Registry, sessions: Vec<SessionRow
         ..Snapshot::default()
     };
     let themes = Themes::load(None);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     host.publish(&Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot: &snapshot,
         attach_errors: &Default::default(),
         inflight: &[],
@@ -145,11 +145,11 @@ fn session_list_of(host: &LuaHost, registry: &Registry, sessions: Vec<SessionRow
     let mut terminal = Terminal::new(TestBackend::new(40, 12)).expect("terminal");
     terminal
         .draw(|frame| {
-            thurbox::kernel::paint::render(
+            talos::kernel::paint::render(
                 frame,
                 frame.area(),
                 &node,
-                &thurbox::kernel::paint::PlaceholderSurfaces,
+                &talos::kernel::paint::PlaceholderSurfaces,
             )
         })
         .expect("draw");
@@ -192,7 +192,7 @@ fn a_declared_setting_actually_changes_what_is_drawn() {
 
     let grouped = session_list(&host, &registry);
     assert!(
-        grouped.contains("thurbox") && grouped.contains("website"),
+        grouped.contains("talos") && grouped.contains("website"),
         "expected repo rows by default:\n{grouped}"
     );
 
@@ -201,7 +201,7 @@ fn a_declared_setting_actually_changes_what_is_drawn() {
         .expect("set");
     let flat = session_list(&host, &registry);
     assert!(
-        !flat.contains("thurbox") && !flat.contains("website"),
+        !flat.contains("talos") && !flat.contains("website"),
         "headers should be gone once grouping is off:\n{flat}"
     );
     // The sessions themselves are untouched — only the header line goes.
@@ -223,7 +223,7 @@ fn a_setting_reverts_to_its_default_when_cleared() {
         .expect("clear");
     let restored = session_list(&host, &registry);
     assert!(
-        restored.contains("thurbox"),
+        restored.contains("talos"),
         "clearing the override should restore the declared default:\n{restored}"
     );
 }
@@ -239,9 +239,9 @@ fn grouping_off_means_ungrouped_and_not_merely_unlabelled() {
     let mut registry = registry_for(&host);
     let sessions = || {
         vec![
-            ordered(row("alpha", "thurbox"), 0),
+            ordered(row("alpha", "talos"), 0),
             ordered(row("bravo", "website"), 1),
-            ordered(row("charlie", "thurbox"), 2),
+            ordered(row("charlie", "talos"), 2),
         ]
     };
 
@@ -274,8 +274,8 @@ fn host_grouping_is_the_operators_choice() {
     // second header and only the host axis can.
     let across_machines = || {
         vec![
-            row("one", "thurbox"),
-            on_host(row("two", "thurbox"), "buildbox"),
+            row("one", "talos"),
+            on_host(row("two", "talos"), "buildbox"),
         ]
     };
 
@@ -288,7 +288,7 @@ fn host_grouping_is_the_operators_choice() {
         "the default is what the operator has today:\n{by_machine}"
     );
     assert_eq!(
-        by_machine.matches("thurbox").count(),
+        by_machine.matches("talos").count(),
         2,
         "one per machine:\n{by_machine}"
     );
@@ -302,7 +302,7 @@ fn host_grouping_is_the_operators_choice() {
         "off, no header names a machine:\n{merged}"
     );
     assert_eq!(
-        merged.matches("thurbox").count(),
+        merged.matches("talos").count(),
         1,
         "the repo axis is its own knob, and its one group is now whole:\n{merged}"
     );
@@ -318,7 +318,7 @@ fn local_host_row_follows_the_host_grouping_setting() {
     // The local row is useful even on a single machine: it is the fold handle.
     let host = host();
     let mut registry = registry_for(&host);
-    let one_machine = || vec![row("one", "thurbox"), row("two", "website")];
+    let one_machine = || vec![row("one", "talos"), row("two", "website")];
 
     let untouched = session_list_of(&host, &registry, one_machine());
     assert!(untouched.contains("local"), "{untouched}");

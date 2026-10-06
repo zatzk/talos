@@ -16,10 +16,10 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use serde_json::Value;
-use thurbox::kernel::snapshot::SnapshotStore;
-use thurbox::session::SessionId;
-use thurbox::storage::Database;
-use thurbox::sync::SharedSession;
+use talos::kernel::snapshot::SnapshotStore;
+use talos::session::SessionId;
+use talos::storage::Database;
+use talos::sync::SharedSession;
 
 /// The guard every tmux server in this file is reaped by — see its own doc.
 #[path = "support/tmux_server.rs"]
@@ -54,7 +54,7 @@ impl Env {
         std::fs::write(root.path().join("agents.toml"), AGENTS_TOML).expect("write agents.toml");
         Self {
             root,
-            server: TmuxServer::private("thurbox-agreement-test"),
+            server: TmuxServer::private("talos-agreement-test"),
         }
     }
 
@@ -63,23 +63,23 @@ impl Env {
     }
 
     fn db(&self) -> Database {
-        Database::open(&self.base().join("thurbox.db")).expect("open the instance database")
+        Database::open(&self.base().join("talos.db")).expect("open the instance database")
     }
 
     fn cli(&self, args: &[&str]) -> Value {
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         cmd.args(args)
             .env("HOME", self.base())
             .env("USERPROFILE", self.base())
-            .env("THURBOX_CONFIG_DIR", self.base())
-            .env("THURBOX_DATA_DIR", self.base())
-            .env_remove("THURBOX_SESSION");
+            .env("TALOS_CONFIG_DIR", self.base())
+            .env("TALOS_DATA_DIR", self.base())
+            .env_remove("TALOS_SESSION");
         self.server.scope(&mut cmd);
-        let out = cmd.output().expect("run thurbox-cli");
+        let out = cmd.output().expect("run talos-cli");
         let stdout = String::from_utf8_lossy(&out.stdout);
         assert!(
             out.status.success(),
-            "thurbox-cli {args:?} failed:\n{stdout}\n{}",
+            "talos-cli {args:?} failed:\n{stdout}\n{}",
             String::from_utf8_lossy(&out.stderr)
         );
         // The stream commands print one JSON document per line, the rest print
@@ -123,9 +123,9 @@ fn states(env: &Env, id: SessionId) -> [String; 4] {
     let list = env.cli(&["--json", "session", "list"]);
     let watch = env.cli(&["--json", "watch", "--initial", "--for-secs", "1"]);
 
-    let _guard = thurbox::paths::TestPathGuard::new(env.base());
+    let _guard = talos::paths::TestPathGuard::new(env.base());
     let mut store =
-        SnapshotStore::with_database(env.db(), &thurbox::backend::wiring::configured().0);
+        SnapshotStore::with_database(env.db(), &talos::backend::wiring::configured().0);
     store.refresh();
     let tui = store
         .current()
@@ -221,7 +221,7 @@ fn a_session_that_never_reported_is_not_idle_on_any_surface() {
 }
 
 /// The other silence, and the one a foreign driver actually produces: a row
-/// created as a bare shell, which thurbox wires no hooks for. Its silence means
+/// created as a bare shell, which talos wires no hooks for. Its silence means
 /// nothing at all, and saying `idle` would launder that into a report.
 #[test]
 fn a_session_wired_to_report_nothing_is_uncovered_on_every_surface() {

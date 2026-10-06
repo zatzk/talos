@@ -1,7 +1,7 @@
 //! Every `git` invocation starts here.
 //!
 //! One thing matters more than the rest and is why this is its own file: git
-//! exports `GIT_DIR`/`GIT_INDEX_FILE`/… to hook processes, so a thurbox running
+//! exports `GIT_DIR`/`GIT_INDEX_FILE`/… to hook processes, so a talos running
 //! under a `pre-commit` hook — or its own test suite under this project's
 //! `cargo nextest` hook — inherits them, and a call aimed at an explicit
 //! worktree silently operates on the *hook's* repo instead. Every invocation
@@ -20,7 +20,7 @@ use crate::shell::posix_quote;
 /// The ambient `GIT_*` variables that pin git to a specific repo/index/worktree,
 /// overriding the path we point it at via `current_dir`/`-C`. Git exports these
 /// to hook processes (a `pre-commit` hook runs with `GIT_DIR`/`GIT_INDEX_FILE`
-/// set), so if thurbox — or its test suite under the project's pre-commit
+/// set), so if talos — or its test suite under the project's pre-commit
 /// `cargo nextest` hook — inherits them, a `git` call targeting an explicit
 /// worktree would silently operate on the *hook's* repo instead (writing the
 /// wrong index, running the wrong hooks). Every git invocation scrubs them so it

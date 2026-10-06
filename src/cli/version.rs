@@ -1,8 +1,8 @@
-//! `thurbox-cli version [--check]` — print the running version and, with
+//! `talos-cli version [--check]` — print the running version and, with
 //! `--check`, query GitHub for the latest release.
 //!
 //! `--check` is gated behind the `[features] version_check` flag (on by
-//! default for 1.0, since thurbox now keeps itself current). When the flag is
+//! default for 1.0, since talos now keeps itself current). When the flag is
 //! off, `--check` prints a one-line hint on how to enable it instead of
 //! reaching the network.
 //! A successful check also refreshes the on-disk cache the TUI badge reads.
@@ -35,7 +35,7 @@ fn run_with(args: VersionArgs, enabled: bool) -> CommandOutput {
     let current = crate::agent::version_check::current_version();
 
     if !args.check {
-        // The extra facts are what a *peer* thurbox reads when it probes this
+        // The extra facts are what a *peer* talos reads when it probes this
         // machine's CLI before delegating to it (`session_ops::host_cli`): the
         // tmux server this build's sessions live on, where its data lives, and
         // whether the two databases speak the same schema.
@@ -48,7 +48,7 @@ fn run_with(args: VersionArgs, enabled: bool) -> CommandOutput {
                 "schema_version": crate::storage::SCHEMA_VERSION,
                 "multiplexer_choice": true,
             }),
-            format!("thurbox {current}"),
+            format!("talos {current}"),
         );
     }
 
@@ -61,7 +61,7 @@ fn run_with(args: VersionArgs, enabled: bool) -> CommandOutput {
                 "check_enabled": false,
                 "summary": hint,
             }),
-            format!("thurbox {current}\n{hint}"),
+            format!("talos {current}\n{hint}"),
         );
     }
 
@@ -76,18 +76,18 @@ fn run_with(args: VersionArgs, enabled: bool) -> CommandOutput {
                 (
                     "available (new major)",
                     format!(
-                        "thurbox-cli update --force (v{latest} is a NEW MAJOR — \
+                        "talos-cli update --force (v{latest} is a NEW MAJOR — \
                          not installed automatically)"
                     ),
                     format!(
                         "New major available: {current} → {latest}. Not installed \
-                         automatically — `thurbox-cli update --force` takes it."
+                         automatically — `talos-cli update --force` takes it."
                     ),
                 )
             } else {
                 (
                     "available",
-                    "thurbox-cli update".to_string(),
+                    "talos-cli update".to_string(),
                     format!("Update available: {current} → {latest}"),
                 )
             };
@@ -118,7 +118,7 @@ fn run_with(args: VersionArgs, enabled: bool) -> CommandOutput {
                 "summary": "Up to date — running the latest release.",
             }),
             format!(
-                "thurbox {current} (latest: {latest})\nUp to date — running the latest release."
+                "talos {current} (latest: {latest})\nUp to date — running the latest release."
             ),
         ),
         Err(e) => CommandOutput::failed(
@@ -128,7 +128,7 @@ fn run_with(args: VersionArgs, enabled: bool) -> CommandOutput {
                 "update_available": null,
                 "error": e,
             }),
-            format!("thurbox {current}\nUpdate check failed: {e}"),
+            format!("talos {current}\nUpdate check failed: {e}"),
             format!("update check failed: {e}"),
         ),
     }
@@ -143,7 +143,7 @@ mod tests {
         let out = run(VersionArgs { check: false });
         assert!(out["version"].is_string(), "version field present");
         assert_eq!(out["multiplexer_choice"], true);
-        assert!(out.human.starts_with("thurbox "), "got: {}", out.human);
+        assert!(out.human.starts_with("talos "), "got: {}", out.human);
         assert!(out.failure.is_none(), "plain version never fails");
     }
 

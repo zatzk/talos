@@ -14,15 +14,15 @@ use ratatui::backend::TestBackend;
 use ratatui::layout::Rect;
 use ratatui::Terminal;
 
-use thurbox::kernel::host::{KeyPress, LuaHost, Published, RenderContext};
-use thurbox::kernel::layout::{resolve, SlotMode};
-use thurbox::kernel::modals::interface::Files;
-use thurbox::kernel::modals::{self, ModalKind, Modals, World};
-use thurbox::kernel::registry::{binding_from, Registry, Setting, Value};
-use thurbox::kernel::snapshot::{SessionRow, Snapshot};
-use thurbox::kernel::theme::Themes;
-use thurbox::session::SessionState;
-use thurbox::storage::Database;
+use talos::kernel::host::{KeyPress, LuaHost, Published, RenderContext};
+use talos::kernel::layout::{resolve, SlotMode};
+use talos::kernel::modals::interface::Files;
+use talos::kernel::modals::{self, ModalKind, Modals, World};
+use talos::kernel::registry::{binding_from, Registry, Setting, Value};
+use talos::kernel::snapshot::{SessionRow, Snapshot};
+use talos::kernel::theme::Themes;
+use talos::session::SessionState;
+use talos::storage::Database;
 
 const WIDTH: u16 = 150;
 const HEIGHT: u16 = 40;
@@ -50,9 +50,9 @@ fn row(name: &str) -> SessionRow {
         name: name.into(),
         agent: "claude".into(),
         status: SessionState::Idle,
-        cwd: Some(std::path::PathBuf::from("/src/thurbox")),
-        repo: Some("thurbox".into()),
-        repos: vec!["thurbox".into()],
+        cwd: Some(std::path::PathBuf::from("/src/talos")),
+        repo: Some("talos".into()),
+        repos: vec!["talos".into()],
         branch: Some(format!("feat/{name}")),
         base_branch: None,
         backend: "local-tmux".into(),
@@ -80,10 +80,10 @@ fn sample() -> Snapshot {
 }
 
 fn publish(host: &LuaHost, registry: &Registry, themes: &Themes) {
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     host.publish(&Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot: &sample(),
         attach_errors: &Default::default(),
         inflight: &[],
@@ -147,11 +147,11 @@ fn screen(
                     if rendered.float.is_some() {
                         continue;
                     }
-                    thurbox::kernel::paint::render(
+                    talos::kernel::paint::render(
                         frame,
                         slot.rect,
                         &rendered.node,
-                        &thurbox::kernel::paint::PlaceholderSurfaces,
+                        &talos::kernel::paint::PlaceholderSurfaces,
                     );
                 }
             }
@@ -282,7 +282,7 @@ fn a_long_chord_list_widens_the_column_instead_of_running_into_its_description()
     let host = host();
     let mut registry = Registry::default();
     let (mut bindings, settings) = host.declarations();
-    bindings.extend(thurbox::kernel::modals::bindings());
+    bindings.extend(talos::kernel::modals::bindings());
     registry.declare(bindings, settings);
 
     let mut modals = Modals::default();
@@ -330,7 +330,7 @@ fn a_long_chord_list_widens_the_column_instead_of_running_into_its_description()
 #[test]
 fn the_theme_picker_previews_as_you_move_and_reverts_when_abandoned() {
     let dir = tempfile::tempdir().expect("temp dir");
-    let _guard = thurbox::paths::TestPathGuard::new(dir.path());
+    let _guard = talos::paths::TestPathGuard::new(dir.path());
     let mut registry = Registry::default();
     let mut themes = Themes::load(None);
     let opened_with = themes.active_name().to_string();
@@ -357,7 +357,7 @@ fn the_theme_picker_previews_as_you_move_and_reverts_when_abandoned() {
 
     // Nothing was persisted — a preview is not a choice.
     assert_eq!(
-        thurbox::storage::Database::open(&thurbox::paths::database_file().expect("path"))
+        talos::storage::Database::open(&talos::paths::database_file().expect("path"))
             .expect("db")
             .get_active_theme()
             .expect("read"),
@@ -385,7 +385,7 @@ fn the_theme_picker_previews_as_you_move_and_reverts_when_abandoned() {
 #[test]
 fn choosing_a_theme_keeps_it_and_persists_it() {
     let dir = tempfile::tempdir().expect("temp dir");
-    let _guard = thurbox::paths::TestPathGuard::new(dir.path());
+    let _guard = talos::paths::TestPathGuard::new(dir.path());
     let mut registry = Registry::default();
     let mut themes = Themes::load(None);
     let opened_with = themes.active_name().to_string();
@@ -425,7 +425,7 @@ fn choosing_a_theme_keeps_it_and_persists_it() {
 fn closing_the_picker_by_its_own_chord_also_reverts() {
     // Toggling it shut is no more a choice than pressing Esc.
     let dir = tempfile::tempdir().expect("temp dir");
-    let _guard = thurbox::paths::TestPathGuard::new(dir.path());
+    let _guard = talos::paths::TestPathGuard::new(dir.path());
     let mut registry = Registry::default();
     let mut themes = Themes::load(None);
     let opened_with = themes.active_name().to_string();
@@ -712,7 +712,7 @@ fn capturing_ctrl_q_in_help_is_data_rather_than_a_quit() {
 #[test]
 fn a_rebind_moves_the_chord_and_says_what_moved() {
     let dir = tempfile::tempdir().expect("temp dir");
-    let _guard = thurbox::paths::TestPathGuard::new(dir.path());
+    let _guard = talos::paths::TestPathGuard::new(dir.path());
     let host = host();
     let mut registry = registry(&host);
     let mut themes = Themes::load(None);
@@ -762,7 +762,7 @@ fn a_rebind_moves_the_chord_and_says_what_moved() {
 #[test]
 fn reset_puts_an_action_back_on_its_declared_chord() {
     let dir = tempfile::tempdir().expect("temp dir");
-    let _guard = thurbox::paths::TestPathGuard::new(dir.path());
+    let _guard = talos::paths::TestPathGuard::new(dir.path());
     let host = host();
     let mut registry = registry(&host);
     let mut themes = Themes::load(None);
@@ -822,7 +822,7 @@ fn settings_renders_what_the_bundled_plugins_declare() {
 #[test]
 fn a_setting_declared_by_an_unknown_plugin_is_editable_without_touching_settings() {
     let dir = tempfile::tempdir().expect("temp dir");
-    let _guard = thurbox::paths::TestPathGuard::new(dir.path());
+    let _guard = talos::paths::TestPathGuard::new(dir.path());
     // Loaded, like the loop's own: writing `ui.json` back is a capability of a
     // registry that read it (`registry::Origin`), and persistence is the half of
     // this test that matters.
@@ -867,7 +867,7 @@ fn a_setting_declared_by_an_unknown_plugin_is_editable_without_touching_settings
     assert_eq!(registry.settings()[0].value, Value::Bool(true));
     // Written through the registry, so it is persisted where every other
     // override lives.
-    let overrides = thurbox::paths::config_file()
+    let overrides = talos::paths::config_file()
         .and_then(|config| config.parent().map(|dir| dir.join("ui.json")))
         .expect("a config directory");
     assert!(
@@ -1131,7 +1131,7 @@ fn clicking_reset_all_resets_every_override() {
     // v1 spells this button `Shift+D`, and the click has to go through that
     // key — otherwise the pill and the letter could drift apart.
     let dir = tempfile::tempdir().expect("temp dir");
-    let _guard = thurbox::paths::TestPathGuard::new(dir.path());
+    let _guard = talos::paths::TestPathGuard::new(dir.path());
     let host = host();
     let mut registry = registry(&host);
     let mut themes = Themes::load(None);
@@ -1309,19 +1309,19 @@ fn help_and_settings_page_and_jump_through_their_rows() {
     // Both are lists long enough to scroll, so they take v1's list keys. The
     // observable is what `d` reports resetting: it names the selected row.
     let dir = tempfile::tempdir().expect("temp dir");
-    let _guard = thurbox::paths::TestPathGuard::new(dir.path());
+    let _guard = talos::paths::TestPathGuard::new(dir.path());
     let host = host();
     let mut registry = registry(&host);
     // Paging needs more rows than a screen, and the bundled set declares one
     // setting. These stand in for the panes that used to contribute the rest —
     // the modal's job is to page whatever it is given, not to have a long list.
-    let extra: Vec<thurbox::kernel::registry::Setting> = (0..40)
-        .map(|n| thurbox::kernel::registry::Setting {
+    let extra: Vec<talos::kernel::registry::Setting> = (0..40)
+        .map(|n| talos::kernel::registry::Setting {
             plugin: "probe".to_string(),
             id: format!("flag_{n:02}"),
             description: format!("a stand-in setting ({n})"),
-            default: thurbox::kernel::registry::Value::Bool(true),
-            value: thurbox::kernel::registry::Value::Bool(true),
+            default: talos::kernel::registry::Value::Bool(true),
+            value: talos::kernel::registry::Value::Bool(true),
         })
         .collect();
     // `declare` REPLACES both lists, so the bundled declarations are re-passed

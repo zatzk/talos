@@ -11,13 +11,13 @@
 #
 # The "agent" is a stand-in declared in the sandbox's own agents.toml — a shell
 # loop that answers each prompt with a long lorem-ipsum transcript — because
-# thurbox is agent-neutral and the point is the terminal's scrollback, not any
+# talos is agent-neutral and the point is the terminal's scrollback, not any
 # one CLI. Filler, not real-looking output: the recording reads as a working
 # session without showing anything real, and it is long enough (~200 lines a
 # reply, on a ~36-row pane) that the prompt has genuinely scrolled away. The
 # filler never contains the words searched for, so every hit is the prompt.
 #
-# The theme is pinned, not inherited: thurbox's shipped `default` preset
+# The theme is pinned, not inherited: talos's shipped `default` preset
 # (DEMO_THEME), written to metadata.active_theme the way scripts/demo/record.sh
 # pins its own. That preset draws in the terminal's ANSI colours on its native
 # background, so agg's terminal palette is pinned too (AGG_THEME), or a re-run
@@ -26,7 +26,7 @@
 # Fully hermetic (tbx_sandbox_init_full): its own HOME, XDG dirs and tmux
 # socket, all removed on exit.
 #
-# Needs: a built thurbox + thurbox-cli (target/debug, `just build`), tmux,
+# Needs: a built talos + talos-cli (target/debug, `just build`), tmux,
 # git, asciinema 2.x and agg on PATH. FONT_DIR/FONT_FAMILY pass through to agg.
 # SNAP=<dir> saves what the screen held at each step, which is how a missed key
 # is told apart from a key that landed somewhere unexpected.
@@ -46,7 +46,7 @@ missing=
 for tool in asciinema agg tmux git sqlite3; do
     command -v "$tool" >/dev/null || missing="$missing $tool"
 done
-for bin in thurbox thurbox-cli; do
+for bin in talos talos-cli; do
     [ -x "$ROOT/target/debug/$bin" ] || missing="$missing target/debug/$bin"
 done
 [ -n "$missing" ] && { echo "missing:$missing (run: just build)" >&2; exit 2; }
@@ -57,7 +57,7 @@ export TBX_REPO_ROOT="$ROOT"
 source "$ROOT/scripts/dev/lib/sandbox-env.sh"
 tbx_sandbox_init_full fresh
 S="$TBX_SANDBOX_ROOT"
-TM="tmux -L thurbox-search-demo"
+TM="tmux -L talos-search-demo"
 cleanup() {
     $TM kill-server 2>/dev/null || true
     tbx_sandbox_teardown
@@ -65,7 +65,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # --- the world: one repository, three sessions running the stand-in agent ----
-CONFIG="$XDG_CONFIG_HOME/thurbox-dev"
+CONFIG="$XDG_CONFIG_HOME/talos-dev"
 mkdir -p "$CONFIG" "$S/bin"
 printf '[features]\nautomations = false\nversion_check = false\nauto_update = false\n' \
     >"$CONFIG/settings.toml"
@@ -99,7 +99,7 @@ filler() { # filler <paragraphs> <seed>
         }
     }'
 }
-# Speak only once thurbox has attached and sized the pane: text printed at the
+# Speak only once talos has attached and sized the pane: text printed at the
 # window's birth width is re-wrapped on the resize and reads as spliced rows.
 birth=$(stty size 2>/dev/null)
 waited=0
@@ -129,16 +129,16 @@ git -C "$REPO" init -q -b main
 git -C "$REPO" -c user.name=demo -c user.email=demo@example.invalid \
     commit -q --allow-empty -m init
 for name in login-fix api-refactor docs-pass; do
-    thurbox-cli session create --name "$name" --repo-path "$REPO" --agent demo >/dev/null
+    talos-cli session create --name "$name" --repo-path "$REPO" --agent demo >/dev/null
 done
-thurbox-cli config accept-interface >/dev/null
+talos-cli config accept-interface >/dev/null
 
-# Pin the theme (see the header), then read it back through thurbox itself so a
+# Pin the theme (see the header), then read it back through talos itself so a
 # schema change fails here rather than recording the fallback silently.
-DB="$XDG_DATA_HOME/thurbox-dev/thurbox.db"
+DB="$XDG_DATA_HOME/talos-dev/talos.db"
 sqlite3 "$DB" "INSERT INTO metadata (key, value) VALUES ('active_theme', '$DEMO_THEME') \
     ON CONFLICT(key) DO UPDATE SET value = excluded.value"
-thurbox-cli config show --json | grep -q "\"theme\": *\"$DEMO_THEME\"" || {
+talos-cli config show --json | grep -q "\"theme\": *\"$DEMO_THEME\"" || {
     echo "the theme did not take: expected $DEMO_THEME" >&2
     exit 1
 }
@@ -148,7 +148,7 @@ CAST="$S/search.cast"
 cat >"$S/run.sh" <<RUN
 #!/usr/bin/env bash
 cd "$S"
-exec thurbox
+exec talos
 RUN
 chmod +x "$S/run.sh"
 $TM new-session -d -x "$COLS" -y "$ROWS" \

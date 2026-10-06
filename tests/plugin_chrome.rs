@@ -15,9 +15,9 @@
 //! pinned here is the vocabulary, and that a mistake in it is refused rather
 //! than swallowed.
 
-use thurbox::kernel::bands::Level;
-use thurbox::kernel::command::Command;
-use thurbox::kernel::host::{KeyPress, LuaHost, RenderContext};
+use talos::kernel::bands::Level;
+use talos::kernel::command::Command;
+use talos::kernel::host::{KeyPress, LuaHost, RenderContext};
 
 /// An interface of exactly the bundled `lib/` plus the panes given, so a test
 /// pane may `require` the component layer without the bundled panes' snapshot
@@ -25,7 +25,7 @@ use thurbox::kernel::host::{KeyPress, LuaHost, RenderContext};
 fn interface(plugins: &[(&str, &str)]) -> (tempfile::TempDir, std::path::PathBuf) {
     let home = tempfile::tempdir().expect("tempdir");
     let ui = home.path().join("ui");
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
     for (name, source) in plugins {
         std::fs::write(ui.join("plugins").join(name), source).expect("write");
     }

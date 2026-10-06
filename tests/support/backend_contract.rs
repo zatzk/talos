@@ -10,8 +10,8 @@
 
 use std::collections::HashMap;
 
-use thurbox::backend::identity::{Located, WindowIndex};
-use thurbox::backend::{Key, Owner, Placed, SessionBackend, WindowRole, WindowSpec};
+use talos::backend::identity::{Located, WindowIndex};
+use talos::backend::{Key, Owner, Placed, SessionBackend, WindowRole, WindowSpec};
 
 /// Three rows, as their stamps. Uuid-shaped, as a real row's are.
 const OWNER_A: &str = "00000000-0000-4000-8000-00000000000a";
@@ -19,7 +19,7 @@ const OWNER_B: &str = "00000000-0000-4000-8000-00000000000b";
 const OWNER_C: &str = "00000000-0000-4000-8000-00000000000c";
 const OWNER_D: &str = "00000000-0000-4000-8000-00000000000d";
 
-/// Run the contract against `backend`, which must hold no thurbox window
+/// Run the contract against `backend`, which must hold no talos window
 /// named after `contract` when called.
 pub fn suite(backend: &dyn SessionBackend) {
     backend.ensure_ready().expect("the backend readies");
@@ -114,7 +114,7 @@ pub fn lifecycle(backend: &dyn SessionBackend) {
         env: &env,
     };
 
-    // Created stamped for its owner, and named by thurbox's convention.
+    // Created stamped for its owner, and named by talos's convention.
     let pane = backend.create_window(&spec(owner)).expect("create_window");
     let listed = backend.discover().expect("discover");
     let window = listed
@@ -242,7 +242,7 @@ pub fn pane_io(backend: &dyn SessionBackend) {
     backend.kill(&pane).expect("kill");
     assert_eq!(
         backend.pane_state(&pane).unwrap_or_default(),
-        thurbox::backend::PaneState::default(),
+        talos::backend::PaneState::default(),
         "a gone pane's state is no answer"
     );
     assert!(

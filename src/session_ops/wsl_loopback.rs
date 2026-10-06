@@ -2,14 +2,14 @@
 //!
 //! Schema v47 only marks the repair as owed. It has to: what to rewrite is
 //! decided by the *registry* — which names a loopback entry can have written,
-//! and which of those a host thurbox still serves claims — and `storage` may
+//! and which of those a host talos still serves claims — and `storage` may
 //! not read `hosts.toml` or run `wsl.exe`. This is the layer
 //! that sees both, so this is where the two halves meet: the plan from
 //! [`crate::agent::host_config::wsl_repair_plan`], the SQL from
 //! [`crate::storage::Database::apply_wsl_repair_plan`].
 //!
 //! Driven from **every** startup that opens the database — the TUI boot and
-//! the `thurbox-cli` entrypoint — because the mark is written by any binary
+//! the `talos-cli` entrypoint — because the mark is written by any binary
 //! that opens it, and a headless-driven install need never launch the
 //! interface. Until it runs, a mislabelled row reads as remote: a reap sweep
 //! refuses to kill windows it believes are on another machine, and leaks them.
@@ -79,7 +79,7 @@ pub fn repair_wsl_loopback_rows(db: &Database) -> Vec<String> {
         Ok((0, 0)) => {}
         Ok((sessions, bookmarks)) => notices.push(format!(
             "{sessions} session(s) and {bookmarks} repo bookmark(s) recorded on {} were \
-             left as they are, for good: a host thurbox serves registers under that \
+             left as they are, for good: a host talos serves registers under that \
              name, so a local session an older release mislabelled there cannot be told \
              from one of that host's own, and guessing either way would operate on the \
              wrong machine",
@@ -90,7 +90,7 @@ pub fn repair_wsl_loopback_rows(db: &Database) -> Vec<String> {
     if report.sessions_local > 0 || report.bookmarks_local > 0 {
         notices.push(format!(
             "{} session(s) and {} repo bookmark(s) were recorded on the WSL distro \
-             thurbox runs in, which is this machine; restored them as local",
+             talos runs in, which is this machine; restored them as local",
             report.sessions_local, report.bookmarks_local
         ));
     }
@@ -398,7 +398,7 @@ mod tests {
 
             assert!(repair_wsl_loopback_rows(&rig.db).is_empty());
 
-            // A Windows (or plain Linux) thurbox driving that distro is the
+            // A Windows (or plain Linux) talos driving that distro is the
             // case the repair must not touch.
             assert_eq!(backend(&rig.db, "a"), "wsl:MagicDebian");
             assert_eq!(bookmark_hosts(&rig.db), ["wsl:MagicDebian"]);

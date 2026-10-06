@@ -34,7 +34,7 @@ pub struct SessionMessage {
     /// Sender session, when known. `None` for messages enqueued without a
     /// source (e.g. a manual CLI `message send` with no `--from`).
     pub from_session_id: Option<SessionId>,
-    /// Originating task id, when the sender is acting on a thurbox task.
+    /// Originating task id, when the sender is acting on a talos task.
     pub from_task_id: Option<i64>,
     /// Free-form short discriminant chosen by the sender (validated for length,
     /// not against a fixed set — any consumer can define its own kinds).

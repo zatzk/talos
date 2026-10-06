@@ -41,12 +41,12 @@ pub const GONE: [(&str, &str, &str); 6] = [
     ("code review", "Ctrl+X / F7", ""),
     ("file viewer", "Ctrl+E / F3", ""),
     ("info panel", "Ctrl+B / F2", ""),
-    ("tasks panel", "Ctrl+W / F5", "thurbox-cli task"),
-    ("automations pane", "Ctrl+P", "thurbox-cli automation"),
-    ("restore list", "Ctrl+U", "thurbox-cli session restore"),
+    ("tasks panel", "Ctrl+W / F5", "talos-cli task"),
+    ("automations pane", "Ctrl+P", "talos-cli automation"),
+    ("restore list", "Ctrl+U", "talos-cli session restore"),
 ];
 
-/// thurbox's mark, as `scripts/install.sh` prints it. Shared shape on purpose:
+/// talos's mark, as `scripts/install.sh` prints it. Shared shape on purpose:
 /// this screen and the installer are the two places a person meets the project
 /// outside the interface itself.
 const BANNER: [&str; 6] = [
@@ -167,7 +167,7 @@ pub enum Decision {
 /// Whether this profile has to be asked.
 ///
 /// Two conditions, and the second is what keeps a fresh install quiet: there is
-/// no v1 to warn somebody about who has never run thurbox before.
+/// no v1 to warn somebody about who has never run talos before.
 pub fn required(db: &Database) -> bool {
     if db.v2_acknowledged().unwrap_or(false) {
         return false;
@@ -181,7 +181,7 @@ pub fn required(db: &Database) -> bool {
 /// dropped surfaces as a glyph-led table, and one reassurance line. The glyphs are
 /// the interface's own — `✗` for a surface with nowhere to go and `→` for one that
 /// moved, in the same theme roles the session list paints status with, so somebody
-/// who has used thurbox recognises the vocabulary before reading a word.
+/// who has used talos recognises the vocabulary before reading a word.
 pub fn notice(version: &str, skin: &Skin) -> String {
     let (a, b, m, t) = (&skin.accent, &skin.bright, &skin.muted, &skin.text);
     let (gone, moved, safe) = (&skin.gone, &skin.moved, &skin.safe);
@@ -197,7 +197,7 @@ pub fn notice(version: &str, skin: &Skin) -> String {
     ));
 
     let rule = "─".repeat(WIDTH - 2);
-    let heading = format!("thurbox {version} — a new interface");
+    let heading = format!("talos {version} — a new interface");
     out.push_str(&format!("  {a}╭{rule}╮{r}\n"));
     out.push_str(&format!(
         "  {a}│{r} {t}{bold}{heading}{r}{pad} {a}│{r}\n",
@@ -254,7 +254,7 @@ pub fn notice(version: &str, skin: &Skin) -> String {
 /// prefix binds to `curl`, not to the `sh` reading from it. That is the reason,
 /// not something the prompt explains -- a person at a gate wants the command.
 /// On Windows that command is unrunnable, so the PowerShell installer is printed
-/// there instead, with the same pin expressed as `$env:THURBOX_VERSION`.
+/// there instead, with the same pin expressed as `$env:TALOS_VERSION`.
 pub fn downgrade_instructions(last_v1: &str, skin: &Skin) -> String {
     downgrade_screen(last_v1, cfg!(windows), skin)
 }
@@ -269,21 +269,21 @@ fn downgrade_screen(last_v1: &str, windows: bool, skin: &Skin) -> String {
     let (safe, bold, r) = (&skin.safe, &skin.bold, &skin.reset);
     let install = if windows {
         format!(
-            "\x20     {a}{bold}$env:THURBOX_VERSION = '{last_v1}'{r}\n\
-             \x20     {a}{bold}irm https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/install.ps1 | iex{r}\n"
+            "\x20     {a}{bold}$env:TALOS_VERSION = '{last_v1}'{r}\n\
+             \x20     {a}{bold}irm https://raw.githubusercontent.com/zatzk/talos/main/scripts/install.ps1 | iex{r}\n"
         )
     } else {
         format!(
             "\x20     {a}{bold}export VERSION={last_v1}{r}\n\
-             \x20     {a}{bold}curl -fsSL https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/install.sh | sh{r}\n"
+             \x20     {a}{bold}curl -fsSL https://raw.githubusercontent.com/zatzk/talos/main/scripts/install.sh | sh{r}\n"
         )
     };
     format!(
         "\n  {safe}●{r} {t}Staying on v1. Auto-update is off, so nothing moves you again.{r}\n\n\
          \x20   {m}Reinstall it with:{r}\n\n\
          {install}\n\
-         \x20   {m}Newer 1.x patches   {r}{t}https://github.com/Thurbeen/thurbox/releases{r}\n\
-         \x20   {m}Change your mind    {r}{t}run thurbox again and answer yes{r}\n\n"
+         \x20   {m}Newer 1.x patches   {r}{t}https://github.com/zatzk/talos/releases{r}\n\
+         \x20   {m}Change your mind    {r}{t}run talos again and answer yes{r}\n\n"
     )
 }
 
@@ -306,12 +306,12 @@ pub fn consent_gate(db: &Database) -> std::io::Result<Decision> {
     // Nobody to ask. A script, a CI job, a provisioning run or a recording harness
     // launched this, and blocking on a keypress there is not consent -- it is a
     // hang, and `read()` on a closed stdin failed the launch outright with a raw
-    // OS error. Continue, because whoever ran this wanted thurbox, and do NOT
+    // OS error. Continue, because whoever ran this wanted talos, and do NOT
     // record the answer: the next interactive launch still asks a person.
     if !std::io::IsTerminal::is_terminal(&std::io::stdin()) {
         tracing::info!(
             "not a terminal: continuing to the v2 interface without asking. \
-             Run `thurbox-cli config accept-interface` to stop asking."
+             Run `talos-cli config accept-interface` to stop asking."
         );
         return Ok(Decision::Continue);
     }
@@ -322,7 +322,7 @@ pub fn consent_gate(db: &Database) -> std::io::Result<Decision> {
     let themes = crate::kernel::theme::Themes::load(Some(db));
     let skin = Skin::detect(&themes.active().palette);
 
-    let decision = ask(env!("THURBOX_VERSION"), &skin)?;
+    let decision = ask(env!("TALOS_VERSION"), &skin)?;
     match decision {
         Decision::Continue => {
             // Recorded even if it fails to persist, in the sense that a failed
@@ -383,11 +383,11 @@ fn set_auto_update(on: bool) -> Result<bool, String> {
 /// The gate's two branches were asymmetric: declining turned auto-update off to
 /// protect a downgrade, and accepting never turned it back on. Someone who
 /// declined once and later accepted stayed pinned to whatever version they had,
-/// with no sign of why — `thurbox-cli update` just reported itself disabled.
+/// with no sign of why — `talos-cli update` just reported itself disabled.
 ///
 /// The marker is what makes this safe to do silently. Re-enabling on every
 /// accept would overturn an `auto_update = false` the user set themselves,
-/// which is a setting thurbox has no business overriding; re-enabling only when
+/// which is a setting talos has no business overriding; re-enabling only when
 /// the gate wrote that `false` restores the state the user actually left.
 ///
 /// Best-effort and quiet: this runs a breath before the interface takes the
@@ -589,7 +589,7 @@ mod tests {
 
         let windows = downgrade_screen("v1.8.6", true, &Skin::plain());
         assert!(
-            windows.contains("$env:THURBOX_VERSION = 'v1.8.6'") && windows.contains("install.ps1"),
+            windows.contains("$env:TALOS_VERSION = 'v1.8.6'") && windows.contains("install.ps1"),
             "a Windows reader needs a command Windows can run: {windows}"
         );
 

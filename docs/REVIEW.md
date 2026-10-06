@@ -97,7 +97,7 @@ assertions stay out of the test suite (ADR-P5); the deterministic half is
 asserted on counters and change-signals instead, in tests/kernel_frame_cost.rs
 and tests/kernel_perf.rs.
 
-A newly published thurbox.* field also goes into thurbox.yml at the repo root:
+A newly published talos.* field also goes into talos.yml at the repo root:
 it is selene's standard library for the Lua tree, so a field LuaHost::publish
 adds but it does not declare is a lint error in every plugin that uses it. The
 change originates here, in a diff that need not touch ui/ at all.
@@ -131,8 +131,8 @@ unreachable code left behind.
 
 This is the Lua interface running on the Rust kernel, and the plugin sandbox is
 enforced by absence: os, io, debug, package, print and the loaders are not in
-the environment. thurbox.yml is selene's standard library for this tree and
-must stay in step with LuaHost::publish, so a newly published thurbox field is
+the environment. talos.yml is selene's standard library for this tree and
+must stay in step with LuaHost::publish, so a newly published talos field is
 added there too.
 
 There are four node kinds - text, box, input, surface - and everything else
@@ -165,7 +165,7 @@ unreachable code left behind.
 Example panes that install by bare name. The same plugin sandbox as ui/
 applies: no os, io, debug, package or print, four node kinds only,
 snapshot-read and command-write, and theme roles rather than colours. These are
-examples to read and copy from, not a catalogue thurbox maintains for anyone.
+examples to read and copy from, not a catalogue talos maintains for anyone.
 
 Hold them to the same structure and coherence rubric as ui/, and more strictly
 for being examples: intention-revealing names, one thing per function, no
@@ -205,8 +205,8 @@ zero.
 
 Runs the real binary under load and reports CPU. Its failures are plausible
 numbers rather than errors, so read it for the two it already guards: it must
-identify its OWN process (a developer's running thurbox answers to `pgrep -x
-thurbox` first, and every configuration then reports that instance's CPU), and
+identify its OWN process (a developer's running talos answers to `pgrep -x
+talos` first, and every configuration then reports that instance's CPU), and
 the TUI must start before any session exists, or the v1->v2 consent gate waits
 for a keypress and the run reports 0%.
 
@@ -258,7 +258,7 @@ block below.
 
 Worked example panes, not prose: selene and stylua cover them under `just
 lint`, and examples/lua/plugin.lua is embedded in the binary as what
-`thurbox-cli plugin new` writes, so a break here ships a starter that does not
+`talos-cli plugin new` writes, so a break here ships a starter that does not
 load. Read them the more carefully for it - the Lua type check runs against ui/
 only, so a type error here reaches neither linter. The same plugin sandbox as
 ui/ applies: no os, io, debug, package or print, four node kinds only,
@@ -304,7 +304,7 @@ install.ps1 is PowerShell 5.1+ and its source must stay ASCII-only, because
 that is what survives `irm | iex` decoding on Windows PowerShell 5.1.
 Write-Host for UI output is intentional and not a lint to fix - Write-Output
 would leak into the iex pipeline - and the pure helpers are guarded by
-$env:THURBOX_PS_TEST so the file can be dot-sourced for testing without running
+$env:TALOS_PS_TEST so the file can be dot-sourced for testing without running
 the installer.
 
 Both are tested, and a change to either should move its suite: install.bats
@@ -324,7 +324,7 @@ decisions and their ADR-PNN anchors, and a performance ADR records the
 measurement that produced it - the harness invocation, the terminal size, the
 session count and a paired before/after - so the number can be reproduced
 rather than remembered. docs/FEATURES.md owns feature-level design choices.
-docs/CONFIG.md owns thurbox's own configuration - every config file,
+docs/CONFIG.md owns talos's own configuration - every config file,
 environment variable and database setting it reads - while CONTRIBUTING.md owns
 the contribution process itself (how to propose a change, commit conventions,
 staging discipline, the review gate) and the configuration of external tooling
@@ -338,7 +338,7 @@ authoring. docs/DEVELOPMENT.md owns the dev environment and the runtime
 sandbox - CONTRIBUTING.md deliberately defers to it rather than restating it,
 so dev-setup facts stay there. docs/RELEASING.md owns the release process and
 docs/ORCHESTRATION.md the control-plane pattern. docs/BENCHMARK-MULTIPLEXERS.md
-owns how thurbox compares with raw tmux and Herdr as a host for agent sessions,
+owns how talos compares with raw tmux and Herdr as a host for agent sessions,
 and the method of the harness under scripts/bench/ that measures it. packaging/README.md owns the
 packaging overview and scripts/dev/README.md the dev-scripts index. README.md
 owns the introduction.
@@ -347,10 +347,10 @@ AGENTS.md is the agent-facing index into those owners: it carries pointers and
 the operating guidance a coding agent needs on every turn, and a code change
 that invalidates or extends a documented decision updates the owning doc in the
 same change. The per-subsystem working reference lives in the skills under
-.agents/skills/ (thurbox-testing, thurbox-performance, thurbox-release,
-thurbox-agents, thurbox-remote-hosts, thurbox-cli, thurbox-extensions,
-thurbox-session-status, thurbox-kernel, thurbox-ui-surfaces,
-thurbox-demo-media), which AGENTS.md indexes: detail an agent needs only when
+.agents/skills/ (talos-testing, talos-performance, talos-release,
+talos-agents, talos-remote-hosts, talos-cli, talos-extensions,
+talos-session-status, talos-kernel, talos-ui-surfaces,
+talos-demo-media), which AGENTS.md indexes: detail an agent needs only when
 working on that subsystem belongs in its skill rather than back in AGENTS.md,
 and a change that invalidates one updates it in the same change. A skill is a
 working reference, not an owner - the docs above still own the rationale.

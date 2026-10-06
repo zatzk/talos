@@ -11,13 +11,13 @@ use ratatui::backend::TestBackend;
 use ratatui::buffer::Buffer;
 use ratatui::Terminal;
 
-use thurbox::kernel::host::{Click, KeyPress, LuaHost, Published, RenderContext, Scroll};
-use thurbox::kernel::node::{ClickVerb, Node, SurfaceSource};
-use thurbox::kernel::paint::{render, render_recording, Hit, PlaceholderSurfaces};
-use thurbox::kernel::registry::Registry;
-use thurbox::kernel::snapshot::{SessionRow, Snapshot};
-use thurbox::kernel::theme::Themes;
-use thurbox::session::SessionState;
+use talos::kernel::host::{Click, KeyPress, LuaHost, Published, RenderContext, Scroll};
+use talos::kernel::node::{ClickVerb, Node, SurfaceSource};
+use talos::kernel::paint::{render, render_recording, Hit, PlaceholderSurfaces};
+use talos::kernel::registry::Registry;
+use talos::kernel::snapshot::{SessionRow, Snapshot};
+use talos::kernel::theme::Themes;
+use talos::session::SessionState;
 
 /// The plugin under test. It keeps its `agent` name: the name is what
 /// `command("focus", …)`, the footer's focus label and the tests below spell,
@@ -38,8 +38,8 @@ fn row(name: &str) -> SessionRow {
         agent: "claude".into(),
         status: SessionState::Idle,
         cwd: None,
-        repo: Some("thurbox".into()),
-        repos: vec!["thurbox".into()],
+        repo: Some("talos".into()),
+        repos: vec!["talos".into()],
         branch: Some(format!("feat/{name}")),
         base_branch: None,
         backend: "local-tmux".into(),
@@ -76,10 +76,10 @@ fn registry(host: &LuaHost) -> Registry {
 fn publish(host: &LuaHost) {
     let themes = Themes::load(None);
     let registry = registry(host);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     host.publish(&Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot: &sample(),
         attach_errors: &Default::default(),
         inflight: &[],
@@ -256,7 +256,7 @@ fn the_shell_view_names_itself_to_the_focus_badge() {
         "the agent tab names the session plainly: {agent_surface}"
     );
     assert_eq!(
-        thurbox::kernel::bands::focus_label(Some(&agent_surface), TERMINAL),
+        talos::kernel::bands::focus_label(Some(&agent_surface), TERMINAL),
         "Agent"
     );
 
@@ -270,7 +270,7 @@ fn the_shell_view_names_itself_to_the_focus_badge() {
         "the shell tab names its own view: {shell_surface}"
     );
     assert_eq!(
-        thurbox::kernel::bands::focus_label(Some(&shell_surface), TERMINAL),
+        talos::kernel::bands::focus_label(Some(&shell_surface), TERMINAL),
         "Shell",
         "switching to the shell must change the badge"
     );

@@ -3,9 +3,9 @@
 -- v1's `Ctrl+U` modal (`RestoreSessionsModal`), with v1's division of labour
 -- kept intact: `Ctrl+Z` in the session list undoes the delete YOU just did,
 -- while this one lists every row the database still holds — including ones
--- another instance deleted, and ones deleted before thurbox was last restarted.
+-- another instance deleted, and ones deleted before talos was last restarted.
 --
--- It knows nothing about how a restore works. `thurbox.deleted` is the read and
+-- It knows nothing about how a restore works. `talos.deleted` is the read and
 -- `restore` is the command; whether a row's worktrees can be reattached is the
 -- kernel's problem, and whether a force-deleted one SHOULD be is a question put
 -- through `store.confirm` — the same confirmation the session list uses for a
@@ -36,7 +36,7 @@ end
 local LIST_MAX = 10
 
 local function deleted()
-  return (thurbox and thurbox.deleted) or {}
+  return (talos and talos.deleted) or {}
 end
 
 --- The name this float's cursor keeps its state under.
@@ -49,7 +49,7 @@ end
 local function close()
   state.open = nil
   -- The list opens at the top rather than wherever it was left: rows leave
-  -- `thurbox.deleted` as they are restored, so a remembered cursor outlives the
+  -- `talos.deleted` as they are restored, so a remembered cursor outlives the
   -- row it pointed at.
   ui.reset(CURSOR)
 end
@@ -141,11 +141,11 @@ return {
   slot = "float",
   order = 80,
   floats = true,
-  -- This render reads `thurbox.deleted`, `state` and the theme and writes
+  -- This render reads `talos.deleted`, `state` and the theme and writes
   -- nothing, so the kernel may reuse the tree — and floats render every frame
   -- even while closed, so without this the closed state costs a Lua call per
   -- frame forever. `state.open` and the cursor's own writes bump the state
-  -- version, which is part of the cache key, and `thurbox.deleted` rides the
+  -- version, which is part of the cache key, and `talos.deleted` rides the
   -- snapshot version, so opening and refreshing stay on the very next frame.
   pure = true,
   -- Never a tab stop: it is up only while it is open, and it takes every key
@@ -255,7 +255,7 @@ return {
         return true
       end
       -- Closed BEFORE the command is issued: the restored row leaves
-      -- `thurbox.deleted` a snapshot later, and a list left up meanwhile would
+      -- `talos.deleted` a snapshot later, and a list left up meanwhile would
       -- invite a second Enter on a row that is already coming back.
       close()
       if entry.restore_refusal then

@@ -3,9 +3,9 @@
 -- NOT bundled. It REPLACES the shipped arrangement, so back that one up first —
 -- or just delete yours afterwards and the Interface tab will restore it:
 --
---     cp examples/lua/layout.lua   ~/.config/thurbox/ui/layout.lua
---     cp examples/panes/tasks/tasks.lua ~/.config/thurbox/ui/plugins/80_tasks.lua
---     cp examples/panes/top/top.lua     ~/.config/thurbox/ui/plugins/85_top.lua
+--     cp examples/lua/layout.lua   ~/.config/talos/ui/layout.lua
+--     cp examples/panes/tasks/tasks.lua ~/.config/talos/ui/plugins/80_tasks.lua
+--     cp examples/panes/top/top.lua     ~/.config/talos/ui/plugins/85_top.lua
 --
 -- Then `F10`, and trust the `top` plugin (settings → Interface → `t`) so it may run
 -- a program.
@@ -46,7 +46,7 @@ local FOOTER_MIN_ROWS = 4
 local SEARCH_ROWS = 12
 
 local function status_rows()
-  return (thurbox and thurbox.chrome and thurbox.chrome.status_rows) or 0
+  return (talos and talos.chrome and talos.chrome.status_rows) or 0
 end
 
 --- Will a loaded plugin actually paint into `slot`?

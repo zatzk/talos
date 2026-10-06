@@ -3,10 +3,10 @@
 The exact configuration and runtime behavior of every **built-in** coding
 agent, plus the checklist for **adding a new one**.
 
-Thurbox is agent-neutral: it knows nothing about a coding agent's model,
+Talos is agent-neutral: it knows nothing about a coding agent's model,
 prompts, permissions, or tools — only how to launch the CLI and how that CLI
 resumes, forks, and reports status. Every agent is **data**, not code. The
-built-ins are just the entries thurbox ships pre-seeded; a user adds their own
+built-ins are just the entries talos ships pre-seeded; a user adds their own
 by editing `agents.toml` (see [CONFIG.md](CONFIG.md#agentstoml) for the file
 format). This document is the single source of truth for **what each built-in's
 data actually is and why**, and it exists because adding a new built-in touches
@@ -20,7 +20,7 @@ Related docs:
 - [FEATURES.md → Agent definitions](FEATURES.md#agent-definitions) — the
   agents-as-data design.
 - [ARCHITECTURE.md](ARCHITECTURE.md) — the `session::AgentDef` purity rule.
-- `../.agents/skills/thurbox-agents/` → *Agent Definitions* — the in-repo
+- `../.agents/skills/talos-agents/` → *Agent Definitions* — the in-repo
   working reference.
 
 ## Where the built-ins live
@@ -29,7 +29,7 @@ The built-in registry is **not** hand-constructed in Rust. It is an embedded
 TOML document, `BUILTIN_AGENTS_TOML`, in
 [`src/agent/agent_config.rs`](../src/agent/agent_config.rs). `builtin_registry()`
 parses that string, and `seed_agents_toml()` writes it verbatim to
-`~/.config/thurbox/agents.toml` on first run. So the same text is both the
+`~/.config/talos/agents.toml` on first run. So the same text is both the
 in-binary fallback and the seed the user then edits — keep it authoritative.
 
 Status hooks (working / blocked / done) are wired **separately** by the built-in
@@ -53,14 +53,14 @@ Ten entries ship pre-seeded — nine coding agents and a plain shell.
 | `copilot` | `copilot` | `--continue` | — (none) | id-less (`resume_latest`) | `external_files` → `~/.copilot/hooks/` |
 | `vibe` | `vibe` | — (starts fresh) | — (none) | none | `external_files` → `~/.vibe/hooks.toml` |
 | `pi` | `pi` | `--session-id {id}` | `--fork {id}` | **pinned** (`--session-id {id}`) | `external_files` → `~/.pi/agent/extensions/` |
-| `omp` | `omp` | `--resume {home}/.omp/…/thurbox-{id}.jsonl` | — (none) | **path-pinned** (`--session <file>`) | `external_files` → `~/.omp/agent/extensions/` |
+| `omp` | `omp` | `--resume {home}/.omp/…/talos-{id}.jsonl` | — (none) | **path-pinned** (`--session <file>`) | `external_files` → `~/.omp/agent/extensions/` |
 | `shell` | `bash -i` (`powershell -NoLogo` on Windows) | — (none) | — (none) | none | none (see below) |
 
 ### `shell` — the entry that is not a coding agent
 
 `shell` exists so a session can be something other than an agent: you run
 whatever you like in it, and an external driver can start its own tool with its
-own flags rather than asking thurbox to model them. It is the ready-made form of
+own flags rather than asking talos to model them. It is the ready-made form of
 `session create --command`, and the only built-in whose `command` differs by
 platform, because a native-Windows host runs psmux and PowerShell rather than
 tmux and bash.
@@ -78,30 +78,30 @@ silently starts fresh rather than attaching to anything (only a raw
 `--command` session refuses `--resume` outright; see
 [FEATURES.md](FEATURES.md#a-launch-recipe-is-not-a-conversation)). Nothing
 wires status hooks for it either, so a `shell` session reports `hook_state: null`
-until something in it calls `thurbox-cli session signal` — which anything in
+until something in it calls `talos-cli session signal` — which anything in
 the pane can, since
-`THURBOX_SESSION` is in its environment.
+`TALOS_SESSION` is in its environment.
 
 ### ID model: pinned vs. id-less
 
 This is the single most important behavioral distinction, because it decides
 whether resume/fork can target *this* session or only *the last* one.
 
-- **Pinned** (`claude`, `pi`) — the CLI accepts a thurbox-generated UUID at
+- **Pinned** (`claude`, `pi`) — the CLI accepts a talos-generated UUID at
   creation via `new_session_args = ["--session-id", "{id}"]`, so it can
   resume/fork **that exact session** by id. `resume_latest` stays `false`.
 - **Path-pinned** (`omp`) — the CLI generates its *own* internal session id and
-  can't accept thurbox's, but it takes a session **file path**. thurbox maps its
+  can't accept talos's, but it takes a session **file path**. talos maps its
   UUID to a deterministic JSONL under OMP's default root
-  (`--session {home}/.omp/agent/sessions/thurbox-{id}.jsonl` on create,
+  (`--session {home}/.omp/agent/sessions/talos-{id}.jsonl` on create,
   `--resume` on the same path to restore), so restart reattaches the exact
   session even though the id itself is opaque. The new `{home}` token is expanded
-  to the resolved home dir **at spawn time by thurbox** (args are POSIX-quoted, so
+  to the resolved home dir **at spawn time by talos** (args are POSIX-quoted, so
   a literal `~` would never expand), and it translates onto the remote/WSL home.
-  It has no `fork_args` (OMP can't pin a fork's target file to a thurbox UUID), so
+  It has no `fork_args` (OMP can't pin a fork's target file to a talos UUID), so
   `Ctrl+F` starts fresh.
 - **Hook-reported** (`codex`) — `SessionStart` reports Codex's actual
-  conversation UUID. Thurbox saves it beside the row's generated
+  conversation UUID. Talos saves it beside the row's generated
   `agent_session_id` and resumes or forks that exact UUID. Existing rows with no
   captured UUID open Codex's interactive `resume` picker on restart; selecting a
   conversation binds it through the hook. Forking an unbound row opens Codex's
@@ -135,7 +135,7 @@ resume; for `claude` it defers to an on-disk transcript check.
 
 Agents that declare no `fork_args` (`antigravity`, `aider`, `copilot`, `vibe`,
 `omp`) cannot fork — `Ctrl+F` starts a **fresh** session instead. None of those
-CLIs support forking a conversation to a thurbox-pinned target.
+CLIs support forking a conversation to a talos-pinned target.
 
 ### Status hook mechanisms
 
@@ -155,11 +155,11 @@ embedded hook assets live in
   command, reversibly.
   - `claude`: `--settings {home}/claude.json` (claude *merges* it with the user's
     own settings, never clobbering). Full lifecycle: idle/working/blocked/done.
-  - `aider`: `--notifications-command "thurbox-cli session signal --state
+  - `aider`: `--notifications-command "talos-cli session signal --state
     blocked"`. aider has only a "waiting for input" callback, so **blocked is the
     only state it can report**.
 - **`config_merges` (reversible deep-merge into a shared config file)** — for
-  agents whose hooks live in a file thurbox must not overwrite. JSON by default;
+  agents whose hooks live in a file talos must not overwrite. JSON by default;
   `format = "toml"` selects the TOML merge for an agent whose shared config is
   TOML (kimi). Either way the semantics match: objects/tables recurse, arrays
   union, a type conflict with the user's value is left alone, and uninstall
@@ -169,13 +169,13 @@ embedded hook assets live in
   stays broken, because the stale one is still there and still firing. How "ours"
   is decided is the same in both: an **ownership stamp** on each shipped entry.
   TOML carries it as a comment above the entry; JSON has no comments, so it goes
-  in the command itself, as a trailing `# managed by thurbox …` a shell ignores.
+  in the command itself, as a trailing `# managed by talos …` a shell ignores.
   Matching on the `session signal` command instead would delete a hook the user
   wired themselves — which `extensions/hooks/README.md` invites — and install
   runs at startup and on every heartbeat tick, so it would delete it again every
   time they put it back.
 
-  One exception, once: a file written before thurbox stamped what it merges
+  One exception, once: a file written before talos stamped what it merges
   (hooks < 1.11) has nothing to match but the command, so the first install to
   find an unstamped file sweeps our old entries out of the events the payload
   owns. Leaving them would leave their broken commands firing beside the fixed
@@ -214,13 +214,13 @@ embedded hook assets live in
 
     Codex may require a changed command hook to be reviewed. If the user
     continues without trusting it, Codex does not deliver the status events;
-    Thurbox leaves that security choice alone. When Thurbox can identify the
+    Talos leaves that security choice alone. When Talos can identify the
     session row receiving input that may submit a prompt (`session send`,
     `session key enter`, or a direct Enter in its terminal), it clears any
     older Codex hook report. The list then says `unreported`, and a live pane
     probe can say `running` (agent present, turn state unknown). A draft sent
-    with `--no-enter` does not clear the report. Without hook delivery, Thurbox
-    cannot detect when the turn ends or a prompt submitted outside Thurbox;
+    with `--no-enter` does not clear the report. Without hook delivery, Talos
+    cannot detect when the turn ends or a prompt submitted outside Talos;
     the coarse state can persist until a trusted hook reports again. A legacy
     unstamped window shared by namesake rows also has no safe row identity,
     so a name-only automation send cannot retire one row's report.
@@ -246,11 +246,11 @@ embedded hook assets live in
 - **`external_files` (drop a standalone managed file into the agent's config
   dir)** — refused if a non-managed file already exists there (the agent goes
   *unreported*, never *broken*).
-  - `opencode`: a plugin at `~/.config/opencode/plugin/thurbox-status.js`
+  - `opencode`: a plugin at `~/.config/opencode/plugin/talos-status.js`
     (idle/working/blocked/done). The only agent with a real permission-*reply*
     event, so `permission.replied`→working clears the block exactly when it
     ends rather than at the next tool boundary.
-  - `copilot`: `~/.copilot/hooks/thurbox-status.json`
+  - `copilot`: `~/.copilot/hooks/talos-status.json`
     (sessionStart→idle, userPromptSubmitted/preToolUse/postToolUse→working,
     agentStop→done, notification matched to `permission_prompt`→blocked). Ships
     both `bash` and `powershell` commands.
@@ -258,17 +258,17 @@ embedded hook assets live in
   - `vibe`: a managed `~/.vibe/hooks.toml` (pre_tool→working, post_agent→done;
     **no blocked** — vibe has no permission/notification hook). Verified against
     vibe 2.21.0.
-  - `pi`: a TypeScript extension at `~/.pi/agent/extensions/thurbox-status.ts`
+  - `pi`: a TypeScript extension at `~/.pi/agent/extensions/talos-status.ts`
     (session_start→idle, agent_start/tool_execution_start/tool_execution_end→
     working, agent_end→done; **blocked inferred only** from an
     `ask_user_question` tool call, cleared when that tool ends). *Experimental.*
-  - `grok` (xAI's Grok Build CLI): `~/.grok/hooks/thurbox-status.json` — grok
+  - `grok` (xAI's Grok Build CLI): `~/.grok/hooks/talos-status.json` — grok
     loads every `*.json` in that dir on its own, so a standalone drop never
     touches a hook file the user wrote. It is the **global** dir deliberately:
     global hooks are always trusted and load on first launch, while
     `<project>/.grok/hooks` additionally needs the folder granted trust in grok's
     own `~/.grok/trusted_folders.toml` (or a `--trust` launch flag, which would
-    only cover sessions thurbox itself launches). grok is Claude-Code-compatible,
+    only cover sessions talos itself launches). grok is Claude-Code-compatible,
     so the mapping mirrors claude: SessionStart→idle,
     UserPromptSubmit/PreToolUse/PostToolUse→working, Notification (its `message`
     matched to permission/approval)→blocked, Stop→done. Every command is
@@ -276,7 +276,7 @@ embedded hook assets live in
     grok silently refuse to load the whole hook file, so the blocked edge pipes
     the extracted message through `grep` instead of claude's `case` (a test pins
     it). *Experimental.*
-  - `omp`: a TypeScript extension at `~/.omp/agent/extensions/thurbox-status.ts`,
+  - `omp`: a TypeScript extension at `~/.omp/agent/extensions/talos-status.ts`,
     mirroring pi's but mapping OMP's structured user-question tool — named `ask`
     — to blocked (it recognizes both `ask` and pi's `ask_user_question`), cleared
     by tool_execution_end. Verified against OMP 17.0.6. *Experimental.*
@@ -285,7 +285,7 @@ Each `requires_dir` guard makes the drop a no-op when that agent isn't installed
 so a fresh install with only claude present doesn't scatter files for agents you
 don't have.
 
-**Deliberately uninstrumented.** Two agents have a hook surface thurbox cannot
+**Deliberately uninstrumented.** Two agents have a hook surface talos cannot
 reach with any of the three mechanisms, and are left out of the table so they
 keep reporting `uncovered` honestly rather than claiming a payload that never
 fires:
@@ -321,14 +321,14 @@ as `hook_coverage` / `hook_states_reportable` / `hook_delivery` /
 payloads by a test rather than maintained by hand beside them: **change a
 payload's events and that test fails until the table agrees.**
 
-`thurbox-cli session doctor [uuid]` is the runtime half — whether a given
+`talos-cli session doctor [uuid]` is the runtime half — whether a given
 session's payload is actually installed where its agent reads it, whether a hook
-command could resolve `thurbox-cli` at all, and whether what was last reported
+command could resolve `talos-cli` at all, and whether what was last reported
 is corroborated by the pane. A `--command` session is the one shape it does not
-judge: thurbox never had an agent there to wire, so it reports **no hooks
+judge: talos never had an agent there to wire, so it reports **no hooks
 expected** rather than broken wiring.
 
-**A pane can run an agent thurbox did not launch.** A `--command` session is
+**A pane can run an agent talos did not launch.** A `--command` session is
 named after the command's file stem, so a driver that opens a shell and starts
 `claude` inside it has no declared agent for the fields above to resolve
 against. When the pane probe has already named one, that name is used and
@@ -338,7 +338,7 @@ never about whether its hooks are wired. Undeclared and unprobed, it stays
 coverage `none` with `hook_blocked_is_heuristic: false`, which asserts the block
 signal is structured when it is claude's text match on a notification
 message. `session create --reports-as <agent>` and
-`thurbox-cli session reports-as <ref> <agent>` (`--clear` to take it back) let
+`talos-cli session reports-as <ref> <agent>` (`--clear` to take it back) let
 the driver name the agent that actually reports; it is stored on the row
 (`sessions.reports_as`, schema v44), survives restart, and changes nothing about
 the launch — `session restart` still replays the recorded command. Only an agent
@@ -346,9 +346,9 @@ in the table above (or a custom agent that asserts a family with `hook_schema`)
 may be declared: a name with no coverage would unlock nothing, silently.
 
 **On a shared host** (`hosts.toml` `share_sessions = true`, the default — see
-ADR-24) none of the remote rewriting applies: the host's own `thurbox-cli`
+ADR-24) none of the remote rewriting applies: the host's own `talos-cli`
 launches the agent with the host's own hooks extension, so each agent reports
-exactly as it does locally, into the host's database, which the remote thurbox
+exactly as it does locally, into the host's database, which the remote talos
 mirrors. That includes a **Windows (psmux) host**, whose remote path stays
 off (the psmux adapter reports no hook status channel, ADR-32) but is simply
 not used when the host has — or is provisioned with — a CLI.
@@ -383,7 +383,7 @@ automatically. Work the checklist top to bottom:
    the hook asset file under [`extensions/hooks/`](../extensions/hooks/). Pick the
    mechanism from [Status hook mechanisms](#status-hook-mechanisms):
    `agent_patches` if hooks are launch flags, `config_merges` if they live in a
-   shared config file thurbox must not clobber, `external_files` for a standalone
+   shared config file talos must not clobber, `external_files` for a standalone
    drop into the agent's own config dir. Register any new embedded asset with an
    `include_str!` in
    [`src/session_ops/builtin_hooks.rs`](../src/session_ops/builtin_hooks.rs), and
@@ -396,7 +396,7 @@ automatically. Work the checklist top to bottom:
    agree). Bump the hooks extension `version`. Skipping this step means the new
    agent launches fine but **never shows working/blocked/done**.
 
-   This step also stands **alone**: an agent thurbox ships no `[[agents]]` entry
+   This step also stands **alone**: an agent talos ships no `[[agents]]` entry
    for still gets its hooks installed into its own config dir, which is what
    makes `grok`/`kimi` report for a driver that launches them itself. Steps 1,
    3 and 4 are about launching an agent, not instrumenting one.
@@ -408,7 +408,7 @@ automatically. Work the checklist top to bottom:
      the "N built-ins" count.
    - [FEATURES.md → Agent definitions](FEATURES.md#agent-definitions) — the prose
      list and the pinned-id sentence.
-   - `../.agents/skills/thurbox-agents/` → *Agent Definitions* and
+   - `../.agents/skills/talos-agents/` → *Agent Definitions* and
      *Custom-agent status hooks* — the built-in lists and the resume/fork
      caveats.
 
@@ -434,5 +434,5 @@ automatically. Work the checklist top to bottom:
 - No agent picker change — the new-session picker reads the registry.
 - No migration for existing users — `agents.toml` is only seeded when absent, so
   a new built-in appears for **fresh installs**; existing users keep their file
-  and add the entry themselves (this is intentional — thurbox never rewrites a
+  and add the entry themselves (this is intentional — talos never rewrites a
   user's edited config).

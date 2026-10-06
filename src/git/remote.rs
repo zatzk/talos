@@ -115,8 +115,8 @@ pub(crate) fn remote_home_windows(host: &HostDef) -> Result<String> {
 }
 
 /// The remote workspace directory for a session id on `host`, mirroring the
-/// local layout (`<thurbox data root>/workspaces/<sanitized id>`). Base:
-/// `<worktrees_dir>/..`, or `$HOME/.local/share/thurbox`. Sanitizes the id
+/// local layout (`<talos data root>/workspaces/<sanitized id>`). Base:
+/// `<worktrees_dir>/..`, or `$HOME/.local/share/talos`. Sanitizes the id
 /// with the same shared helper as the local builder
 /// (`workspace::workspace_dir`) — including its empty-id rejection: an empty
 /// segment would make the `rm -rf` in ensure/remove target the workspaces
@@ -127,7 +127,7 @@ pub(crate) fn remote_workspace_dir(host: &HostDef, id: &str) -> Result<String> {
             .parent()
             .map(|p| p.to_string_lossy().replace('\\', "/"))
             .unwrap_or_else(|| dir.clone()),
-        None => format!("{}/.local/share/thurbox", remote_home(host)?),
+        None => format!("{}/.local/share/talos", remote_home(host)?),
     };
     let segment = crate::paths::sanitize_workspace_segment(id);
     anyhow::ensure!(!segment.is_empty(), "empty workspace id");
@@ -476,9 +476,9 @@ pub(super) fn powershell_quote(s: &str) -> String {
 /// Write `bytes` to `remote_path` on `host`, creating the parent directory.
 /// Streams the bytes over the host launcher's stdin into `cat > <path>`, so it
 /// is transport-neutral (ssh/wsl) and needs no `scp`/`\\wsl$` share. Used to
-/// materialize thurbox-managed agent config (e.g. the hooks `--settings
+/// materialize talos-managed agent config (e.g. the hooks `--settings
 /// claude.json`, with its commands rewritten for the host) on the remote so
-/// the agent — launched with a `--settings <path>` that thurbox generated
+/// the agent — launched with a `--settings <path>` that talos generated
 /// against the *local* config dir — finds the file at that path there too.
 pub fn copy_bytes_to_remote(host: &HostDef, bytes: &[u8], remote_path: &str) -> Result<()> {
     let parent = Path::new(remote_path)
@@ -504,7 +504,7 @@ pub fn copy_bytes_to_remote(host: &HostDef, bytes: &[u8], remote_path: &str) -> 
 /// [`copy_bytes_to_remote`] for a **native-Windows** SSH host: `cat > file`
 /// doesn't exist there, so the payload travels base64-encoded inside a
 /// PowerShell one-liner (`[IO.File]::WriteAllBytes` + `New-Item -Force` for
-/// the parent dir). Bounded by the Windows command-line limit — thurbox's hook
+/// the parent dir). Bounded by the Windows command-line limit — talos's hook
 /// payloads are 1–4 KB, well within it; anything larger errors instead of
 /// truncating. `remote_path` must be `/`-separated (PowerShell accepts it).
 pub(crate) fn copy_bytes_to_remote_windows(
@@ -584,7 +584,7 @@ pub fn copy_stream_to_remote_windows(
 /// remote shell that will not take one that size, a dropped connection — and
 /// the next `write_all` gets `EPIPE`. Returning on that without waiting is what
 /// left one `ssh` behind per attempt: [`std::process::Child`]'s `Drop` neither
-/// kills nor waits, so the process outlives the error, and once thurbox exits
+/// kills nor waits, so the process outlives the error, and once talos exits
 /// it is reparented and keeps running. The kill is what bounds the wait — the
 /// peer is already gone, so there is nothing left to collect but the stderr it
 /// managed to write before it went.

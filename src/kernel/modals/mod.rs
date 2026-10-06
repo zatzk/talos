@@ -2,7 +2,7 @@
 //!
 //! These three are not panes and not plugins. A pane shows
 //! your work and belongs in the layout; these are **system chrome** — they are
-//! about thurbox itself, they overlay, they are modal, and they are the same in
+//! about talos itself, they overlay, they are modal, and they are the same in
 //! every install. Making them plugins bought no extensibility (nobody replaces
 //! the help pane wholesale) while costing the layout, the focus ring, and a
 //! contribution mechanism nobody could reach.

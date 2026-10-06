@@ -1,7 +1,7 @@
 ---
 layout: docs.njk
-title: 'Comparison — Thurbox Docs'
-description: 'How Thurbox compares to other parallel coding-agent tools (GitHub Copilot App, Conductor, Herdr, 1Code, Orca, Claude Squad, Cursor): real tmux vs custom multiplexer, TUI vs Electron/GUI, native vendor CLI vs own models, an editable plugin interface, and multi-repo sessions.'
+title: 'Comparison — Talos Docs'
+description: 'How Talos compares to other parallel coding-agent tools (GitHub Copilot App, Conductor, Herdr, 1Code, Orca, Claude Squad, Cursor): real tmux vs custom multiplexer, TUI vs Electron/GUI, native vendor CLI vs own models, an editable plugin interface, and multi-repo sessions.'
 currentPage: 'comparison'
 breadcrumb: 'Comparison'
 ---
@@ -15,7 +15,7 @@ breadcrumb: 'Comparison'
             <strong>TUI</strong>
             or an Electron/native app, whether they launch the
             <strong>unmodified vendor CLI</strong>
-            or their own model, and whether one session can span several repos. Thurbox optimizes
+            or their own model, and whether one session can span several repos. Talos optimizes
             the boring-but-load-bearing end of that list.
           </p>
 
@@ -35,7 +35,7 @@ breadcrumb: 'Comparison'
             </thead>
             <tbody>
               <tr>
-                <td><strong>Thurbox</strong></td>
+                <td><strong>Talos</strong></td>
                 <td>TUI</td>
                 <td><strong>Real multiplexers</strong> (tmux, psmux on Windows, opt-in <a href="installation.html#rmux">RMUX</a>)</td>
                 <td>
@@ -137,20 +137,20 @@ breadcrumb: 'Comparison'
             </tbody>
           </table>
 
-          <h2 id="what-makes-thurbox-different">
-            What makes Thurbox different
-            <a href="#what-makes-thurbox-different" class="heading-anchor">#</a>
+          <h2 id="what-makes-talos-different">
+            What makes Talos different
+            <a href="#what-makes-talos-different" class="heading-anchor">#</a>
           </h2>
           <p>Some of these are shared &mdash; the combination is the point.</p>
           <ul>
             <li>
               <strong>External multiplexers for running sessions.</strong>
-              Agents survive closing or crashing the Thurbox interface; reattach from a terminal
-              with <code>tmux -L thurbox attach</code> for the default POSIX backend.
+              Agents survive closing or crashing the Talos interface; reattach from a terminal
+              with <code>tmux -L talos attach</code> for the default POSIX backend.
               Native Windows defaults to psmux;
               <a href="installation.html#rmux">RMUX</a> is opt-in. In the
               <a href="performance.html">stand-in benchmark</a>, all three hosts kept agents
-              running after a client crash. After a full shutdown and restart, only Thurbox reran
+              running after a client crash. After a full shutdown and restart, only Talos reran
               the recorded stand-in commands. Herdr can resume agents it recognizes, which that
               stand-in did not test. (Of the tools above, Claude Squad also uses real tmux.)
             </li>
@@ -163,7 +163,7 @@ breadcrumb: 'Comparison'
             </li>
             <li>
               <strong>Launches the unmodified vendor CLI.</strong>
-              Thurbox knows nothing about the agent&rsquo;s model, prompts, or tools &mdash; it just
+              Talos knows nothing about the agent&rsquo;s model, prompts, or tools &mdash; it just
               runs
               <code>command + args</code>
               &mdash; so you get the newest agent features the day the CLI ships them, with no
@@ -172,8 +172,8 @@ breadcrumb: 'Comparison'
             <li>
               <strong>Any agent CLI as data</strong>
               (
-              <code>~/.config/thurbox/agents.toml</code>
-              ) &mdash; add your own with no recompile; Thurbox is deliberately agent-neutral.
+              <code>~/.config/talos/agents.toml</code>
+              ) &mdash; add your own with no recompile; Talos is deliberately agent-neutral.
             </li>
             <li>
               <strong>Multi-repo sessions.</strong>
@@ -184,7 +184,7 @@ breadcrumb: 'Comparison'
               <code>/add-dir</code>
               , which links separate pre-made workspaces rather than spawning one session across
               repos; Cursor&rsquo;s multi-root/cloud path is folders-in-one-window, not
-              worktree-per-repo.) Thurbox also runs agents in
+              worktree-per-repo.) Talos also runs agents in
               <strong>plain non-git directories</strong>
               (and attaches them as-is with
               <code>--add-dir</code>
@@ -207,9 +207,9 @@ breadcrumb: 'Comparison'
             </li>
           </ul>
           <p>
-            On top of that, Thurbox is terminal-native, runs on Windows and
+            On top of that, Talos is terminal-native, runs on Windows and
             over SSH, and ships a full headless CLI (
-            <code>thurbox-cli</code>
+            <code>talos-cli</code>
             ) plus cron-like automations to drive and schedule fleets of agents with no GUI at all.
             It is also the only one whose
             <strong>interface is data rather than product</strong>
@@ -218,12 +218,12 @@ breadcrumb: 'Comparison'
             GUI tools lead with is
             <a href="interface.html#installable-panes">one <code>plugin install</code> away</a>
             &mdash; a pane
-            (<a href="https://github.com/Thurbeen/thurbox-code-review" target="_blank" rel="noopener">thurbox-code-review</a>)
+            (<a href="https://github.com/zatzk/talos-code-review" target="_blank" rel="noopener">talos-code-review</a>)
             rather than something baked into the binary. They also trade footprint and
             scriptability for a gentler on-ramp &mdash; and the most
             polished of them,
             <a href="https://github.com/github/app" target="_blank" rel="noopener">GitHub&rsquo;s Copilot App</a>,
-            also ties you to a single vendor&rsquo;s agent and a paid subscription, where Thurbox stays
+            also ties you to a single vendor&rsquo;s agent and a paid subscription, where Talos stays
             agent-neutral and runs whatever CLI you already pay for.
           </p>
           <div class="info-box">

@@ -74,7 +74,7 @@ pub struct NameClaim {
 /// The live sessions already carrying `name` on `backend`'s server
 /// ([`super::server_key`]).
 ///
-/// More than one is possible: thurbox enforces no uniqueness on the column, so
+/// More than one is possible: talos enforces no uniqueness on the column, so
 /// this reports what is there rather than assuming what should be.
 pub fn live_namesakes(
     db: &Database,

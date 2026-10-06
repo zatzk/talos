@@ -42,7 +42,7 @@ jobs:
       bump_args: ${{ steps.parse.outputs.bump_args }}
       # Whether this cut is the highest version the repository has ever tagged.
       # A maintenance release off `v1.x` is not: everything downstream of the
-      # tag points at "the current thurbox" rather than at a version, so a 1.8.x
+      # tag points at "the current talos" rather than at a version, so a 1.8.x
       # cut would drag all of it backwards past 2.x. See the `newest` step.
       newest: ${{ steps.newest.outputs.newest }}
     steps:
@@ -274,7 +274,7 @@ jobs:
       - name: Build release binary
         shell: bash
         env:
-          THURBOX_RELEASE_VERSION: ${{ needs.check-release.outputs.version }}
+          TALOS_RELEASE_VERSION: ${{ needs.check-release.outputs.version }}
         run: |
           if [ "${{ matrix.use_cross }}" = "true" ]; then
             cross build --release --target ${{ matrix.target }}
@@ -288,7 +288,7 @@ jobs:
         run: |
           VERSION="${{ needs.check-release.outputs.version }}"
           TARGET="${{ matrix.target }}"
-          ARCHIVE_NAME="thurbox-${VERSION}-${TARGET}.tar.gz"
+          ARCHIVE_NAME="talos-${VERSION}-${TARGET}.tar.gz"
 
           # Stage LICENSE next to the binaries so a single `tar czf` ships all
           # three. (`tar --append` cannot operate on a gzip archive, so the old
@@ -296,7 +296,7 @@ jobs:
           # failure must fail the job.
           cp LICENSE "target/$TARGET/release/"
           cd target/$TARGET/release
-          tar czf "../../../$ARCHIVE_NAME" thurbox thurbox-cli LICENSE
+          tar czf "../../../$ARCHIVE_NAME" talos talos-cli LICENSE
           cd ../../..
 
       # Windows archive: .zip with the .exe binaries + LICENSE. install.ps1
@@ -307,18 +307,18 @@ jobs:
         run: |
           $version = "${{ needs.check-release.outputs.version }}"
           $target = "${{ matrix.target }}"
-          $archive = "thurbox-$version-$target.zip"
+          $archive = "talos-$version-$target.zip"
           $rel = "target/$target/release"
           Compress-Archive -Force -DestinationPath $archive -Path `
-            "$rel/thurbox.exe", "$rel/thurbox-cli.exe", "LICENSE"
+            "$rel/talos.exe", "$rel/talos-cli.exe", "LICENSE"
 
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: binary-${{ matrix.target }}
           path: |
-            thurbox-*.tar.gz
-            thurbox-*.zip
+            talos-*.tar.gz
+            talos-*.zip
           if-no-files-found: error
 
   # Generate checksums for all binaries
@@ -341,15 +341,15 @@ jobs:
           find . \( -name "*.tar.gz" -o -name "*.zip" \) -exec mv {} . \;
 
           # Generate checksums over every release archive
-          sha256sum thurbox-*.tar.gz thurbox-*.zip > "thurbox-${VERSION}-checksums.txt"
+          sha256sum talos-*.tar.gz talos-*.zip > "talos-${VERSION}-checksums.txt"
 
-          cat "thurbox-${VERSION}-checksums.txt"
+          cat "talos-${VERSION}-checksums.txt"
 
       - name: Upload checksums
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: checksums
-          path: artifacts/thurbox-*-checksums.txt
+          path: artifacts/talos-*-checksums.txt
 
   # Generate CHANGELOG from commits
   generate-changelog:
@@ -396,7 +396,7 @@ jobs:
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ needs.check-release.outputs.version }}
-          name: thurbox ${{ needs.check-release.outputs.version }}
+          name: talos ${{ needs.check-release.outputs.version }}
           body: |
             ${{ needs.generate-changelog.outputs.changelog || '## Changes
 
@@ -412,8 +412,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Publish the Arch Linux AUR packages.
-  # Runs after `publish` so the GitHub Release assets (needed by thurbox-bin)
-  # and the tag's source tarball (needed by thurbox) are both available.
+  # Runs after `publish` so the GitHub Release assets (needed by talos-bin)
+  # and the tag's source tarball (needed by talos) are both available.
   # Requires the AUR_SSH_PRIVATE_KEY secret; skipped automatically if unset.
   publish-aur:
     name: Publish AUR (${{ matrix.pkgname }})
@@ -428,7 +428,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkgname: [thurbox, thurbox-bin]
+        pkgname: [talos, talos-bin]
     steps:
       - name: Checkout code at tag
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -451,12 +451,12 @@ jobs:
           pkgname: ${{ matrix.pkgname }}
           pkgbuild: packaging/aur/${{ matrix.pkgname }}/PKGBUILD
           updpkgsums: true   # recompute sha256sums from the freshly released sources
-          commit_username: thurbox-release-bot
+          commit_username: talos-release-bot
           commit_email: magicletur@protonmail.com
           ssh_private_key: ${{ env.AUR_SSH_PRIVATE_KEY }}
           commit_message: "Update to ${{ needs.check-release.outputs.version }}"
 
-  # Publish the Homebrew formula to the tap (Thurbeen/homebrew-thurbox).
+  # Publish the Homebrew formula to the tap (Thurbeen/homebrew-talos).
   # Runs after `publish` so the release tarballs + checksums.txt exist.
   # Pushes over SSH using HOMEBREW_TAP_DEPLOY_KEY — a write-enabled deploy key
   # registered on the tap repo (the Thurbeen org blocks cross-repo PATs, so a
@@ -483,7 +483,7 @@ jobs:
         run: |
           VERSION="${{ needs.check-release.outputs.version }}"
           curl -fsSL -o checksums.txt \
-            "https://github.com/${{ github.repository }}/releases/download/${VERSION}/thurbox-${VERSION}-checksums.txt"
+            "https://github.com/${{ github.repository }}/releases/download/${VERSION}/talos-${VERSION}-checksums.txt"
           cat checksums.txt
 
       - name: Bump formula to the release version
@@ -491,9 +491,9 @@ jobs:
         run: |
           python3 packaging/homebrew/bump-formula.py \
             "${{ needs.check-release.outputs.version }}" \
-            packaging/homebrew/Formula/thurbox.rb \
+            packaging/homebrew/Formula/talos.rb \
             checksums.txt
-          cat packaging/homebrew/Formula/thurbox.rb
+          cat packaging/homebrew/Formula/talos.rb
 
       - name: Push formula to the tap
         if: env.HOMEBREW_TAP_DEPLOY_KEY != ''
@@ -504,24 +504,24 @@ jobs:
           chmod 600 ~/.ssh/tap_key
           ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/tap_key -o IdentitiesOnly=yes"
-          git clone --depth 1 git@github.com:Thurbeen/homebrew-thurbox.git tap
+          git clone --depth 1 git@github.com:Thurbeen/homebrew-talos.git tap
           mkdir -p tap/Formula
-          cp packaging/homebrew/Formula/thurbox.rb tap/Formula/thurbox.rb
+          cp packaging/homebrew/Formula/talos.rb tap/Formula/talos.rb
           cd tap
-          git config user.name thurbox-release-bot
+          git config user.name talos-release-bot
           git config user.email magicletur@protonmail.com
           if git diff --quiet; then
             echo "Formula already up to date; nothing to push."
             exit 0
           fi
-          git add Formula/thurbox.rb
+          git add Formula/talos.rb
           git commit -m "Update to ${VERSION}"
           git push origin HEAD
 
   # Publish the Chocolatey package to the community repo.
   #
   # Chocolatey's community repo moderates + rate-limits every push, so it can't
-  # keep up with thurbox's per-`feat`/`fix`/`perf` release cadence: versions
+  # keep up with talos's per-`feat`/`fix`/`perf` release cadence: versions
   # pile up in the queue and `choco push` starts returning 403 (rate/quota).
   # This job therefore *throttles* itself — it pushes at most once per
   # THROTTLE_DAYS window, coalescing the intervening patch releases into a
@@ -544,7 +544,7 @@ jobs:
     # (the `secrets` context cannot be used directly in an `if` condition).
     env:
       CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
-      # Minimum days between Chocolatey pushes. One push/month keeps thurbox well
+      # Minimum days between Chocolatey pushes. One push/month keeps talos well
       # under the community-repo moderation/rate limits while still shipping a
       # recent version. Tune here if the queue clears faster/slower.
       THROTTLE_DAYS: "30"
@@ -554,7 +554,7 @@ jobs:
         with:
           ref: ${{ needs.check-release.outputs.version }}
 
-      # Query the community feed for the last-published thurbox version and when
+      # Query the community feed for the last-published talos version and when
       # it went up. If that push is younger than THROTTLE_DAYS, skip this
       # release (green + warning) so patch releases coalesce into one monthly
       # Chocolatey version instead of hammering the moderation queue.
@@ -565,18 +565,18 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $throttleDays = [int]$env:THROTTLE_DAYS
-          # OData v2 feed for the latest published thurbox version, as JSON
+          # OData v2 feed for the latest published talos version, as JSON
           # (`$format=json` → a stable `.d.results` array — far less fragile
           # than parsing the default Atom/XML shape).
           $feed = "https://community.chocolatey.org/api/v2/Packages()?" +
-            "`$filter=Id eq 'thurbox' and IsLatestVersion eq true&`$top=1&`$format=json"
+            "`$filter=Id eq 'talos' and IsLatestVersion eq true&`$top=1&`$format=json"
           $shouldPush = $true
           $reason = ""
           try {
             $resp = Invoke-RestMethod -UseBasicParsing -Uri $feed
             $entry = @($resp.d.results) | Select-Object -First 1
             if (-not $entry) {
-              $reason = "no published thurbox version found on Chocolatey — first push"
+              $reason = "no published talos version found on Chocolatey — first push"
             } else {
               # OData dates arrive as ISO-8601 or `/Date(ms)/`; [datetime] parses
               # the former, so strip the wrapper for the latter.
@@ -613,7 +613,7 @@ jobs:
           $version = "${{ needs.check-release.outputs.version }}"
           $repo = "${{ github.repository }}"
           Invoke-WebRequest -UseBasicParsing `
-            -Uri "https://github.com/$repo/releases/download/$version/thurbox-$version-checksums.txt" `
+            -Uri "https://github.com/$repo/releases/download/$version/talos-$version-checksums.txt" `
             -OutFile checksums.txt
           Get-Content checksums.txt
 
@@ -625,7 +625,7 @@ jobs:
             "${{ needs.check-release.outputs.version }}" `
             packaging/chocolatey `
             checksums.txt
-          Get-Content packaging/chocolatey/thurbox.nuspec
+          Get-Content packaging/chocolatey/talos.nuspec
           Get-Content packaging/chocolatey/tools/chocolateyinstall.ps1
 
       - name: Pack the package
@@ -633,13 +633,13 @@ jobs:
         shell: pwsh
         run: |
           # Version is read from the bumped nuspec — do not pass --version.
-          choco pack packaging/chocolatey/thurbox.nuspec --outputdirectory packaging/chocolatey
+          choco pack packaging/chocolatey/talos.nuspec --outputdirectory packaging/chocolatey
 
       - name: Push to the Chocolatey community repo
         if: env.CHOCOLATEY_API_KEY != '' && steps.throttle.outputs.should_push == 'true'
         shell: pwsh
         run: |
-          $nupkg = Get-ChildItem packaging/chocolatey/thurbox.*.nupkg | Select-Object -First 1
+          $nupkg = Get-ChildItem packaging/chocolatey/talos.*.nupkg | Select-Object -First 1
           $out = choco push $nupkg.FullName --source https://push.chocolatey.org/ --api-key $env:CHOCOLATEY_API_KEY 2>&1 | Out-String
           Write-Host $out
           if ($LASTEXITCODE -eq 0) {
@@ -670,7 +670,7 @@ jobs:
   # release. winget-pkgs is *manually moderated* and its reviewers cannot absorb
   # a PR per patch release (30 open at once, flagged in
   # microsoft/winget-pkgs#405639), so what paces this is the queue itself rather
-  # than a calendar: while a thurbox PR is still **open** there, the decision
+  # than a calendar: while a talos PR is still **open** there, the decision
   # step skips green instead of stacking a second one — `wingetcreate` has no
   # mode that updates a pending PR (`--replace` only supersedes a *published*
   # version). THROTTLE_DAYS remains as a knob on top of that, defaulted to 0 (no
@@ -698,7 +698,7 @@ jobs:
       WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
       # Minimum days between winget-pkgs submissions. 0 = attempt every release,
       # matching Chocolatey's shape; the open-PR rule below is what keeps the
-      # moderation queue to one thurbox PR at a time. Raise it to re-throttle by
+      # moderation queue to one talos PR at a time. Raise it to re-throttle by
       # calendar (30 was the old monthly window).
       THROTTLE_DAYS: "0"
     steps:
@@ -708,7 +708,7 @@ jobs:
           ref: ${{ needs.check-release.outputs.version }}
 
       # Ask packaging/winget/submit-decision.py whether to submit, from our own
-      # thurbox PRs on winget-pkgs (any state). It skips green when one is still
+      # talos PRs on winget-pkgs (any state). It skips green when one is still
       # open, and when the newest is younger than THROTTLE_DAYS. The rules and
       # their edge cases are covered by packaging/winget/winget.bats — the
       # reason this is a script and not inline PowerShell.
@@ -724,7 +724,7 @@ jobs:
           $reason = ""
           try {
             $prs = gh pr list --repo microsoft/winget-pkgs --author "@me" `
-              --search "Thurbeen.thurbox in:title" --state all `
+              --search "Thurbeen.talos in:title" --state all `
               --json number,state,createdAt,title --limit 100
             if ($LASTEXITCODE -ne 0) { throw "gh pr list exited $LASTEXITCODE" }
             $decision = $prs |
@@ -753,7 +753,7 @@ jobs:
           $version = "${{ needs.check-release.outputs.version }}"
           $repo = "${{ github.repository }}"
           Invoke-WebRequest -UseBasicParsing `
-            -Uri "https://github.com/$repo/releases/download/$version/thurbox-$version-checksums.txt" `
+            -Uri "https://github.com/$repo/releases/download/$version/talos-$version-checksums.txt" `
             -OutFile checksums.txt
           Get-Content checksums.txt
 
@@ -765,7 +765,7 @@ jobs:
             "${{ needs.check-release.outputs.version }}" `
             packaging/winget/manifests `
             checksums.txt
-          Get-Content packaging/winget/manifests/Thurbeen.thurbox.installer.yaml
+          Get-Content packaging/winget/manifests/Thurbeen.talos.installer.yaml
 
       - name: Install wingetcreate
         if: env.WINGET_TOKEN != '' && steps.decide.outputs.should_submit == 'true'
@@ -835,7 +835,7 @@ jobs:
       # which is what gates the cleanup below: a deferred submission exits green
       # having opened nothing, and cleanup keyed off the pre-submit decision
       # would then close the pending PR and put nothing in its place, leaving
-      # winget-pkgs with no thurbox PR at all.
+      # winget-pkgs with no talos PR at all.
       - name: Submit manifests to winget-pkgs
         id: submit
         if: env.WINGET_TOKEN != '' && steps.decide.outputs.should_submit == 'true'
@@ -873,7 +873,7 @@ jobs:
           exit 1
 
       # Second-line cleanup behind the open-PR rule above: a stray manual
-      # dispatch (or a race) can still leave more than one open Thurbeen.thurbox
+      # dispatch (or a race) can still leave more than one open Thurbeen.talos
       # PR. wingetcreate has no "supersede the previous open PR" mode
       # (`--replace` only supersedes a *published* manifest version, not a
       # pending PR), so right after submitting the new version, close every
@@ -883,7 +883,7 @@ jobs:
       # Gated on what `submit` DID (`steps.submit.outputs.opened`), never on the
       # pre-submit decision: a deferred submission exits green without opening a
       # PR, and closing the pending one behind a submission that never happened
-      # would leave winget-pkgs with no thurbox PR at all — the version would
+      # would leave winget-pkgs with no talos PR at all — the version would
       # silently never ship. `submit-decision.py after-submit` computes that
       # flag, and packaging/winget/winget.bats pins it.
       - name: Close superseded winget-pkgs PRs
@@ -898,7 +898,7 @@ jobs:
           # Open PRs by the token account for this package. `search` matches the
           # package moniker in the title that wingetcreate always emits.
           $prs = gh pr list --repo microsoft/winget-pkgs --author "@me" `
-            --state open --search "Thurbeen.thurbox in:title" `
+            --state open --search "Thurbeen.talos in:title" `
             --json number,title,createdAt --limit 100 | ConvertFrom-Json
           if (-not $prs -or $prs.Count -le 1) {
             Write-Host "Nothing to close ($($prs.Count) open PR(s))."
@@ -913,6 +913,6 @@ jobs:
           Write-Host "Keeping #$($keep.number) ($($keep.title)); closing $($prs.Count - 1) superseded PR(s)."
           foreach ($pr in $prs | Where-Object { $_.number -ne $keep.number }) {
             gh pr close $pr.number --repo microsoft/winget-pkgs `
-              --comment "Superseded by #$($keep.number) ($($keep.title)). Auto-closing this stale version-bump PR from thurbox release CI."
+              --comment "Superseded by #$($keep.number) ($($keep.title)). Auto-closing this stale version-bump PR from talos release CI."
             Write-Host "Closed #$($pr.number) ($($pr.title))."
           }

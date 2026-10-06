@@ -9,10 +9,10 @@
 
 use std::time::Instant;
 
-use thurbox::kernel::bands::Level;
-use thurbox::kernel::host::LuaHost;
-use thurbox::kernel::modals::{ModalKind, Modals};
-use thurbox::kernel::perf::Counters;
+use talos::kernel::bands::Level;
+use talos::kernel::host::LuaHost;
+use talos::kernel::modals::{ModalKind, Modals};
+use talos::kernel::perf::Counters;
 
 use super::snapshots_db;
 use crate::{App, DEBOUNCE};
@@ -68,12 +68,12 @@ impl App {
             return;
         }
 
-        // An explicit THURBOX_UI_DIR is the user saying which interface to run, so
+        // An explicit TALOS_UI_DIR is the user saying which interface to run, so
         // it is never silently swapped — the error stands on its own.
-        if std::env::var_os("THURBOX_UI_DIR").is_some() {
+        if std::env::var_os("TALOS_UI_DIR").is_some() {
             return;
         }
-        let Ok(dir) = thurbox::kernel::bundled::fallback_dir() else {
+        let Ok(dir) = talos::kernel::bundled::fallback_dir() else {
             return;
         };
         let embedded = LuaHost::new(&dir);
@@ -137,7 +137,7 @@ impl App {
                 // reading as tampering after every ordinary release.
                 Ok(contents) => {
                     let lock =
-                        thurbox::kernel::packages::read_lock(&self.ui_dir).unwrap_or_default();
+                        talos::kernel::packages::read_lock(&self.ui_dir).unwrap_or_default();
                     match lock.covering(file) {
                         Some(entry) => self
                             .registry
@@ -174,14 +174,14 @@ impl App {
     /// them live), and the file is written on a worker like everything else that
     /// touches the world — so a read-only filesystem surfaces as a reported
     /// failure rather than a silent one.
-    pub(crate) fn apply_settings(&mut self, draft: thurbox::session::settings::Settings) {
+    pub(crate) fn apply_settings(&mut self, draft: talos::session::settings::Settings) {
         let outcome = self.config.adopt(draft.clone());
         self.config.mark_saved();
         self.commands
-            .dispatch(thurbox::kernel::command::Command::Configure {
+            .dispatch(talos::kernel::command::Command::Configure {
                 settings: Box::new(draft),
             });
-        if outcome == thurbox::kernel::config::Reloaded::NeedsRestart {
+        if outcome == talos::kernel::config::Reloaded::NeedsRestart {
             self.toast("saved — some changes apply on restart".to_string());
         }
         self.dirty = true;
@@ -195,11 +195,11 @@ impl App {
     pub(crate) fn apply_plugin_edit(
         &mut self,
         file: &str,
-        edit: thurbox::kernel::command::PluginEdit,
+        edit: talos::kernel::command::PluginEdit,
     ) {
         let outcome = match edit {
-            thurbox::kernel::command::PluginEdit::Restore => {
-                thurbox::kernel::bundled::restore(&self.ui_dir, file).map(|backup| match backup {
+            talos::kernel::command::PluginEdit::Restore => {
+                talos::kernel::bundled::restore(&self.ui_dir, file).map(|backup| match backup {
                     Some(backup) => format!(
                         "restored {file} — your edited copy is kept as {}",
                         backup.display()
@@ -207,8 +207,8 @@ impl App {
                     None => format!("restored {file}"),
                 })
             }
-            thurbox::kernel::command::PluginEdit::Remove => {
-                thurbox::kernel::bundled::remove(&self.ui_dir, file)
+            talos::kernel::command::PluginEdit::Remove => {
+                talos::kernel::bundled::remove(&self.ui_dir, file)
                     .map(|()| format!("removed {file}"))
             }
         };
@@ -226,7 +226,7 @@ impl App {
 
     pub(crate) fn with_modal_world<T>(
         &mut self,
-        act: impl FnOnce(&mut Modals, &mut thurbox::kernel::modals::World<'_>) -> T,
+        act: impl FnOnce(&mut Modals, &mut talos::kernel::modals::World<'_>) -> T,
     ) -> T {
         let db = matches!(self.modals.kind(), Some(ModalKind::Theme))
             .then(snapshots_db)
@@ -244,7 +244,7 @@ impl App {
         // borrowed mutably to apply whatever comes back.
         let inventory = std::mem::take(&mut self.inventory);
         let outcome = {
-            let mut world = thurbox::kernel::modals::World {
+            let mut world = talos::kernel::modals::World {
                 registry: &mut self.registry,
                 themes: &mut self.themes,
                 settings_on_disk: &on_disk,
@@ -265,13 +265,13 @@ impl App {
             self.run_action(&dispatch.plugin, &dispatch.action);
         }
         match edit {
-            Some(thurbox::kernel::modals::interface::Edit::File { file, kind }) => {
+            Some(talos::kernel::modals::interface::Edit::File { file, kind }) => {
                 self.apply_plugin_edit(&file, kind);
             }
-            Some(thurbox::kernel::modals::interface::Edit::Trust { file, trusted }) => {
+            Some(talos::kernel::modals::interface::Edit::Trust { file, trusted }) => {
                 self.apply_trust(&file, trusted);
             }
-            Some(thurbox::kernel::modals::interface::Edit::Switch { file, off }) => {
+            Some(talos::kernel::modals::interface::Edit::Switch { file, off }) => {
                 self.apply_switch(&file, off);
             }
             None => {}

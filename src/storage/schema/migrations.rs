@@ -444,7 +444,7 @@ pub(super) fn migrate_v21_drop_model(conn: &Connection) -> rusqlite::Result<()> 
 }
 
 /// v21 → v22: drop tables for removed subsystems. VM, devcontainer,
-/// and process-plugin subsystems were removed to focus thurbox on
+/// and process-plugin subsystems were removed to focus talos on
 /// the TUI surface; the session_commands queue is unused now that
 /// MCP `restart_session` / `create_session` run synchronously.
 pub(super) fn migrate_v22_drop_subsystems(conn: &Connection) -> rusqlite::Result<()> {
@@ -658,7 +658,7 @@ pub(super) fn migrate_v33_action_extra_repos(conn: &Connection) -> rusqlite::Res
 ///
 /// `hook_state` (`working`/`blocked`/`done`, NULL = no hook fired yet) and
 /// `hook_state_at` (epoch ms it was reported) are written by
-/// `thurbox-cli session signal` from an agent hook; `seen_at` (epoch ms) is
+/// `talos-cli session signal` from an agent hook; `seen_at` (epoch ms) is
 /// written by the TUI when the user views a `done` session, so it renders
 /// `Idle` instead of `Done`. NULL on every existing row, so they decode
 /// identically to the pre-hooks behaviour.
@@ -806,7 +806,7 @@ pub(super) fn migrate_v40_bookmark_git_kind(conn: &Connection) -> rusqlite::Resu
 }
 
 /// v40 → v41: the columns that make a session drivable by something other than
-/// thurbox itself.
+/// talos itself.
 ///
 /// `launch_command`/`launch_args`/`launch_env` persist the **launch recipe** of
 /// a session created from a raw command rather than an `agents.toml` entry.
@@ -842,21 +842,21 @@ pub(super) fn migrate_v41_joinable(conn: &Connection) -> rusqlite::Result<()> {
     Ok(())
 }
 
-/// v41 → v42: record whether thurbox created each worktree
+/// v41 → v42: record whether talos created each worktree
 ///
 /// Defaults to 1: every worktree that predates the column was checked out by
-/// thurbox itself (opening an existing one is what this column was added for),
+/// talos itself (opening an existing one is what this column was added for),
 /// so backfilling "mine" preserves force-delete's behavior for them exactly.
 pub(super) fn migrate_v42_worktree_provenance(conn: &Connection) -> rusqlite::Result<()> {
     add_column_if_absent(
         conn,
         "worktrees",
-        "created_by_thurbox",
+        "created_by_talos",
         "INTEGER NOT NULL DEFAULT 1",
     )
 }
 
-/// v42 → v43: `session_events`, the append-only log `thurbox-cli watch`
+/// v42 → v43: `session_events`, the append-only log `talos-cli watch`
 /// streams.
 ///
 /// `watch` used to sample the whole session table every 250 ms and diff it,
@@ -892,7 +892,7 @@ pub(super) fn migrate_v43_session_events(conn: &Connection) -> rusqlite::Result<
 /// agent the row was created with.
 ///
 /// A `--command` session is named after the command's file stem, so a driver
-/// that opens a shell and starts `claude` in it leaves thurbox reading hook
+/// that opens a shell and starts `claude` in it leaves talos reading hook
 /// coverage against `bash`: coverage `none`, no reportable states, and
 /// `blocked_is_heuristic` false — asserting the block signal is structured when
 /// it is claude's text match on a notification body. `reports_as` is how the
@@ -942,7 +942,7 @@ pub(super) fn migrate_v48_message_delivered_via(conn: &Connection) -> rusqlite::
 /// See [`super::SCHEMA_VERSION`] v47: record that the WSL-loopback repair is
 /// **owed**, without performing it.
 ///
-/// Auto-discovery used to offer the WSL distro thurbox runs *inside* as a host
+/// Auto-discovery used to offer the WSL distro talos runs *inside* as a host
 /// like any other. Being shareable by default (ADR-24) it was then mirrored —
 /// and its database is *this* database, so the pass read our own local rows
 /// back and rewrote each one's `backend_type` to `wsl:<us>`. Every attach, diff

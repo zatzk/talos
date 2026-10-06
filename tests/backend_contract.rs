@@ -3,12 +3,12 @@
 //! only its own tests would prove nothing about routing; one that passes the
 //! adapter's is a stand-in for it.
 
-use thurbox::backend::identity::WindowIndex;
-use thurbox::backend::rmux::Rmux;
-use thurbox::backend::tmux::TmuxBackend;
-use thurbox::backend::tmux_compat::server::TmuxCompatible;
-use thurbox::backend::{BackendLiveness, SessionBackend, WindowRole};
-use thurbox::session::{Multiplexer, Route};
+use talos::backend::identity::WindowIndex;
+use talos::backend::rmux::Rmux;
+use talos::backend::tmux::TmuxBackend;
+use talos::backend::tmux_compat::server::TmuxCompatible;
+use talos::backend::{BackendLiveness, SessionBackend, WindowRole};
+use talos::session::{Multiplexer, Route};
 
 #[path = "support/tmux_server.rs"]
 mod tmux_server;
@@ -22,7 +22,7 @@ mod backend_contract;
 use recording_backend::RecordingBackend;
 use tmux_server::TmuxServer;
 
-const SOCKET: &str = "thurbox-backend-contract";
+const SOCKET: &str = "talos-backend-contract";
 
 fn have_tmux() -> bool {
     std::process::Command::new("tmux")
@@ -53,7 +53,7 @@ fn the_tmux_backend_keeps_the_contract() {
     backend.shutdown();
 
     // Headless, on a backend nothing attached to: a teardown or a restart
-    // from `thurbox-cli` opens no control client on the server it acts on.
+    // from `talos-cli` opens no control client on the server it acts on.
     let headless = TmuxBackend::new();
     backend_contract::lifecycle(&headless);
     backend_contract::pane_io(&headless);
@@ -87,7 +87,7 @@ fn the_registered_rmux_backend_keeps_the_contract() {
         eprintln!("skipping: RMUX 0.10.0 or newer is not installed");
         return;
     }
-    let socket = format!("thurbox-rmux-contract-{}", std::process::id());
+    let socket = format!("talos-rmux-contract-{}", std::process::id());
     let _server = TmuxServer::pin(&socket);
     struct Cleanup(String);
     impl Drop for Cleanup {
@@ -98,7 +98,7 @@ fn the_registered_rmux_backend_keeps_the_contract() {
         }
     }
     let _cleanup = Cleanup(socket);
-    let registry = thurbox::backend::wiring::local_only();
+    let registry = talos::backend::wiring::local_only();
     let route = Route::local(Some(Multiplexer::Rmux));
     let backend = registry.get(&route).expect("rmux route must be registered");
     backend_contract::suite(backend.as_ref());
@@ -163,7 +163,7 @@ fn an_attached_tmux_backend_does_not_read_an_unanswered_listing_as_empty() {
         eprintln!("skipping: tmux is not installed");
         return;
     }
-    let server = TmuxServer::pin("thurbox-backend-contract-unanswered");
+    let server = TmuxServer::pin("talos-backend-contract-unanswered");
     let backend = TmuxBackend::new();
     backend.ensure_ready().expect("attach");
     let socket = server
@@ -201,12 +201,12 @@ fn uid() -> String {
 /// after a stop, restart or force delete — attached or not.
 #[test]
 fn killing_a_split_window_takes_the_whole_window() {
-    use thurbox::backend::{Owner, WindowSpec};
+    use talos::backend::{Owner, WindowSpec};
     if !have_tmux() {
         eprintln!("skipping: tmux is not installed");
         return;
     }
-    let server = TmuxServer::pin("thurbox-backend-contract-split");
+    let server = TmuxServer::pin("talos-backend-contract-split");
     let env = std::collections::HashMap::new();
     let args = ["300".to_string()];
     for attached in [false, true] {
@@ -250,12 +250,12 @@ fn killing_a_split_window_takes_the_whole_window() {
 #[test]
 fn a_psmux_hosts_remembered_pane_finds_its_own_window_and_no_other() {
     use std::os::unix::fs::PermissionsExt;
-    use thurbox::backend::{Located, Owner};
+    use talos::backend::{Located, Owner};
     if !have_tmux() {
         eprintln!("skipping: tmux is not installed");
         return;
     }
-    let server = TmuxServer::pin("thurbox-backend-contract-psmux");
+    let server = TmuxServer::pin("talos-backend-contract-psmux");
     let bin = tempfile::tempdir().expect("tempdir");
     let script = |name: &str, body: &str| {
         let path = bin.path().join(name);
@@ -330,7 +330,7 @@ fn a_psmux_hosts_remembered_pane_finds_its_own_window_and_no_other() {
         "300",
     ]);
 
-    let host = thurbox::session::HostDef {
+    let host = talos::session::HostDef {
         name: "psmuxhost".into(),
         destination: DEST.into(),
         multiplexer: Some("psmux".into()),
@@ -339,7 +339,7 @@ fn a_psmux_hosts_remembered_pane_finds_its_own_window_and_no_other() {
         session: Some("probe".into()),
         ..Default::default()
     };
-    let backend = thurbox::backend::psmux::PsmuxBackend::for_host(&host);
+    let backend = talos::backend::psmux::PsmuxBackend::for_host(&host);
     let row = "00000000-0000-4000-8000-0000000000bb";
 
     // An id reissued to a window of another name is not this row's.
@@ -378,7 +378,7 @@ fn a_psmux_hosts_remembered_pane_finds_its_own_window_and_no_other() {
 fn the_tmux_backend_refuses_an_exited_pane_and_delivers_a_deferred_prompt() {
     use std::collections::HashMap;
     use std::time::{Duration, Instant};
-    use thurbox::backend::{Owner, WindowSpec};
+    use talos::backend::{Owner, WindowSpec};
 
     if !have_tmux() {
         eprintln!("skipping: tmux is not installed");

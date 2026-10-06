@@ -2540,6 +2540,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "talos"
+version = "0.0.0-dev"
+dependencies = [
+ "anyhow",
+ "arboard",
+ "base64 0.23.1",
+ "chrono",
+ "chrono-tz",
+ "clap",
+ "cron",
+ "crossterm",
+ "crossterm_winapi",
+ "libc",
+ "mlua",
+ "notify",
+ "notify-rust",
+ "proptest",
+ "ratatui",
+ "regex",
+ "rusqlite",
+ "serde",
+ "serde_ignored",
+ "serde_json",
+ "sha2 0.11.0",
+ "sysinfo",
+ "tempfile",
+ "tokio",
+ "toml",
+ "toml_edit",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+ "tui-term",
+ "unicode-width",
+ "uuid",
+ "vt100",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "tauri-winrt-notification"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2686,46 +2726,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f60246a4944f24f6e018aa17cdeffb7818b76356965d03b07d6a9886e8962185"
 dependencies = [
  "cfg-if",
-]
-
-[[package]]
-name = "thurbox"
-version = "0.0.0-dev"
-dependencies = [
- "anyhow",
- "arboard",
- "base64 0.23.1",
- "chrono",
- "chrono-tz",
- "clap",
- "cron",
- "crossterm",
- "crossterm_winapi",
- "libc",
- "mlua",
- "notify",
- "notify-rust",
- "proptest",
- "ratatui",
- "regex",
- "rusqlite",
- "serde",
- "serde_ignored",
- "serde_json",
- "sha2 0.11.0",
- "sysinfo",
- "tempfile",
- "tokio",
- "toml",
- "toml_edit",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
- "tui-term",
- "unicode-width",
- "uuid",
- "vt100",
- "windows-sys 0.61.2",
 ]
 
 [[package]]

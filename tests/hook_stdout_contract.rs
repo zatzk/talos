@@ -1,6 +1,6 @@
 //! What a shipped hook payload leaves on **stdout**, not just what it signals.
 //!
-//! `thurbox-cli` auto-detects its output format from stdout, and a hook's
+//! `talos-cli` auto-detects its output format from stdout, and a hook's
 //! stdout is a pipe — so every `session signal` in a hook payload answers in
 //! TOON (`Format::resolve_with(.., stdout_is_tty: false)`), the agent-facing
 //! rendering. No agent asked for it, and every agent here reads it, in one of
@@ -16,15 +16,15 @@
 //!
 //! Driven through the real binary against a real database: the format is
 //! chosen from the *process's* stdout, so nothing below `main` can observe it
-//! and a stub `thurbox-cli` (`tests/hook_turn_sequence.rs`) prints whatever the
+//! and a stub `talos-cli` (`tests/hook_turn_sequence.rs`) prints whatever the
 //! stub prints.
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 
 use serde_json::Value;
-use thurbox::session::SessionId;
-use thurbox::sync::SharedSession;
+use talos::session::SessionId;
+use talos::sync::SharedSession;
 
 /// The keys codex's `Stop` hook output accepts. Its schema is
 /// `deny_unknown_fields`, so anything else is the same hard failure as plain
@@ -38,7 +38,7 @@ const CODEX_STOP_KEYS: &[&str] = &[
     "suppressOutput",
 ];
 
-/// A throwaway thurbox instance whose `thurbox-cli` on `PATH` is the real
+/// A throwaway talos instance whose `talos-cli` on `PATH` is the real
 /// binary, so a hook command resolves to it exactly as it would in a session.
 struct Env {
     root: tempfile::TempDir,
@@ -50,13 +50,13 @@ impl Env {
         for sub in ["home", "config", "data", "bin"] {
             std::fs::create_dir_all(root.path().join(sub)).expect("mkdir");
         }
-        // A `thurbox-cli` on PATH: hook commands invoke it by bare name.
-        let shim = root.path().join("bin").join("thurbox-cli");
+        // A `talos-cli` on PATH: hook commands invoke it by bare name.
+        let shim = root.path().join("bin").join("talos-cli");
         std::fs::write(
             &shim,
             format!(
                 "#!/bin/sh\nexec {} \"$@\"\n",
-                env!("CARGO_BIN_EXE_thurbox-cli")
+                env!("CARGO_BIN_EXE_talos-cli")
             ),
         )
         .expect("write shim");
@@ -73,8 +73,8 @@ impl Env {
         self.root.path().join(sub)
     }
 
-    fn db(&self) -> thurbox::storage::Database {
-        thurbox::storage::Database::open(&self.path("data").join("thurbox.db"))
+    fn db(&self) -> talos::storage::Database {
+        talos::storage::Database::open(&self.path("data").join("talos.db"))
             .expect("open the instance database")
     }
 
@@ -113,11 +113,11 @@ impl Env {
             .arg(command)
             .env("PATH", path)
             .env("HOME", self.path("home"))
-            .env("THURBOX_CONFIG_DIR", self.path("config"))
-            .env("THURBOX_DATA_DIR", self.path("data"))
-            .env("THURBOX_SESSION", session.to_string())
-            .env_remove("THURBOX_SOCKET")
-            .env_remove("THURBOX_SESSION_ID")
+            .env("TALOS_CONFIG_DIR", self.path("config"))
+            .env("TALOS_DATA_DIR", self.path("data"))
+            .env("TALOS_SESSION", session.to_string())
+            .env_remove("TALOS_SOCKET")
+            .env_remove("TALOS_SESSION_ID")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())

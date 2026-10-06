@@ -1,4 +1,4 @@
-//! Output rendering for `thurbox-cli`.
+//! Output rendering for `talos-cli`.
 //!
 //! Every subcommand builds a [`CommandOutput`] carrying *both* a machine-
 //! readable JSON `Value` and a pre-rendered human string. [`mod@crate::cli`]'s
@@ -44,7 +44,7 @@ pub struct CommandOutput {
     ///
     /// Only one command sets it — `session exec --exit-passthrough`, whose whole
     /// purpose is to make the in-session command's own code the invocation's.
-    /// It is opt-in precisely because thurbox's codes are a contract (0 ok,
+    /// It is opt-in precisely because talos's codes are a contract (0 ok,
     /// 1 failed, 2 usage) and a command exiting 2 would otherwise be
     /// indistinguishable from a usage error.
     pub exit_code: Option<i32>,
@@ -149,7 +149,7 @@ impl CommandOutput {
     /// The TOON default exists because the reader of a pipe is usually an
     /// agent reading a *record*. A getter that returns one scalar has the
     /// opposite reader: its output is routinely captured into a shell variable
-    /// (`v=$(thurbox-cli session meta get <ref> <key>)`), and capturing is
+    /// (`v=$(talos-cli session meta get <ref> <key>)`), and capturing is
     /// precisely what makes stdout not a terminal — so the format meant for a
     /// pipe replaced the value with `id: …\nkey: …\nvalue: …` in exactly the
     /// case the command exists for. A caller that wants the record asks for it
@@ -554,10 +554,10 @@ mod tests {
             "human",
         )
         .list("sessions", &["name", "id"])
-        .help(["thurbox-cli session get <id>"]);
+        .help(["talos-cli session get <id>"]);
         assert_eq!(
             Format::Toon.render(&out),
-            "sessions[2]{name,id}:\n  one,a\n  two,b\nhelp[1]:\n  thurbox-cli session get <id>"
+            "sessions[2]{name,id}:\n  one,a\n  two,b\nhelp[1]:\n  talos-cli session get <id>"
         );
         // The dropped field is still in --json: trimming is the agent view only.
         assert!(Format::Json.render(&out).contains("\"extra\""));

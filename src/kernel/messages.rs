@@ -44,7 +44,7 @@ pub fn done(kind: &str, label: Option<&str>) -> Option<String> {
 ///
 /// Names the verb AND the subject: `restart` alone leaves the reader to work out
 /// which of six sessions it was, and the error on its own ("Session not found")
-/// reads like a bug in thurbox rather than something about their session.
+/// reads like a bug in talos rather than something about their session.
 pub fn failed(kind: &str, label: Option<&str>, error: &str) -> String {
     match label {
         Some(label) => format!("could not {kind} {label}: {error}"),

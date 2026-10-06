@@ -10,15 +10,15 @@
 //! Isolation is by **environment variable**, not `paths::set_test_dir`: that
 //! override is thread-local, and every command runs on its own thread, so a
 //! worker would resolve the developer's real database and write bookmarks into
-//! it. `THURBOX_CONFIG_DIR`/`THURBOX_DATA_DIR` are process-wide and are what the
+//! it. `TALOS_CONFIG_DIR`/`TALOS_DATA_DIR` are process-wide and are what the
 //! spawned thread reads. nextest runs a process per test, so setting them here is
 //! safe.
 
 use std::path::Path;
 use std::process::Command as Process;
 
-use thurbox::kernel::command::{Args, Command, CommandBus};
-use thurbox::kernel::repos::{BookmarkRow, Branches, RepoStore};
+use talos::kernel::command::{Args, Command, CommandBus};
+use talos::kernel::repos::{BookmarkRow, Branches, RepoStore};
 
 /// Run a command through the bus and wait for it, so its effect is observable.
 ///
@@ -50,11 +50,11 @@ fn isolate() -> tempfile::TempDir {
     // Process-wide, so the command's own thread resolves the same sandbox. A
     // thread-local override would leave the worker writing to the real database
     // — which is exactly what happened while this used `set_test_dir`.
-    std::env::set_var("THURBOX_CONFIG_DIR", &config);
-    std::env::set_var("THURBOX_DATA_DIR", &data);
+    std::env::set_var("TALOS_CONFIG_DIR", &config);
+    std::env::set_var("TALOS_DATA_DIR", &data);
     // And for this thread's own reads, which go through the same resolver.
-    thurbox::paths::set_test_dir(&data);
-    // Materialise the schema, as a real thurbox process does at boot before it
+    talos::paths::set_test_dir(&data);
+    // Materialise the schema, as a real talos process does at boot before it
     // dispatches anything: a command worker opens the database it is *given*
     // (`open_existing`) rather than re-running `schema::initialize` — a
     // `journal_mode = WAL` pragma that takes the write lock, plus two prune
@@ -63,9 +63,9 @@ fn isolate() -> tempfile::TempDir {
     home
 }
 
-fn database() -> thurbox::storage::Database {
-    let path = thurbox::paths::database_file().expect("database path");
-    thurbox::storage::Database::open(&path).expect("open database")
+fn database() -> talos::storage::Database {
+    let path = talos::paths::database_file().expect("database path");
+    talos::storage::Database::open(&path).expect("open database")
 }
 
 fn add(path: &str) -> Command {
@@ -142,7 +142,7 @@ fn repo(at: &Path) {
 fn a_path_that_does_not_exist_is_refused_and_not_remembered() {
     let _home = isolate();
     let mut bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let missing = _home.path().join("nope");
 
@@ -164,7 +164,7 @@ fn a_path_that_does_not_exist_is_refused_and_not_remembered() {
 fn an_added_repository_is_remembered_with_its_git_ness() {
     let _home = isolate();
     let mut bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let checkout = _home.path().join("thing");
     std::fs::create_dir_all(&checkout).expect("mkdir");
@@ -187,7 +187,7 @@ fn a_plain_directory_is_remembered_as_one() {
     // renders it `(dir)` and refuses only the worktree toggle.
     let _home = isolate();
     let mut bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let plain = _home.path().join("reference");
     std::fs::create_dir_all(&plain).expect("mkdir");
@@ -217,7 +217,7 @@ fn a_path_that_does_not_exist_yet_can_be_made_and_remembered() {
     // with the git-ness actually observed.
     let _home = isolate();
     let mut bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let empty = _home.path().join("code/empty");
     let fresh = _home.path().join("code/fresh");
@@ -253,7 +253,7 @@ fn a_path_that_does_not_exist_yet_can_be_made_and_remembered() {
 fn making_a_path_that_holds_something_is_refused_and_not_remembered() {
     let _home = isolate();
     let mut bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let taken = _home.path().join("taken");
     std::fs::create_dir_all(&taken).expect("mkdir");
@@ -272,7 +272,7 @@ fn making_a_path_that_holds_something_is_refused_and_not_remembered() {
 fn a_failed_clone_leaves_neither_a_directory_nor_a_memory() {
     let _home = isolate();
     let mut bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let target = _home.path().join("cloned");
     let nowhere = _home.path().join("no-such-repo");
@@ -295,7 +295,7 @@ fn adding_a_remembered_path_again_touches_it_rather_than_duplicating_it() {
     // added, which is how the flow re-selects a path it already knew.
     let _home = isolate();
     let mut bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let first = _home.path().join("one");
     let second = _home.path().join("two");
@@ -321,7 +321,7 @@ fn adding_a_remembered_path_again_touches_it_rather_than_duplicating_it() {
 fn importing_a_folder_remembers_its_repositories_and_reports_an_empty_one() {
     let _home = isolate();
     let mut bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let folder = _home.path().join("src");
     let inside = folder.join("thing");
@@ -366,7 +366,7 @@ fn importing_a_folder_remembers_its_repositories_and_reports_an_empty_one() {
 fn forgetting_a_folder_takes_its_members_with_it() {
     let _home = isolate();
     let mut bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let folder = _home.path().join("src");
     let inside = folder.join("thing");
@@ -393,7 +393,7 @@ fn a_bookmark_can_be_forgotten_after_its_host_is_gone() {
     // after the host was taken out of `hosts.toml`.
     let _home = isolate();
     let mut bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let path = std::path::Path::new("/srv/thing");
     database()
@@ -424,7 +424,7 @@ fn adding_for_a_host_that_is_gone_is_refused_by_name() {
     // rather than silently treated as local.
     let _home = isolate();
     let mut bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let add_remote = Command::parse(
         "bookmark",
@@ -450,7 +450,7 @@ fn adding_for_a_host_that_is_gone_is_refused_by_name() {
 fn forgetting_something_never_remembered_says_so() {
     let _home = isolate();
     let mut bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let error = run(&mut bus, edit("/nowhere/at/all", "remove"));
     assert!(
@@ -553,7 +553,7 @@ fn imported_folder(bus: &mut CommandBus, home: &Path, names: &[&str]) -> std::pa
 fn a_folder_offers_a_repository_cloned_into_it_after_the_import() {
     let home = isolate();
     let mut bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let folder = imported_folder(&mut bus, home.path(), &["one"]);
 
@@ -574,7 +574,7 @@ fn a_folder_offers_a_repository_cloned_into_it_after_the_import() {
 fn a_folder_stops_offering_a_repository_that_has_gone() {
     let home = isolate();
     let mut bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let folder = imported_folder(&mut bus, home.path(), &["one", "two"]);
 
@@ -634,9 +634,9 @@ fn stub_ssh(home: &Path) {
 
 /// A registry holding one ssh host, reached through [`stub_ssh`].
 #[cfg(unix)]
-fn one_host() -> thurbox::session::HostRegistry {
-    thurbox::session::HostRegistry {
-        hosts: vec![thurbox::session::HostDef {
+fn one_host() -> talos::session::HostRegistry {
+    talos::session::HostRegistry {
+        hosts: vec![talos::session::HostDef {
             name: "box".into(),
             destination: "box".into(),
             ..Default::default()

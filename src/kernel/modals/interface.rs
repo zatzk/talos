@@ -4,7 +4,7 @@
 //! yours / installed) and whether it is actually on screen — with, for the
 //! selected file, why and what changes it — and restore, remove, trust and
 //! switch. Three things about those files are otherwise invisible from inside
-//! thurbox: a pane whose slot `layout.lua` does not place is dropped in silence,
+//! talos: a pane whose slot `layout.lua` does not place is dropped in silence,
 //! a file that fails to load leaves the **last good version** running (so the
 //! screen looks right while the file on disk is not what is on it), and a
 //! bundled file you deleted looks exactly like one that was never shipped.
@@ -177,10 +177,10 @@ fn origin(source: &Source) -> Option<String> {
 /// Where a file came from, in full — the details line, where there is room.
 fn provenance(source: &Source) -> String {
     match source {
-        Source::Bundled => "shipped with thurbox, unchanged".to_string(),
-        Source::Edited => "shipped with thurbox, edited here".to_string(),
+        Source::Bundled => "shipped with talos, unchanged".to_string(),
+        Source::Edited => "shipped with talos, edited here".to_string(),
         Source::User => "your own file".to_string(),
-        Source::Removed => "shipped with thurbox, deleted here".to_string(),
+        Source::Removed => "shipped with talos, deleted here".to_string(),
         Source::Installed { src } => format!("installed from {src}"),
         Source::InstalledEdited { src } => format!("installed from {src}, edited since"),
     }
@@ -242,7 +242,7 @@ fn reason(row: &Row) -> (String, Option<String>) {
                 Kind::Pane => "draws into another pane rather than a slot of its own",
                 Kind::Module => "loaded when a pane requires it",
                 Kind::Arrangement => "decides where every pane goes",
-                Kind::Manifest => "what `thurbox-cli plugin sync` installs",
+                Kind::Manifest => "what `talos-cli plugin sync` installs",
                 Kind::Doc => "guidance for whoever edits this directory",
             }),
             None,
@@ -420,7 +420,7 @@ impl InterfaceTab {
             .is_some_and(|(armed, what)| armed == path && act(*what))
     }
 
-    /// Put back the version thurbox ships.
+    /// Put back the version talos ships.
     ///
     /// Covers both undo cases — a file you edited and one you deleted — because
     /// both mean "put back what we ship and forget what happened to it". Only
@@ -436,7 +436,7 @@ impl InterfaceTab {
             // an installed file is put back by the manager that put it there.
             return (
                 Some(format!(
-                    "{} came from {src}; `thurbox-cli plugin sync` puts it back",
+                    "{} came from {src}; `talos-cli plugin sync` puts it back",
                     row.path
                 )),
                 None,
@@ -448,7 +448,7 @@ impl InterfaceTab {
             // shipped version to put back.
             return (
                 Some(format!(
-                    "{} is yours; thurbox ships no version of it",
+                    "{} is yours; talos ships no version of it",
                     row.path
                 )),
                 None,
@@ -648,7 +648,7 @@ impl InterfaceTab {
             let (question, consequence) = match armed {
                 Armed::Remove { ours: true } => (
                     "delete",
-                    " thurbox has no copy — this cannot be undone. d again to confirm",
+                    " talos has no copy — this cannot be undone. d again to confirm",
                 ),
                 Armed::Remove { ours: false } => {
                     ("delete", " restorable afterwards. d again to confirm")
@@ -714,7 +714,7 @@ impl InterfaceTab {
             return;
         }
         // Where the files are, and — said out loud — that adding one is putting a
-        // file there. Both answer confusions nothing else can: `THURBOX_UI_DIR`
+        // file there. Both answer confusions nothing else can: `TALOS_UI_DIR`
         // and a dev build each move the live directory, so edits that "did
         // nothing" are usually edits to a file that is not the one running; and
         // "how do I add a pane" otherwise lives only in the guide.
@@ -731,7 +731,7 @@ impl InterfaceTab {
             if area.height > 1 {
                 frame.render_widget(
                     Paragraph::new(Span::styled(
-                        " no interface files here yet — thurbox writes the shipped ones when it starts",
+                        " no interface files here yet — talos writes the shipped ones when it starts",
                         chrome.muted(),
                     )),
                     Rect::new(area.x, area.y + 1, area.width, 1),
@@ -873,7 +873,7 @@ mod tests {
             ..row(
                 "plugins/85_top.lua",
                 Source::Installed {
-                    src: "/home/user/code/thurbox/examples/panes/top".into(),
+                    src: "/home/user/code/talos/examples/panes/top".into(),
                 },
                 FileState::Unplaced,
             )
@@ -902,7 +902,7 @@ mod tests {
                     body,
                     Files {
                         rows,
-                        dir: "/home/user/.config/thurbox/ui",
+                        dir: "/home/user/.config/talos/ui",
                     },
                     chrome,
                     &mut hits,
@@ -985,11 +985,11 @@ mod tests {
         // A trusted file that changed since says both halves.
         let mut drifted = installed_top();
         drifted.source = Source::InstalledEdited {
-            src: "git+https://github.com/someone/thurbox-top.git".into(),
+            src: "git+https://github.com/someone/talos-top.git".into(),
         };
         drifted.trust = FileTrust::Drifted;
         let line = row_of(&lines(drifted), "85_top.lua");
-        assert!(line.contains("from thurbox-top, edited"), "{line}");
+        assert!(line.contains("from talos-top, edited"), "{line}");
         assert!(line.contains("trusted, changed"), "{line}");
 
         // Silence is the right answer for the shipped, unmodified default: a
@@ -1122,7 +1122,7 @@ mod tests {
         );
         assert!(text.contains("layout.lua"), "and where it goes: {text}");
         assert!(
-            text.contains("/home/user/code/thurbox/examples/panes/top"),
+            text.contains("/home/user/code/talos/examples/panes/top"),
             "the full source is in the details, where there is room: {text}"
         );
         // The shipped search strip is placed only while it is open, so a

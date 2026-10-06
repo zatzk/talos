@@ -345,7 +345,7 @@ fn show(db: &Database) -> Result<Value, String> {
             // The interface is config like the rest of it, and it was the one
             // thing this command could not tell you the location of — which is
             // exactly the question a dev build invites, since every path here
-            // swaps `thurbox` for `thurbox-dev`.
+            // swaps `talos` for `talos-dev`.
             "ui_dir": crate::kernel::bundled::user_ui_dir()
                 .map(|p| p.display().to_string()),
             "ui_json": crate::kernel::registry::overrides_file()

@@ -2,7 +2,7 @@
 //!
 //! What this guards is what "the editor hung" actually looked like. A window can
 //! outlive the program in it — tmux's `remain-on-exit` keeps the frame, and
-//! thurbox turns that option on for a dead agent's window to stay readable (with
+//! talos turns that option on for a dead agent's window to stay readable (with
 //! a twist: `set-option -t <session> remain-on-exit on` lands on the session's
 //! CURRENT window, measured on tmux 3.2a, so the option reaches whatever window
 //! happened to be current, which can be a program's). The corpse keeps the
@@ -20,7 +20,7 @@
 use std::process::Command;
 use std::time::{Duration, Instant};
 
-use thurbox::kernel::terminal::{ProgramKey, Terminals};
+use talos::kernel::terminal::{ProgramKey, Terminals};
 
 /// The guard every tmux server in this file is reaped by — see its own doc.
 #[path = "support/tmux_server.rs"]
@@ -28,7 +28,7 @@ mod tmux_server;
 
 use tmux_server::TmuxServer;
 
-const SOCKET: &str = "thurbox-program-corpse-e2e";
+const SOCKET: &str = "talos-program-corpse-e2e";
 const OWNER: &str = "plugins/90_files.lua";
 const PANE: &str = "editor_corpse";
 const DEADLINE: Duration = Duration::from_secs(10);
@@ -92,13 +92,13 @@ async fn a_dead_program_window_is_replaced_rather_than_adopted() {
 
     let dir = tempfile::tempdir().expect("tempdir");
     let _server = TmuxServer::pin(SOCKET);
-    thurbox::paths::set_test_dir(dir.path());
+    talos::paths::set_test_dir(dir.path());
 
     let started = tmux(&[
         "new-session",
         "-d",
         "-s",
-        "thurbox-dev",
+        "talos-dev",
         "-x",
         "80",
         "-y",
@@ -114,7 +114,7 @@ async fn a_dead_program_window_is_replaced_rather_than_adopted() {
 
     let key = ProgramKey::new(OWNER, PANE);
     let mut first = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     if let Err(e) = first.start_program(
         &key,
@@ -159,7 +159,7 @@ async fn a_dead_program_window_is_replaced_rather_than_adopted() {
     // by its deterministic name.
     drop(first);
     let mut second = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let started_again = second.start_program(
         &key,

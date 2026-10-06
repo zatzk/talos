@@ -1,7 +1,7 @@
--- `thurbox.worktrees`, with one letter wrong.
+-- `talos.worktrees`, with one letter wrong.
 return {
   name = "std_typo_worktrees",
   render = function()
-    return { text = tostring(thurbox.worktrees.lst) }
+    return { text = tostring(talos.worktrees.lst) }
   end,
 }

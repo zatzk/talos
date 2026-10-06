@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Regenerate the website's `iddqd` easter-egg clip: Doom running *inside* a
-# thurbox pane.
+# talos pane.
 #
 #   media/doom-easter-egg.mp4              (copied into website/assets/ at
 #                                                deploy time by pages.yml)
@@ -8,32 +8,32 @@
 #
 # **Doom is a plugin now, not an agent.** This used to be recorded through the
 # `pi` CLI and its `pi-doom` extension — a game pretending to be a coding agent
-# to borrow the one field of the session model that spawns a pty. thurbox-doom
+# to borrow the one field of the session model that spawns a pty. talos-doom
 # asks the kernel for a *program pane* of its own (`Capability::Program`), so the
 # recording needs no agent to install and no transcript tidied up on screen:
 # install the plugin, grant it the capability, press `f7`.
 #
-#   https://github.com/Thurbeen/thurbox-doom
+#   https://github.com/zatzk/talos-doom
 #
 # Two consequences for the script below. The plugin arrives by **clone** (its WAD
 # is binary, and the file-by-file fetch path decodes what it fetches as UTF-8),
 # so recording needs the network once. And a `program` grant is a **decision made
-# in a running interface** — there is deliberately no `thurbox-cli` for it — so the
+# in a running interface** — there is deliberately no `talos-cli` for it — so the
 # sandbox seeds the grant the settings modal would have written.
 #
 # Unlike the other demos this is not a VHS tape. VHS drives a TUI through
-# ttyd + a headless browser; here the whole point is a *nested* TUI (thurbox
+# ttyd + a headless browser; here the whole point is a *nested* TUI (talos
 # rendering Doom), and the toolchain is lighter: asciinema records the real
-# thurbox to an asciicast and agg rasterises it to frames. No browser.
+# talos to an asciicast and agg rasterises it to frames. No browser.
 #
 # The clip is Doom's own attract demo, so nothing has to be played. The engine
 # does handle held keys (it infers releases from auto-repeat timing, which is how
-# it works around thurbox forwarding key *presses* but not *releases*), but
+# it works around talos forwarding key *presses* but not *releases*), but
 # scripting a level through `tmux send-keys` is a recording nobody can re-run and
 # get the same footage from — the attract demo is the same every time.
 #
 # Requirements:
-#   thurbox + thurbox-cli on PATH   (the binaries under test)
+#   talos + talos-cli on PATH   (the binaries under test)
 #   asciinema **2.x**, agg, ffmpeg, ffprobe, tmux, git, node, python3 (>= 3.11),
 #   sqlite3. The 2.x pin is load-bearing: asciinema 3 records asciicast v3, an
 #   interval-based format trim-cast.mjs does not parse — it reads v2's absolute
@@ -70,10 +70,10 @@ THEME="${THEME:-doom}"
 # Where the plugin comes from. A `git+` prefix is one of the three spellings that
 # clone (`.git` suffix and `git@host:path` are the others); a filesystem path
 # works too, which is how you record against a local checkout.
-DOOM_PLUGIN_SRC="${DOOM_PLUGIN_SRC:-git+https://github.com/Thurbeen/thurbox-doom}"
+DOOM_PLUGIN_SRC="${DOOM_PLUGIN_SRC:-git+https://github.com/zatzk/talos-doom}"
 
-# --- The recording's phases, in seconds since thurbox launched ---------------
-# thurbox boots, adopts the seeded sessions and loads the plugin.
+# --- The recording's phases, in seconds since talos launched ---------------
+# talos boots, adopts the seeded sessions and loads the plugin.
 BOOT_SECS="${BOOT_SECS:-10}"
 # How long Doom runs after `f7` before Ctrl+Q ends the recording.
 DOOM_SECS="${DOOM_SECS:-60}"
@@ -95,7 +95,7 @@ END="${END:-$((START + 21))}"
 # waits to be asked to play.
 POSTER_AT="${POSTER_AT:-3}"
 
-SBX="${SBX:-/tmp/thurbox-doom-rec}"
+SBX="${SBX:-/tmp/talos-doom-rec}"
 
 # The sessions in the left column, named after the work rather than the agent —
 # the same narrative scripts/demo/record.sh records the other clips against.
@@ -103,7 +103,7 @@ SBX="${SBX:-/tmp/thurbox-doom-rec}"
 SESSION_NAMES=(fix-osc52-tmux add-wsl-host-tests perf-session-order-cache docs-remote-hooks)
 SESSION_BRANCHES=(fix/osc52-tmux test/wsl-hosts perf/session-order docs/remote-hooks)
 
-for bin in thurbox thurbox-cli node python3 sqlite3 asciinema agg ffmpeg ffprobe tmux git; do
+for bin in talos talos-cli node python3 sqlite3 asciinema agg ffmpeg ffprobe tmux git; do
     command -v "$bin" >/dev/null 2>&1 || {
         echo "error: $bin not found on PATH" >&2
         exit 1
@@ -124,46 +124,46 @@ python3 -c 'import tomllib' 2>/dev/null || {
     exit 1
 }
 
-# Fully isolated: thurbox's own config/data plus a private TMUX_TMPDIR, so this
-# never touches your real sessions or the release `thurbox` socket. Kept short —
+# Fully isolated: talos's own config/data plus a private TMUX_TMPDIR, so this
+# never touches your real sessions or the release `talos` socket. Kept short —
 # AF_UNIX socket paths are length-limited.
 export TMUX_TMPDIR="$SBX/tmux"
-export THURBOX_CONFIG_DIR="$SBX/config"
-export THURBOX_DATA_DIR="$SBX/data"
-# The server thurbox itself runs on, named outright rather than assumed: the
-# relocated data dir above makes thurbox derive a socket of its own
-# (`thurbox-<digest>`), so `cleanup` was killing a name nothing created and
+export TALOS_CONFIG_DIR="$SBX/config"
+export TALOS_DATA_DIR="$SBX/data"
+# The server talos itself runs on, named outright rather than assumed: the
+# relocated data dir above makes talos derive a socket of its own
+# (`talos-<digest>`), so `cleanup` was killing a name nothing created and
 # leaving the recording's server — with its agent panes — behind on every run.
-# THURBOX_SOCKET_FOR goes with it: a run started from inside a thurbox pane
-# inherits a tag naming the operator's instance, and that makes thurbox read
+# TALOS_SOCKET_FOR goes with it: a run started from inside a talos pane
+# inherits a tag naming the operator's instance, and that makes talos read
 # the name below as inherited and derive one anyway.
-export THURBOX_SOCKET="thurbox-doom"
-unset THURBOX_SOCKET_FOR
+export TALOS_SOCKET="talos-doom"
+unset TALOS_SOCKET_FOR
 
 rm -rf "$SBX"
 mkdir -p "$SBX"/{tmux,config,data}
 
-# Written before the first thurbox call, which is what seeds this file: both
+# Written before the first talos call, which is what seeds this file: both
 # flags reach the network, and each one spoils a recording in its own way.
 # `version_check` puts an `⬆ vX available` segment in the top band — the clip
 # would advertise an upgrade and date itself. `auto_update` silently downloads
 # and replaces the installed binaries on startup, which is not something a
 # recording should do to the machine it is recording on.
-cat > "$THURBOX_CONFIG_DIR/settings.toml" <<'SETTINGS'
+cat > "$TALOS_CONFIG_DIR/settings.toml" <<'SETTINGS'
 [features]
 version_check = false
 auto_update = false
 SETTINGS
-# Named `thurbox` because the session list groups by repository and prints the
+# Named `talos` because the session list groups by repository and prints the
 # directory's basename as the group header.
-REPO="$SBX/thurbox"
+REPO="$SBX/talos"
 # `-b main`, not git's default: a worktree is created off `main` unless told
 # otherwise, and on a box whose init.defaultBranch is `master` every
 # `session create --worktree-branch` below fails with `invalid reference: main`.
 git init -q -b main "$REPO"
-printf 'thurbox\n' > "$REPO/README.md"
+printf 'talos\n' > "$REPO/README.md"
 git -C "$REPO" add -A
-git -C "$REPO" -c user.email=demo@thurbox -c user.name=demo -c commit.gpgsign=false \
+git -C "$REPO" -c user.email=demo@talos -c user.name=demo -c commit.gpgsign=false \
     commit -qm init
 
 CAST="$SBX/doom.cast"
@@ -171,24 +171,24 @@ TRIMMED="$SBX/trimmed.cast"
 GIF="$SBX/doom.gif"
 
 # Both kills are scoped by the exported TMUX_TMPDIR above, which is why killing
-# these sockets by name here cannot reach your real thurbox server. The second
+# these sockets by name here cannot reach your real talos server. The second
 # is also what reaps Doom, whose program pane is a window on that socket.
 cleanup() {
-    tmux -L thurbox-doom-rec kill-server 2>/dev/null
-    tmux -L "$THURBOX_SOCKET" kill-server 2>/dev/null
+    tmux -L talos-doom-rec kill-server 2>/dev/null
+    tmux -L "$TALOS_SOCKET" kill-server 2>/dev/null
 }
 trap cleanup EXIT
 
-# Resolve the paths thurbox itself resolves, rather than assuming the layout: a
+# Resolve the paths talos itself resolves, rather than assuming the layout: a
 # dev build and a release build read different profiles, and both are plausible
 # on PATH here.
-paths=$(thurbox-cli config show --json 2>/dev/null | python3 -c '
+paths=$(talos-cli config show --json 2>/dev/null | python3 -c '
 import json, sys
 paths = json.load(sys.stdin)["paths"]
 print(paths["ui_dir"]); print(paths["ui_json"]); print(paths["database"])
 ')
 [ -n "$paths" ] || {
-    echo "error: could not read the resolved paths from thurbox-cli config show" >&2
+    echo "error: could not read the resolved paths from talos-cli config show" >&2
     exit 1
 }
 {
@@ -198,12 +198,12 @@ print(paths["ui_dir"]); print(paths["ui_json"]); print(paths["database"])
 } <<< "$paths"
 
 echo "==> installing the doom plugin into $UI_DIR"
-thurbox-cli plugin install "$DOOM_PLUGIN_SRC" --text || exit 1
+talos-cli plugin install "$DOOM_PLUGIN_SRC" --text || exit 1
 
 # The plugin ships one built engine (linux-x86_64) and names the platform it has
 # nothing for rather than exec'ing a path it has no reason to believe in — which
 # would be a recording of that panel instead of a recording of Doom. Same
-# `<os>-<arch>` spelling `thurbox.platform` publishes (Rust's `env::consts`).
+# `<os>-<arch>` spelling `talos.platform` publishes (Rust's `env::consts`).
 case "$(uname -s)" in
     Linux) plat_os=linux ;;
     Darwin) plat_os=macos ;;
@@ -214,11 +214,11 @@ case "$(uname -m)" in
     arm64 | aarch64) plat_arch=aarch64 ;;
     *) plat_arch=unknown ;;
 esac
-ENGINE="$UI_DIR/thurbox-doom/engine/bin/$plat_os-$plat_arch/doom"
+ENGINE="$UI_DIR/talos-doom/engine/bin/$plat_os-$plat_arch/doom"
 [ -x "$ENGINE" ] || {
     echo "error: the plugin ships no engine for $plat_os-$plat_arch" >&2
-    echo "  the builds it ships are under $UI_DIR/thurbox-doom/engine/bin" >&2
-    echo "  build one with 'cd $UI_DIR/thurbox-doom/engine/src && make'" >&2
+    echo "  the builds it ships are under $UI_DIR/talos-doom/engine/bin" >&2
+    echo "  build one with 'cd $UI_DIR/talos-doom/engine/src && make'" >&2
     exit 1
 }
 
@@ -263,12 +263,12 @@ else
         for a in "${agents[@]}"; do
             printf '\n[[agents]]\nname = "%s"\ncommand = "%s"\n' "$a" "$a"
         done
-    } > "$THURBOX_CONFIG_DIR/agents.toml"
+    } > "$TALOS_CONFIG_DIR/agents.toml"
 
     for i in "${!agents[@]}"; do
         [ "$i" -lt "${#SESSION_NAMES[@]}" ] || break
         echo "==> creating session ${SESSION_NAMES[$i]} (${agents[$i]})"
-        thurbox-cli session create --name "${SESSION_NAMES[$i]}" \
+        talos-cli session create --name "${SESSION_NAMES[$i]}" \
             --agent "${agents[$i]}" --repo-path "$REPO" \
             --worktree-branch "${SESSION_BRANCHES[$i]}" --text 2>&1 | head -2
     done
@@ -279,7 +279,7 @@ fi
 #
 # `v2_interface_acknowledged` is the one that is not cosmetic: the v1 -> v2
 # consent gate asks any profile with session history, and seeding sessions gives
-# a fresh profile exactly that. Unacknowledged, thurbox stops on the notice and
+# a fresh profile exactly that. Unacknowledged, talos stops on the notice and
 # the recording is 60 seconds of a wall of text.
 sqlite3 "$DB" "
 INSERT INTO metadata (key, value) VALUES ('v2_interface_acknowledged', '1')
@@ -287,14 +287,14 @@ INSERT INTO metadata (key, value) VALUES ('v2_interface_acknowledged', '1')
 INSERT INTO metadata (key, value) VALUES ('active_theme', '$THEME')
   ON CONFLICT(key) DO UPDATE SET value = excluded.value;" || exit 1
 
-echo "==> recording thurbox (${COLS}x${ROWS})"
-# asciinema owns the pty, so `tmux send-keys` below reaches thurbox through it.
-tmux -L thurbox-doom-rec new-session -d -x "$COLS" -y "$ROWS" -c "$REPO" -s r \
-    "TMUX_TMPDIR=$TMUX_TMPDIR THURBOX_CONFIG_DIR=$THURBOX_CONFIG_DIR \
-     THURBOX_DATA_DIR=$THURBOX_DATA_DIR THURBOX_SOCKET=$THURBOX_SOCKET PATH=$PATH \
-     asciinema rec --overwrite --quiet --cols $COLS --rows $ROWS -c thurbox '$CAST'"
+echo "==> recording talos (${COLS}x${ROWS})"
+# asciinema owns the pty, so `tmux send-keys` below reaches talos through it.
+tmux -L talos-doom-rec new-session -d -x "$COLS" -y "$ROWS" -c "$REPO" -s r \
+    "TMUX_TMPDIR=$TMUX_TMPDIR TALOS_CONFIG_DIR=$TALOS_CONFIG_DIR \
+     TALOS_DATA_DIR=$TALOS_DATA_DIR TALOS_SOCKET=$TALOS_SOCKET PATH=$PATH \
+     asciinema rec --overwrite --quiet --cols $COLS --rows $ROWS -c talos '$CAST'"
 
-send() { tmux -L thurbox-doom-rec send-keys -t r "$@"; }
+send() { tmux -L talos-doom-rec send-keys -t r "$@"; }
 
 sleep "$BOOT_SECS"
 # `f7` is the plugin's global chord, so it reaches a pane that is not on screen
@@ -303,7 +303,7 @@ sleep "$BOOT_SECS"
 # here and the phase arithmetic above is timed from it.
 send F7
 sleep "$DOOM_SECS"
-send C-q                     # thurbox quit -> asciinema finalises the cast
+send C-q                     # talos quit -> asciinema finalises the cast
 sleep 6
 
 [ -s "$CAST" ] || {

@@ -1,7 +1,7 @@
--- `thurbox.preflight.mux`, with one letter wrong.
+-- `talos.preflight.mux`, with one letter wrong.
 return {
   name = "std_typo_preflight_mux",
   render = function()
-    return { text = thurbox.preflight.mux.binray }
+    return { text = talos.preflight.mux.binray }
   end,
 }

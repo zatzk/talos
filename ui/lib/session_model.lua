@@ -78,7 +78,7 @@ end
 --- see `live_sessions()`, which drops the row instead of annotating it.
 function session_model.pending()
   local by_session = {}
-  for _, item in ipairs(thurbox and thurbox.commands or {}) do
+  for _, item in ipairs(talos and talos.commands or {}) do
     if item.session and item.session ~= "" then
       by_session[item.session] = item
     end
@@ -100,7 +100,7 @@ end
 --- failed row is the only thing that says the deletion did not happen.
 local function live_sessions(rows)
   local gone = {}
-  for _, item in ipairs(thurbox and thurbox.commands or {}) do
+  for _, item in ipairs(talos and talos.commands or {}) do
     -- Guarded like `pending()`: a nil key is a runtime error in Lua.
     if item.kind == "delete" and item.phase ~= "failed" and item.session then
       gone[item.session] = true
@@ -129,7 +129,7 @@ end
 --- the machine it was asked for.
 local function creations()
   local all = {}
-  for _, item in ipairs(thurbox and thurbox.commands or {}) do
+  for _, item in ipairs(talos and talos.commands or {}) do
     if item.kind == "create" and item.subject then
       all[#all + 1] = item
     end
@@ -353,13 +353,13 @@ end
 
 --- Digest of the published in-flight commands, for the model memo below.
 ---
---- `thurbox.sessions` is a gated group, so its table identity is a sound memo
---- key — but `thurbox.commands` is rebuilt every publish, so it is digested by
+--- `talos.sessions` is a gated group, so its table identity is a sound memo
+--- key — but `talos.commands` is rebuilt every publish, so it is digested by
 --- value instead. Commands in flight are few, so the digest is far cheaper
 --- than the rebuild it prevents.
 local function commands_digest()
   local parts = {}
-  for _, item in ipairs(thurbox and thurbox.commands or {}) do
+  for _, item in ipairs(talos and talos.commands or {}) do
     parts[#parts + 1] = (item.kind or "")
       .. "\1"
       .. (item.session or "")

@@ -1,12 +1,12 @@
-//! `thurbox-cli perf` — read the perf snapshot a running TUI publishes.
+//! `talos-cli perf` — read the perf snapshot a running TUI publishes.
 //!
 //! The TUI writes a JSON snapshot (counters, frame/republish/tick timing
 //! percentiles, slow ops, startup phase breakdown, and the per-plugin report)
 //! into the SQLite `metadata` table while perf timing is active —
-//! `THURBOX_PERF_LOG=1` or an open perf HUD (F12). `kernel::perf::snapshot_json`
+//! `TALOS_PERF_LOG=1` or an open perf HUD (F12). `kernel::perf::snapshot_json`
 //! owns the shape; this renders it. This command prints the latest one, so a
 //! running instance can be inspected from outside without tailing
-//! `thurbox.log`. `--plugins` prints the per-pane half. See
+//! `talos.log`. `--plugins` prints the per-pane half. See
 //! `docs/PERFORMANCE.md`.
 
 use serde_json::{json, Value};
@@ -25,10 +25,10 @@ pub struct PerfArgs {
 }
 
 /// Human hint shown when no snapshot exists (or it can't be parsed).
-const NO_SNAPSHOT_HINT: &str = "No perf snapshot published. Run the TUI with THURBOX_PERF_LOG=1 \
+const NO_SNAPSHOT_HINT: &str = "No perf snapshot published. Run the TUI with TALOS_PERF_LOG=1 \
      or open its perf HUD (F12), then retry.";
 
-/// Shown for a snapshot published by a thurbox that predates `--plugins`.
+/// Shown for a snapshot published by a talos that predates `--plugins`.
 const NO_PLUGINS_HINT: &str = "This perf snapshot has no per-plugin section: the running TUI \
      is older than `perf --plugins`.";
 
@@ -159,7 +159,7 @@ fn render_human(s: &Value) -> String {
         }
         _ => out.push_str("\n\nslow ops: none recorded"),
     }
-    out.push_str("\n\nper pane: thurbox-cli perf --plugins");
+    out.push_str("\n\nper pane: talos-cli perf --plugins");
     out
 }
 
@@ -258,7 +258,7 @@ mod tests {
     fn missing_snapshot_exits_nonzero_with_hint() {
         let db = Database::open_in_memory().unwrap();
         let out = run(&db, false).unwrap();
-        assert!(out.human.contains("THURBOX_PERF_LOG=1"));
+        assert!(out.human.contains("TALOS_PERF_LOG=1"));
         assert!(out.failure.is_some(), "no snapshot → non-zero exit");
     }
 

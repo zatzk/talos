@@ -1,10 +1,10 @@
 #!/usr/bin/env sh
 set -e
 
-# Thurbox Installation Script
-# Usage: curl -fsSL https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/install.sh | sh
+# Talos Installation Script
+# Usage: curl -fsSL https://raw.githubusercontent.com/zatzk/talos/main/scripts/install.sh | sh
 
-REPO="${REPO:-Thurbeen/thurbox}"
+REPO="${REPO:-zatzk/talos}"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
 VERSION="${VERSION:-}"
 TEMP_DIR=""
@@ -31,7 +31,7 @@ success() { printf '%b\n' "${C_GREEN}✓${C_RESET} $*" >&2; }
 warn() { printf '%b\n' "${C_YELLOW}⚠${C_RESET} $*" >&2; }
 step() { printf '%b\n' "  ${C_DIM}$*${C_RESET}" >&2; }
 
-# Thurbox ASCII art banner (doom font)
+# Talos ASCII art banner (doom font)
 banner() {
   printf '%b' "$C_BOLD$C_MAGENTA" >&2
   # shellcheck disable=SC1003 # trailing backslashes are ASCII art, not quote escapes
@@ -124,7 +124,7 @@ get_version() {
 
 # Extract checksum from file
 get_checksum() {
-  local line="$(grep "thurbox.*$2" "$1" | head -1)"
+  local line="$(grep "talos.*$2" "$1" | head -1)"
   [ -z "$line" ] && { error "Checksum not found for $2"; return 1; }
   echo "$line" | awk '{print $1}'
 }
@@ -152,11 +152,11 @@ check_sum() {
 # Download and verify binary
 get_binary() {
   local version="$1" target="$2" tmpdir="$3"
-  local base="thurbox-${version}-${target}"
+  local base="talos-${version}-${target}"
   local url_base="https://github.com/${REPO}/releases/download/${version}"
 
   info "Downloading checksums..."
-  download "${url_base}/thurbox-${version}-checksums.txt" "$tmpdir/checksums.txt" || {
+  download "${url_base}/talos-${version}-checksums.txt" "$tmpdir/checksums.txt" || {
     error "Binaries not ready. Check: https://github.com/${REPO}/releases/tag/${version}"
     return 1
   }
@@ -178,14 +178,14 @@ do_install() {
   info "Installing..."
   mkdir -p "$dir"
   tar -xzf "$tarball" -C "$dir"
-  chmod +x "$dir/thurbox"
-  if [ -f "$dir/thurbox-cli" ]; then chmod +x "$dir/thurbox-cli"; fi
+  chmod +x "$dir/talos"
+  if [ -f "$dir/talos-cli" ]; then chmod +x "$dir/talos-cli"; fi
 }
 
 # Show success message
 show_success() {
   printf '\n' >&2
-  success "Thurbox installed to ${C_BOLD}$1/thurbox${C_RESET}"
+  success "Talos installed to ${C_BOLD}$1/talos${C_RESET}"
 
   if ! echo "$PATH" | grep -q "$1"; then
     warn "Add to PATH: ${C_BOLD}export PATH=\"$1:\$PATH\"${C_RESET}"
@@ -194,9 +194,9 @@ show_success() {
   printf '\n%b\n' "${C_BOLD}${C_MAGENTA}Next steps${C_RESET}" >&2
   step "• Install tmux >= 3.2"
   step "• Install a coding-agent CLI (claude, codex, antigravity, opencode, aider, …)"
-  step "• Check both:        ${C_CYAN}thurbox-cli doctor${C_RESET}"
-  step "• Launch the TUI:    ${C_CYAN}thurbox${C_RESET}"
-  step "• Scriptable CLI:    ${C_CYAN}thurbox-cli${C_RESET}"
+  step "• Check both:        ${C_CYAN}talos-cli doctor${C_RESET}"
+  step "• Launch the TUI:    ${C_CYAN}talos${C_RESET}"
+  step "• Scriptable CLI:    ${C_CYAN}talos-cli${C_RESET}"
 }
 
 # Main

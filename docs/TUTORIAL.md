@@ -1,6 +1,6 @@
-# Thurbox tutorial: your first sessions
+# Talos tutorial: your first sessions
 
-A walk through the first ten minutes of thurbox — from an empty screen to two
+A walk through the first ten minutes of talos — from an empty screen to two
 coding agents running side by side, each on its own git worktree, plus the
 handful of commands you will use every day.
 
@@ -24,37 +24,37 @@ in; yours will be your own `~/code`, `~/src`, or wherever you keep repositories.
 
 ## Before you start
 
-Install thurbox (both binaries — the TUI `thurbox` and the headless
-`thurbox-cli`):
+Install talos (both binaries — the TUI `talos` and the headless
+`talos-cli`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/zatzk/talos/main/scripts/install.sh | sh
 ```
 
-Windows is `irm https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/install.ps1 | iex`;
+Windows is `irm https://raw.githubusercontent.com/zatzk/talos/main/scripts/install.ps1 | iex`;
 Homebrew, AUR, Nix, winget and Chocolatey are on the
-[Installation page](https://thurbox.thurbeen.eu/docs/installation.html).
+[Installation page](https://talos.zatzk.com/docs/installation.html).
 
 You also need:
 
 - **tmux ≥ 3.2** (or [psmux ≥ 3.3.7](https://github.com/psmux/psmux) on native Windows, or
   opt-in [RMUX ≥ 0.10.0](CONFIG.md#multiplexer-requirements-and-rmux-setup)) —
-  it is what keeps your agents alive when thurbox is closed
+  it is what keeps your agents alive when talos is closed
 - **git**
 - **at least one coding-agent CLI** — `claude`, `codex`, `agy`, `opencode`,
-  `aider`, `copilot`, … thurbox launches whichever you have; it is not tied to
+  `aider`, `copilot`, … talos launches whichever you have; it is not tied to
   any of them
 
-Nothing to configure. On first launch thurbox seeds `~/.config/thurbox/` with
+Nothing to configure. On first launch talos seeds `~/.config/talos/` with
 the agents it knows, the themes, and the interface itself.
 
 ## 1. Launch it
 
 ```bash
-thurbox
+talos
 ```
 
-![An empty thurbox: the session list on the left, an empty agent pane on the right](../media/tutorial/01-first-launch.png)
+![An empty talos: the session list on the left, an empty agent pane on the right](../media/tutorial/01-first-launch.png)
 
 Two panes between two bars: the **session list** on the left, the **agent
 terminal** on the right, and the keys you need on the footer. There are no
@@ -68,7 +68,7 @@ fuzzy matches, best first.
 
 ![The repo picker, with only the interface directory in it](../media/tutorial/02-repo-picker.png)
 
-The list is thurbox's **repo memory** — the repositories you have used before.
+The list is talos's **repo memory** — the repositories you have used before.
 On a fresh install it holds one row you did not add: your own interface
 directory, offered because editing the panes is a thing you might want a session
 for.
@@ -143,8 +143,8 @@ The branch name comes next, prefilled from the name you just gave:
 
 ![The branch name step, prefilled with rate-limit](../media/tutorial/09-branch-name.png)
 
-Then the agent. This is the list from `~/.config/thurbox/agents.toml` — the
-built-ins thurbox seeds, plus any CLI you have described yourself. (With only
+Then the agent. This is the list from `~/.config/talos/agents.toml` — the
+built-ins talos seeds, plus any CLI you have described yourself. (With only
 one agent defined, this step is skipped.)
 
 ![The agent picker listing claude, codex, antigravity, opencode, aider, copilot, vibe, pi, omp, shell](../media/tutorial/10-agent-picker.png)
@@ -167,7 +167,7 @@ What you are looking at:
   reported by the agent's own hooks rather than guessed
 
 Press **`Ctrl+Q`** whenever you like: it detaches. tmux keeps every agent
-running, and relaunching `thurbox` puts you back where you were — after a crash,
+running, and relaunching `talos` puts you back where you were — after a crash,
 a reboot, or a week away.
 
 ## 6. The second session is faster
@@ -222,8 +222,8 @@ the panes rather than being reprinted:
 
 ## The same thing from the command line
 
-`thurbox-cli` drives the same sessions with no TUI, against the same database —
-so anything you do here shows up in a running thurbox within a tick, and vice
+`talos-cli` drives the same sessions with no TUI, against the same database —
+so anything you do here shows up in a running talos within a tick, and vice
 versa. It is on your `PATH` inside every session, which is what lets an agent
 orchestrate other agents.
 
@@ -234,28 +234,28 @@ parse it, or `--text` to keep the table down a pipe.
 
 ```bash
 # What is running
-thurbox-cli                                # live state: sessions, mail, counts
-thurbox-cli session list
-thurbox-cli session list --json | jq       # the full record, for a script
+talos-cli                                # live state: sessions, mail, counts
+talos-cli session list
+talos-cli session list --json | jq       # the full record, for a script
 
 # Start one headlessly, on its own worktree branch
-thurbox-cli session create --name docs --repo-path ~/code/web-app
-thurbox-cli session create --name rate-limit --repo-path ~/code/api-server \
+talos-cli session create --name docs --repo-path ~/code/web-app
+talos-cli session create --name rate-limit --repo-path ~/code/api-server \
     --agent claude --worktree-branch rate-limit
 
 # Talk to one, and read what it printed
-thurbox-cli session send <uuid> "run the tests and fix what fails"
-thurbox-cli session capture <uuid>
+talos-cli session send <uuid> "run the tests and fix what fails"
+talos-cli session capture <uuid>
 
 # Clean up (soft by default — `session restore` brings it back)
-thurbox-cli session delete <uuid>
+talos-cli session delete <uuid>
 ```
 
-![thurbox-cli session list, a headless session create, and the list again](../media/tutorial/15-cli.png)
+![talos-cli session list, a headless session create, and the list again](../media/tutorial/15-cli.png)
 
-Everything else lives under the same tree: `thurbox-cli config show` prints
-every resolved path, `thurbox-cli plugin dir` prints the interface directory,
-and `thurbox-cli --help` lists the rest (`automation`, `task`, `message`,
+Everything else lives under the same tree: `talos-cli config show` prints
+every resolved path, `talos-cli plugin dir` prints the interface directory,
+and `talos-cli --help` lists the rest (`automation`, `task`, `message`,
 `extension`, `editor`, `notify`).
 
 ## Where to go next
@@ -264,10 +264,10 @@ and `thurbox-cli --help` lists the rest (`automation`, `task`, `message`,
   agent in any session to change it, or read
   [docs/PLUGINS.md](PLUGINS.md). `Ctrl+,` then `]` lists every pane and turns
   one off; `F10` reloads.
-- **Run a fleet** — [Recipe: provision a monorepo headless](https://thurbox.thurbeen.eu/docs/recipes.html#monorepo)
+- **Run a fleet** — [Recipe: provision a monorepo headless](https://talos.zatzk.com/docs/recipes.html#monorepo)
   and [docs/ORCHESTRATION.md](ORCHESTRATION.md).
 - **Work on another machine** — declare an SSH host or a WSL distro in
-  `~/.config/thurbox/hosts.toml` and sessions run there while the TUI stays
+  `~/.config/talos/hosts.toml` and sessions run there while the TUI stays
   local ([docs/CONFIG.md](CONFIG.md)).
 - **Configure it** — [docs/CONFIG.md](CONFIG.md) is every config file, env var
   and setting in one place; [docs/FEATURES.md](FEATURES.md) is why each one

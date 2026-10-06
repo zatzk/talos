@@ -32,7 +32,7 @@ pub const REFRESH_INTERVAL: Duration = Duration::from_millis(400);
 /// render path (a `which` per frame, per keystroke or per list row) is the
 /// regression this window exists to prevent. Ten seconds is short enough that a
 /// user who reads "install tmux", installs it, and comes back sees the flow
-/// agree without restarting thurbox, and long enough that an idle instance
+/// agree without restarting talos, and long enough that an idle instance
 /// costs a few `stat`s a minute.
 const PREFLIGHT_TTL: Duration = Duration::from_secs(10);
 
@@ -766,7 +766,7 @@ struct PendingHook {
 }
 
 impl SnapshotStore {
-    /// Open against the real thurbox database.
+    /// Open against the real talos database.
     ///
     /// A database that will not open is not fatal: the kernel still runs and
     /// every read returns an empty snapshot carrying the error, which a plugin
@@ -908,7 +908,7 @@ impl SnapshotStore {
     /// history) every 400ms forever, on a database nobody wrote to.
     /// `PRAGMA data_version` reads an in-memory counter and moves whenever
     /// another connection commits — which covers every writer that matters, since
-    /// the command bus holds its own — so an idle thurbox stops querying
+    /// the command bus holds its own — so an idle talos stops querying
     /// altogether. v1 gates its per-tick session read the same way (ADR-P6).
     ///
     /// Git stats are folded in either way: they arrive from worker threads, not
@@ -928,7 +928,7 @@ impl SnapshotStore {
         // requested once and never refreshed.
         let panes_moved = self.poll_pane_probes();
         // Asked here rather than in `refresh`, which stops running altogether
-        // on a database nobody writes to — which is exactly the state thurbox
+        // on a database nobody writes to — which is exactly the state talos
         // is in while the user is off installing what was missing.
         let preflight_moved = self.poll_preflight();
         if !panes_moved && self.rows_are_current() {
@@ -1134,7 +1134,7 @@ impl SnapshotStore {
 
     /// Apply remote agents' hook reports to the sessions they name.
     ///
-    /// A remote agent cannot call `thurbox-cli session signal` — there is no CLI
+    /// A remote agent cannot call `talos-cli session signal` — there is no CLI
     /// on the host, and it would write the host's own database — so its hooks set
     /// a tmux pane option instead, which arrives here over the control-mode
     /// subscription. Landing it in the same columns a local signal writes is what
@@ -1266,7 +1266,7 @@ impl SnapshotStore {
             // A parked session has no process to be working or blocked in, and
             // `Stopped` outranks both — see `Assessment::state`. Its hook
             // columns still hold whatever stood before `session stop`, so
-            // without this the pass would talk over the one state thurbox
+            // without this the pass would talk over the one state talos
             // knows first-hand.
             if row.stopped {
                 continue;
@@ -1391,7 +1391,7 @@ impl SnapshotStore {
     /// `DELETE … RETURNING` is a write statement that takes the WAL write lock
     /// even when it matches nothing, so running it per loop iteration put
     /// 20–100 write-lock cycles a second on the UI thread — and, behind the 5 s
-    /// busy timeout, a moment of contention with `thurbox-cli` or the heartbeat
+    /// busy timeout, a moment of contention with `talos-cli` or the heartbeat
     /// could stall a frame for that long. The row can only appear via another
     /// connection's commit, which is exactly what moves `data_version` and
     /// brings `refresh` round, so riding that gate loses nothing but a
@@ -2036,8 +2036,8 @@ mod tests {
     #[test]
     fn a_repo_label_prefers_the_worktree_repo() {
         let cwd = Some(PathBuf::from("/tmp/worktrees/feature-x"));
-        let repo = PathBuf::from("/home/me/src/thurbox");
-        assert_eq!(repo_name(&cwd, Some(&repo)).as_deref(), Some("thurbox"));
+        let repo = PathBuf::from("/home/me/src/talos");
+        assert_eq!(repo_name(&cwd, Some(&repo)).as_deref(), Some("talos"));
         assert_eq!(repo_name(&cwd, None).as_deref(), Some("feature-x"));
         assert_eq!(repo_name(&None, None), None);
     }
@@ -2134,10 +2134,10 @@ mod tests {
 
     #[test]
     fn a_single_repo_session_has_one_member_at_its_cwd() {
-        let members = session_members(Some(std::path::Path::new("/src/thurbox")), &[], &[]);
+        let members = session_members(Some(std::path::Path::new("/src/talos")), &[], &[]);
         assert_eq!(
             members,
-            vec![(Some("thurbox".to_string()), PathBuf::from("/src/thurbox"))]
+            vec![(Some("talos".to_string()), PathBuf::from("/src/talos"))]
         );
     }
 
@@ -2146,16 +2146,16 @@ mod tests {
         // The distinction the editor depends on: opening the repository root
         // would land on whatever branch that has, not the one being worked.
         let worktrees = vec![crate::sync::state::SharedWorktree {
-            repo_path: PathBuf::from("/src/thurbox"),
+            repo_path: PathBuf::from("/src/talos"),
             worktree_path: PathBuf::from("/worktrees/fix-osc52"),
             branch: "fix/osc52".into(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         }];
-        let members = session_members(Some(std::path::Path::new("/src/thurbox")), &worktrees, &[]);
+        let members = session_members(Some(std::path::Path::new("/src/talos")), &worktrees, &[]);
         assert_eq!(
             members,
             vec![(
-                Some("thurbox".to_string()),
+                Some("talos".to_string()),
                 PathBuf::from("/worktrees/fix-osc52")
             )]
         );
@@ -2168,13 +2168,13 @@ mod tests {
                 repo_path: PathBuf::from("/src/a"),
                 worktree_path: PathBuf::from("/worktrees/a"),
                 branch: "feat/x".into(),
-                created_by_thurbox: true,
+                created_by_talos: true,
             },
             crate::sync::state::SharedWorktree {
                 repo_path: PathBuf::from("/src/b"),
                 worktree_path: PathBuf::from("/worktrees/b"),
                 branch: "feat/x".into(),
-                created_by_thurbox: true,
+                created_by_talos: true,
             },
         ];
         // An attached directory that is already a worktree must not appear twice.
@@ -2484,7 +2484,7 @@ mod tests {
             .expect("retire remote report"));
     }
 
-    /// The local path: an agent's own `thurbox-cli session signal` writes the
+    /// The local path: an agent's own `talos-cli session signal` writes the
     /// hook state through a second connection, never through
     /// `apply_hook_states`, so only `refresh_if_due`'s normal DB-read cadence
     /// ever sees it. Driven exactly as the coordinator drives it — no

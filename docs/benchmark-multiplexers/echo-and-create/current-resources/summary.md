@@ -13,7 +13,7 @@ Run 20260925T102629Z · reps 5 (+1 warm-up discarded)
     "governor": "powersave"
   },
   "versions": {
-    "thurbox": "0.0.0-dev (schema v47)",
+    "talos": "0.0.0-dev (schema v47)",
     "python": "3.13.15"
   }
 }
@@ -21,7 +21,7 @@ Run 20260925T102629Z · reps 5 (+1 warm-up discarded)
 
 ## resources
 
-| variant | metric | thurbox median | thurbox p95 |
+| variant | metric | talos median | talos p95 |
 |---|---|---|---|
 | N=1 attached idle | cpu_pct | 2.90 | 3.10 |
 | N=1 attached idle | first_view_stale | 0.00 | 0.00 |

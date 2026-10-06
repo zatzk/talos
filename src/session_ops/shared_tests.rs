@@ -376,7 +376,7 @@ fn a_remote_restore_is_not_refused_by_a_namesake_in_the_local_mirror() {
 #[test]
 fn a_restore_on_a_remote_host_that_cannot_be_delegated_to_is_still_refused() {
     let rig = rig();
-    fake::force_usable(Usable::No("no thurbox-cli there".into()));
+    fake::force_usable(Usable::No("no talos-cli there".into()));
     let id = SessionId::default();
     let mut row = host_session(id, "stuck");
     row.backend_type = BACKEND.into();
@@ -502,7 +502,7 @@ fn any_other_refusal_from_the_host_still_aborts_the_delete() {
 
 #[test]
 fn a_soft_deleted_row_on_a_shareable_host_is_reaped_there() {
-    // The host's row is soft-deleted too, and a host running only `thurbox-cli`
+    // The host's row is soft-deleted too, and a host running only `talos-cli`
     // has no interface to collect it once the undo window closes. Nothing here
     // asked it to, so every remote soft delete leaked its windows for good.
     let rig = rig();

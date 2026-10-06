@@ -1,8 +1,8 @@
 //! Loading of extension manifests from the discovery directory.
 //!
 //! Opt-in extensions (see `extensions/<name>/`) drop an `extension.toml`
-//! manifest into `~/.config/thurbox/extensions/<name>.toml` from their own
-//! installer. thurbox core reads any manifest there without knowing the
+//! manifest into `~/.config/talos/extensions/<name>.toml` from their own
+//! installer. talos core reads any manifest there without knowing the
 //! extension by name (ADR-20: extensions are data + scripts, never embedded).
 //!
 //! Unlike `agents.toml`/`hosts.toml` this file is **never seeded** — a fresh
@@ -18,14 +18,14 @@ use serde::Serialize;
 
 use crate::session::{AgentDef, AgentPatch, ExtensionDef};
 
-/// Raw-content root of the thurbox repo (no git ref).
-const OFFICIAL_REPO_RAW: &str = "https://raw.githubusercontent.com/Thurbeen/thurbox";
+/// Raw-content root of the talos repo (no git ref).
+const OFFICIAL_REPO_RAW: &str = "https://raw.githubusercontent.com/zatzk/talos";
 
 /// The running binary's version string (e.g. `0.113.0`, or `0.0.0-dev` for a
 /// development build), injected at compile time by `build.rs`. The reference
 /// point for extension staleness + compatibility checks.
 pub fn binary_version() -> &'static str {
-    env!("THURBOX_VERSION")
+    env!("TALOS_VERSION")
 }
 
 /// Whether this is an unstable development build (its version doesn't order
@@ -49,8 +49,8 @@ pub fn official_ref() -> String {
 /// binary's release tag.
 ///
 /// Two sets use it: `extensions/` and `examples/panes/`. Pinning to the tag is the
-/// property worth keeping in both cases — an extension calls `thurbox-cli` and a
-/// pane reads `thurbox.*`, and both are contracts that move, so what the official
+/// property worth keeping in both cases — an extension calls `talos-cli` and a
+/// pane reads `talos.*`, and both are contracts that move, so what the official
 /// source hands over should match the binary asking for it.
 pub fn official_set_base(folder: &str) -> String {
     official_set_base_at(folder, &official_ref())
@@ -65,25 +65,25 @@ pub fn official_set_base_at(folder: &str, git_ref: &str) -> String {
     format!("{OFFICIAL_REPO_RAW}/{git_ref}/{folder}")
 }
 
-/// Base URL for the official extensions shipped in the thurbox repo, pinned to
-/// this binary's version. A bare `thurbox-cli extension install <name>` resolves
+/// Base URL for the official extensions shipped in the talos repo, pinned to
+/// this binary's version. A bare `talos-cli extension install <name>` resolves
 /// to `<official_base()>/<name>`.
 pub fn official_base() -> String {
     official_set_base("extensions")
 }
 
 /// One officially-distributed extension, surfaced for discovery
-/// (`thurbox-cli extension available`) and typo help on a failed bare-name
+/// (`talos-cli extension available`) and typo help on a failed bare-name
 /// install. Each installs by its bare `name` against [`official_base`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OfficialExtension {
-    /// Bare install name (`thurbox-cli extension install <name>`).
+    /// Bare install name (`talos-cli extension install <name>`).
     pub name: &'static str,
     /// One-line human summary, mirrored from the extension's own manifest.
     pub description: &'static str,
 }
 
-/// The official extensions shipped in `extensions/<name>/` of the thurbox repo.
+/// The official extensions shipped in `extensions/<name>/` of the talos repo.
 ///
 /// **Source of truth for discovery + typo suggestions**, and deliberately
 /// **empty**: what `extensions/` still holds is the two built-ins (`hooks`,
@@ -153,7 +153,7 @@ pub fn unknown_extension_help(name: &str, cause: &str) -> String {
                 msg.push_str(&format!("  {:<12} {}\n", ext.name, ext.description));
             }
             msg.push_str(
-                "\nRun `thurbox-cli extension available` to list them, or pass a URL / local path.",
+                "\nRun `talos-cli extension available` to list them, or pass a URL / local path.",
             );
         }
     }
@@ -164,7 +164,7 @@ pub fn unknown_extension_help(name: &str, cause: &str) -> String {
 /// empty. Shared by the failed-install help and `extension available`, so both
 /// point at the same three install forms.
 pub const NO_BARE_NAME_HELP: &str =
-    "\nNo extension installs by bare name: thurbox ships the built-in \
+    "\nNo extension installs by bare name: talos ships the built-in \
      `hooks` and `ui-skill`, which activate themselves. Install any other extension from an \
      `http(s)://` base URL, a local directory, or a repository (`git+https://...`).";
 
@@ -192,7 +192,7 @@ fn levenshtein(a: &str, b: &str) -> usize {
 }
 
 /// The extension-manifest discovery directory:
-/// `~/.config/thurbox/extensions/` (sibling of `config.toml`).
+/// `~/.config/talos/extensions/` (sibling of `config.toml`).
 pub fn extensions_dir() -> Option<PathBuf> {
     crate::paths::config_file().map(|p| p.with_file_name("extensions"))
 }
@@ -203,7 +203,7 @@ pub fn manifest_path(name: &str) -> Option<PathBuf> {
 }
 
 /// Default install home for an extension: `<extensions_dir>/<name>/` (a sibling
-/// dir of its `<name>.toml` manifest, e.g. `~/.config/thurbox/extensions/fleet`).
+/// dir of its `<name>.toml` manifest, e.g. `~/.config/talos/extensions/fleet`).
 /// Used when neither `--home` nor a manifest `home` is given. Discovery
 /// (`list_manifests_with_warnings`) only reads `*.toml`, so this dir is ignored.
 pub fn default_home(name: &str) -> Option<PathBuf> {
@@ -374,7 +374,7 @@ pub fn resolve_source_in(target: &str, folder: &str) -> ExtensionSource {
 
 /// The repository URL a target names, or `None` when it does not name one.
 ///
-/// The `git+` prefix is stripped: it is thurbox's marker, not part of the URL git
+/// The `git+` prefix is stripped: it is talos's marker, not part of the URL git
 /// is handed.
 pub fn git_url(target: &str) -> Option<String> {
     let t = target.trim();
@@ -958,18 +958,18 @@ mod tests {
         for (target, expected) in [
             // `git+` prefix, stripped from what git is handed.
             (
-                "git+https://github.com/you/thurbox-widget",
-                "https://github.com/you/thurbox-widget",
+                "git+https://github.com/you/talos-widget",
+                "https://github.com/you/talos-widget",
             ),
             // A `.git` suffix speaks for itself.
             (
-                "https://github.com/you/thurbox-widget.git",
-                "https://github.com/you/thurbox-widget.git",
+                "https://github.com/you/talos-widget.git",
+                "https://github.com/you/talos-widget.git",
             ),
             // scp-like.
             (
-                "git@github.com:you/thurbox-widget.git",
-                "git@github.com:you/thurbox-widget.git",
+                "git@github.com:you/talos-widget.git",
+                "git@github.com:you/talos-widget.git",
             ),
         ] {
             match resolve_source_in(target, "examples/panes") {
@@ -980,7 +980,7 @@ mod tests {
 
         // And these must keep the meanings they already have.
         assert!(matches!(
-            resolve_source_in("https://github.com/you/thurbox-widget", "examples/panes"),
+            resolve_source_in("https://github.com/you/talos-widget", "examples/panes"),
             ExtensionSource::Remote(_)
         ));
         assert!(matches!(

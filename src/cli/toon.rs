@@ -1,5 +1,5 @@
 //! TOON (Token-Oriented Object Notation) encoder — the wire format
-//! `thurbox-cli` speaks when its output is going to an agent.
+//! `talos-cli` speaks when its output is going to an agent.
 //!
 //! TOON encodes the JSON data model line-by-line: arrays declare their length
 //! and field list once instead of repeating every key on every row, objects use
@@ -17,13 +17,13 @@
 //!
 //! This implements the **encoder** half of TOON v4.1
 //! (<https://github.com/toon-format/spec>), section numbers below refer to that
-//! document. There is no decoder: nothing in thurbox reads TOON back.
+//! document. There is no decoder: nothing in talos reads TOON back.
 //!
 //! Two deliberate narrowings of the spec's encoder options:
 //!
 //! - The delimiter is a comma and the indent is two spaces. Both are spec
 //!   *options*; tab and pipe exist for data that is full of commas, which
-//!   thurbox's is not. [`encode_with`] still threads them, so the conformance
+//!   talos's is not. [`encode_with`] still threads them, so the conformance
 //!   tests can drive the delimiter fixtures.
 //! - Field order is the order [`serde_json::Map`] yields, which without the
 //!   `preserve_order` feature is alphabetical. §2 asks for "encounter order as
@@ -265,7 +265,7 @@ impl Encoder {
     }
 
     /// A primitive in a row, inline array, or entry row: quoting keys off the
-    /// active delimiter (§11.1). Identical here because thurbox emits one
+    /// active delimiter (§11.1). Identical here because talos emits one
     /// delimiter per document, but the two rules are distinct in the spec.
     fn cell(&self, value: &Value) -> String {
         scalar(value, self.delim)

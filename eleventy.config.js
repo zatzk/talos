@@ -1,4 +1,4 @@
-// Eleventy build for the Thurbox docs website.
+// Eleventy build for the Talos docs website.
 //
 // The site is plain static HTML/CSS/JS; Eleventy is used only to de-duplicate
 // the shared chrome (head, nav, docs sidebar, footer) into layouts under

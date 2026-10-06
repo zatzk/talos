@@ -28,7 +28,7 @@ use crate::session::settings::{NotificationBackend, Settings};
 
 /// v1's `settings_modal::MODAL_WIDTH` pair: the wide layout once a terminal has
 /// room for the longest description, the compact default otherwise.
-/// Marks a row that will not take effect until thurbox restarts.
+/// Marks a row that will not take effect until talos restarts.
 ///
 /// ASCII on purpose. This was `⟳`, which rendered as a replacement box: no
 /// monospace family installed here covers U+27F3, and none covers the arrows
@@ -367,7 +367,7 @@ pub enum Outcome {
 /// The two halves of the settings modal.
 ///
 /// Tabs rather than two modals because they answer one question — "how is this
-/// thurbox configured" — and because the second half has no business owning a
+/// talos configured" — and because the second half has no business owning a
 /// chord of its own: that is what made it unreachable when it was a pane.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Tab {

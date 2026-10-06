@@ -1,7 +1,7 @@
 ---
 layout: docs.njk
-title: 'Architecture — Thurbox Docs'
-description: 'Thurbox architecture: the Lua plugin kernel, module isolation, the tmux session backend, and design principles.'
+title: 'Architecture — Talos Docs'
+description: 'Talos architecture: the Lua plugin kernel, module isolation, the tmux session backend, and design principles.'
 currentPage: 'architecture'
 breadcrumb: 'Architecture'
 ---
@@ -12,7 +12,7 @@ breadcrumb: 'Architecture'
             <a href="#kernel" class="heading-anchor">#</a>
           </h2>
           <p>
-            thurbox boots a Rust kernel that renders whatever Lua plugins it finds under
+            talos boots a Rust kernel that renders whatever Lua plugins it finds under
             <code>ui/</code>. It owns no pane of its own: the session list, the agent terminal and the
             search strip are files you can edit, move, turn off or replace. See
             <a href="interface.html">the interface</a> for what that means in practice.
@@ -165,7 +165,7 @@ main     &larr; the coordinator: the loop, the workers, the chrome</pre>
                   over a
                   <code>TmuxTransport</code>
                   (local
-                  <code>tmux -L thurbox</code>
+                  <code>tmux -L talos</code>
                   , or
                   <code>ssh &lt;dest&gt; tmux</code>
                   for
@@ -207,7 +207,7 @@ main     &larr; the coordinator: the loop, the workers, the chrome</pre>
                 <td><code>cli/</code></td>
                 <td>
                   Headless automation (
-                  <code>thurbox-cli</code>
+                  <code>talos-cli</code>
                   binary). Session, automation, and editor subcommands sharing the TUI's SQLite
                   database.
                 </td>
@@ -227,7 +227,7 @@ main     &larr; the coordinator: the loop, the workers, the chrome</pre>
             over a local
             <code>TmuxTransport</code>
             (
-            <code>tmux -L thurbox</code>
+            <code>tmux -L talos</code>
             ).
             <code>vt100::Parser</code>
             interprets escape sequences,
@@ -310,7 +310,7 @@ main     &larr; the coordinator: the loop, the workers, the chrome</pre>
             trait. The implementation is
             <code>TmuxBackend</code>
             , which runs every session in a dedicated
-            <code>tmux -L thurbox</code>
+            <code>tmux -L talos</code>
             server. The trait boundary keeps the app layer transport-agnostic.
           </p>
           <p>
@@ -320,9 +320,9 @@ main     &larr; the coordinator: the loop, the workers, the chrome</pre>
             : sessions can run on a
             <strong>remote host over SSH</strong>
             while the TUI runs locally. The local backend launches
-            <code>tmux -L thurbox</code>
+            <code>tmux -L talos</code>
             ; a remote one launches
-            <code>ssh &lt;dest&gt; tmux -L thurbox</code>
+            <code>ssh &lt;dest&gt; tmux -L talos</code>
             &mdash; the tmux control-mode protocol is byte-identical over either transport. Each host
             declared in
             <code>hosts.toml</code>
@@ -356,7 +356,7 @@ main     &larr; the coordinator: the loop, the workers, the chrome</pre>
           </h2>
           <p>
             All state is stored in SQLite at
-            <code>~/.local/share/thurbox/thurbox.db</code>
+            <code>~/.local/share/talos/talos.db</code>
             . Multiple instances synchronize via
             <code>PRAGMA data_version</code>
             polling (250ms). SQLite WAL mode handles concurrent access.
@@ -386,7 +386,7 @@ main     &larr; the coordinator: the loop, the workers, the chrome</pre>
             <a href="#principles" class="heading-anchor">#</a>
           </h2>
           <p>
-            Non-negotiable rules that define what Thurbox must always be. Each has an automated
+            Non-negotiable rules that define what Talos must always be. Each has an automated
             enforcement mechanism.
           </p>
 
@@ -485,7 +485,7 @@ main     &larr; the coordinator: the loop, the workers, the chrome</pre>
             </li>
             <li>
               Logging: file-based at
-              <code>~/.local/share/thurbox/thurbox.log</code>
+              <code>~/.local/share/talos/talos.log</code>
             </li>
             <li>Panic hook restores terminal before printing</li>
             <li>Requires tmux >= 3.2, psmux >= 3.3.7, or opt-in RMUX >= 0.10.0</li>

@@ -4,7 +4,7 @@
 -- paints nothing; it subscribes to two events — `session.status`, to notice a
 -- session going `blocked`, and `focus.session`, to notice you moving — and when
 -- a session blocks while you have not moved the selection for a few seconds,
--- that session becomes the selected one, exactly as `thurbox-cli session focus`
+-- that session becomes the selected one, exactly as `talos-cli session focus`
 -- would select it.
 --
 -- Two things worth copying. It never steals focus from a person: a selection
@@ -13,9 +13,9 @@
 -- "attend") flips the declared setting, which the settings modal then shows
 -- correctly, because the value has exactly one home.
 --
--- To use it, copy it into your interface directory (`thurbox-cli plugin dir`).
+-- To use it, copy it into your interface directory (`talos-cli plugin dir`).
 -- It needs no trust: it reads the snapshot and issues commands, like every
--- other plugin. `thurbox-cli plugin events` lists what else it could listen for.
+-- other plugin. `talos-cli plugin events` lists what else it could listen for.
 
 local settings = require("lib.settings")
 
@@ -45,7 +45,7 @@ return {
   on_event = function(name, payload)
     -- A plugin has no clock; the snapshot's own instant is the nearest thing,
     -- and it is current to within one refresh.
-    local now = (thurbox and thurbox.taken_at_ms) or 0
+    local now = (talos and talos.taken_at_ms) or 0
     if name == "focus.session" then
       -- The selection this plugin just asked for arrives back as an event too;
       -- only a move it did not make counts as the person's.

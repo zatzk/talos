@@ -1,4 +1,4 @@
-//! `thurbox-cli doctor` — whether this machine has what a session needs
+//! `talos-cli doctor` — whether this machine has what a session needs
 //! *before* anyone tries to create one.
 //!
 //! The companion to `session doctor`, and deliberately the same shape: that one
@@ -215,7 +215,7 @@ fn render(findings: &[Finding], verdict: Level) -> String {
     for dir in &dirs {
         human.push_str(&format!("  {}\n", dir.display()));
     }
-    human.push_str("\nWiring of an existing session: thurbox-cli session doctor");
+    human.push_str("\nWiring of an existing session: talos-cli session doctor");
     human
 }
 
@@ -243,7 +243,7 @@ fn document(findings: &[Finding], verdict: Level) -> Value {
 /// ` (3.4)` when the multiplexer answers `-V`, empty when it does not.
 ///
 /// Best-effort and never fatal: a version that cannot be read says nothing
-/// about whether the binary works, and thurbox's own requirement (tmux >= 3.2)
+/// about whether the binary works, and talos's own requirement (tmux >= 3.2)
 /// is stated by the install advice rather than enforced here.
 fn version_suffix(mux: &str) -> String {
     let Ok(out) = std::process::Command::new(mux).arg("-V").output() else {
@@ -265,7 +265,7 @@ mod tests {
     use crate::session::AgentDef;
 
     /// Before the `Presence::Unknown` fix, `look_up` answered a relative
-    /// `command` as `Missing` (checked against thurbox's own directory, not
+    /// `command` as `Missing` (checked against talos's own directory, not
     /// the session's), so this row read as a `warn` telling the user to
     /// install a CLI that was already there. Reproduces with `left: Warn`.
     #[test]

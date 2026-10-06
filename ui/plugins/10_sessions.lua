@@ -1,7 +1,7 @@
 -- The session list.
 --
 -- In v1 this was `ui::project_list` — 2,212 lines of Rust, welded to a 616-method
--- `App` struct. Here it is a file you can edit while thurbox is running.
+-- `App` struct. Here it is a file you can edit while talos is running.
 --
 -- It is an ORDINARY plugin. The kernel has no session-list concept: it hands
 -- over a snapshot and this decides everything about how the list looks.
@@ -52,7 +52,7 @@ local widgets = require("lib.widgets")
 --- the live pane rather than the database.
 ---
 --- v2 adds the row nothing has reported for. Its dot says only that no status
---- arrived, which is honest but not diagnosable, so the text names what thurbox
+--- arrived, which is honest but not diagnosable, so the text names what talos
 --- does know: the agent found in the pane, or why the silence means nothing.
 --- Naming the agent never displaces what it said — an activity line is the
 --- agent talking, and it wins the rest of the line.
@@ -75,7 +75,7 @@ local function agent_status_text(session)
       activity = nil
     end
   end
-  -- An agent thurbox did not launch: the row is labelled with whatever the
+  -- An agent talos did not launch: the row is labelled with whatever the
   -- driver asked for (`zsh`), and the agent actually in front of the user is
   -- named here. It says WHICH agent, never what it is doing — the dot already
   -- says that nothing has reported.
@@ -116,11 +116,11 @@ end
 --- the whole thing, with the search path — and the create-session flow, which
 --- has the width for it, states the advice in full.
 local function missing_multiplexer()
-  local mux = (thurbox and thurbox.preflight and thurbox.preflight.mux) or nil
+  local mux = (talos and talos.preflight and talos.preflight.mux) or nil
   if not mux or mux.presence ~= "missing" then
     return nil
   end
-  return { "⚠ " .. mux.binary .. " is not installed", "run: thurbox-cli doctor" }
+  return { "⚠ " .. mux.binary .. " is not installed", "run: talos-cli doctor" }
 end
 
 --- The live search query, or nil when nothing is being searched.
@@ -319,7 +319,7 @@ local function host_line(item, width, selected)
   local kind = local_host and "local"
     or counts.backend and counts.backend:match("^wsl:") and "WSL"
     or "ssh"
-  for _, host in ipairs(thurbox.hosts or {}) do
+  for _, host in ipairs(talos.hosts or {}) do
     if host.name == item.host then
       if host.backend:match("^wsl:") then
         kind = "WSL"
@@ -342,7 +342,7 @@ local function host_line(item, width, selected)
   local row = ui.row({ width = width, tone = selected and function()
     return nil
   end or nil })
-  local glyph = local_host and "⌂" or thurbox.theme.nerd_font and "" or "▣"
+  local glyph = local_host and "⌂" or talos.theme.nerd_font and "" or "▣"
   row:add((item.collapsed and "▸ " or "▾ ") .. reach_glyph .. glyph .. " ", { fg = color })
   row:add(local_host and kind or kind .. " " .. item.host, { fg = theme.text, bold = true })
   if counts.attention > 0 then
@@ -362,7 +362,7 @@ local function repo_line(item, width)
 end
 
 local function sessions()
-  return thurbox and thurbox.sessions or {}
+  return talos and talos.sessions or {}
 end
 
 --- Is deleting reversible?
@@ -469,7 +469,7 @@ end
 --- fold row. `publish` keeps that host id out of `store.selected`, which the
 --- agent pane reads only as a session. `steer` is the `store` key
 --- another pane writes to move this list; `request` is the one-shot
---- `focus_session` a clicked notification or `thurbox-cli session focus` leaves,
+--- `focus_session` a clicked notification or `talos-cli session focus` leaves,
 --- and it is read only by `render` because consuming it anywhere else would
 --- spend it on a frame that is not being drawn.
 local function selected_session(item)
@@ -682,7 +682,7 @@ local SESSION_MENU = {
 --- undeclared one would reach no `on_action` and close the menu doing nothing,
 --- and an entry that does nothing is worse than no entry.
 local function declared(action)
-  local registry = thurbox.registry
+  local registry = talos.registry
   for _, list in ipairs({ registry and registry.keys, registry and registry.commands }) do
     for _, row in ipairs(list or {}) do
       if row.action == action then
@@ -825,7 +825,7 @@ pane = {
   slot = "sessions",
   order = 10,
   focusable = true,
-  -- This render reads `thurbox.*` and `ctx` and writes nothing, so the kernel
+  -- This render reads `talos.*` and `ctx` and writes nothing, so the kernel
   -- may reuse the tree it returned while neither has changed. The working
   -- spinner still animates: the kernel drops the cached tree when the shared
   -- animation clock moves, and that clock ticks at the same rate
@@ -911,7 +911,7 @@ pane = {
   },
 
   -- The one event this pane needs: a create or a fork THIS interface finished.
-  -- A session `thurbox-cli`, an automation or another instance made arrives as
+  -- A session `talos-cli`, an automation or another instance made arrives as
   -- `session.created` instead, and subscribing to that would let a background
   -- spawn take the keyboard out from under you — so it deliberately is not
   -- subscribed to.

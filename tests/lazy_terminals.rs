@@ -26,21 +26,21 @@ use ratatui::backend::TestBackend;
 use ratatui::layout::Rect;
 use ratatui::Terminal;
 
-use thurbox::kernel::paint::SurfaceProvider;
-use thurbox::kernel::search::{self, Request};
-use thurbox::kernel::snapshot::{SessionRow, Snapshot};
-use thurbox::kernel::terminal::Terminals;
-use thurbox::session::SessionState;
+use talos::kernel::paint::SurfaceProvider;
+use talos::kernel::search::{self, Request};
+use talos::kernel::snapshot::{SessionRow, Snapshot};
+use talos::kernel::terminal::Terminals;
+use talos::session::SessionState;
 
 #[path = "support/tmux_server.rs"]
 mod tmux_server;
 
 use tmux_server::TmuxServer;
 
-const SOCKET: &str = "thurbox-lazy-test";
+const SOCKET: &str = "talos-lazy-test";
 
 /// `backend::tmux_compat::server::TMUX_SESSION` in a test build — see `tests/attach_by_name.rs`.
-const SESSION: &str = "thurbox-dev";
+const SESSION: &str = "talos-dev";
 
 const ID: &str = "22222222-2222-2222-2222-222222222222";
 
@@ -201,7 +201,7 @@ fn paint(terminals: &Terminals, scroll: u16) -> Vec<String> {
         .collect()
 }
 
-fn agent_parser(terminals: &Terminals) -> Arc<Mutex<thurbox::backend::SessionParser>> {
+fn agent_parser(terminals: &Terminals) -> Arc<Mutex<talos::backend::SessionParser>> {
     terminals
         .search_sources(&[ID.to_string()])
         .into_iter()
@@ -323,7 +323,7 @@ async fn a_session_nobody_has_looked_at_holds_no_screen() {
     });
 
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let snap = snapshot(&pane);
     attach(&mut terminals, &snap).await;
@@ -403,7 +403,7 @@ async fn a_grid_dropped_and_rebuilt_while_its_pane_prints_loses_and_repeats_noth
     wait_for("the pane to start", || tmux_text(&pane).contains(""));
 
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     terminals.keep_hidden_for(Some(Duration::ZERO));
     let snap = snapshot(&pane);
@@ -487,7 +487,7 @@ async fn the_rebuilt_terminal_is_the_one_that_was_never_dropped() {
     });
 
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let snap = snapshot(&pane);
     attach(&mut terminals, &snap).await;
@@ -546,7 +546,7 @@ async fn a_search_finds_history_in_a_session_nobody_is_looking_at() {
     });
 
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let snap = snapshot(&pane);
     attach(&mut terminals, &snap).await;
@@ -599,7 +599,7 @@ async fn a_session_off_screen_still_reports_its_title_and_its_output() {
     wait_for("the pane to start", || tmux_text(&pane).contains("ready"));
 
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let snap = snapshot(&pane);
     attach(&mut terminals, &snap).await;
@@ -647,7 +647,7 @@ async fn a_title_set_before_the_interface_attached_is_still_reported() {
     });
 
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let snap = snapshot(&pane);
     attach(&mut terminals, &snap).await;
@@ -706,7 +706,7 @@ async fn non_ascii_printed_while_the_grid_is_live_loses_no_character() {
     ));
 
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let snap = snapshot(&pane);
     attach(&mut terminals, &snap).await;

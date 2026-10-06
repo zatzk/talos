@@ -91,7 +91,7 @@ pub fn snapshot_commands(pane_id: &str, history: usize, styled: bool) -> Vec<Str
 /// Boundaries let a one-block reply retain the three snapshot parts.
 fn snapshot_commands_one_block(pane_id: &str, history: usize, styled: bool) -> Vec<String> {
     let mut commands = snapshot_commands(pane_id, history, styled);
-    let marker = format!("__thurbox_snapshot_{}__", uuid::Uuid::new_v4().simple());
+    let marker = format!("__talos_snapshot_{}__", uuid::Uuid::new_v4().simple());
     commands.insert(1, format!("display-message -p '{marker}normal__'"));
     commands.insert(3, format!("display-message -p '{marker}alternate__'"));
     commands
@@ -103,7 +103,7 @@ pub fn parse_snapshot(mut blocks: Vec<Vec<String>>) -> Option<PaneSnapshot> {
     if blocks.len() == 1 {
         let lines = blocks.pop()?;
         let normal = lines.iter().position(|line| {
-            line.starts_with("__thurbox_snapshot_") && line.ends_with("__normal__")
+            line.starts_with("__talos_snapshot_") && line.ends_with("__normal__")
         })?;
         let marker = lines[normal].strip_suffix("normal__")?;
         let alternate_marker = format!("{marker}alternate__");
@@ -168,31 +168,31 @@ impl PendingSnapshot {
 /// at compile time rather than restate it.
 macro_rules! sizer_option {
     () => {
-        "@thurbox_sizer"
+        "@talos_sizer"
     };
 }
 
 /// The window option naming the client that sizes a window, when several
-/// thurbox instances show it — see `Server::resize`.
+/// talos instances show it — see `Server::resize`.
 pub const SIZER_OPTION: &str = sizer_option!();
 
 /// The format subscription reporting [`SIZED_BY`] per pane, so an instance can
 /// say its pane is being sized elsewhere.
-const SIZER_SUBSCRIPTION: &str = "thurbox-sizer";
+const SIZER_SUBSCRIPTION: &str = "talos-sizer";
 
 /// The pane **user option** a hook running in a tmux-protocol pane sets to
-/// report its state (`set-option -p @thurbox_state <working|blocked|done|idle>`):
+/// report its state (`set-option -p @talos_state <working|blocked|done|idle>`):
 /// these adapters' status channel. The headless poll lists it, and an attached
 /// connection receives changes through [`REMOTE_HOOK_SUBSCRIPTION`] (tmux) or
 /// a poll (psmux). Protocol vocabulary, so it lives with the protocol: another
 /// backend's status channel need not be a pane option at all.
-pub const REMOTE_HOOK_STATE_OPTION: &str = "@thurbox_state";
+pub const REMOTE_HOOK_STATE_OPTION: &str = "@talos_state";
 
 /// Name of the control-mode format subscription
-/// (`refresh-client -B <name>:%*:#{@thurbox_state}`) that pushes
+/// (`refresh-client -B <name>:%*:#{@talos_state}`) that pushes
 /// [`REMOTE_HOOK_STATE_OPTION`] changes as `%subscription-changed`
 /// notifications for every pane of the attached session.
-pub const REMOTE_HOOK_SUBSCRIPTION: &str = "thurbox-status";
+pub const REMOTE_HOOK_SUBSCRIPTION: &str = "talos-status";
 
 /// Who sizes a pane, as far as anybody else is concerned: the
 /// [`SIZER_OPTION`] while more than one client is attached, and nobody once a
@@ -316,7 +316,7 @@ pub enum Notification {
     /// A window's size changed, whoever changed it — `%layout-change`, which
     /// tmux sends to every control client for every `resize-window`, even one
     /// that leaves the size where it was (measured, tmux 3.7c). The size is the
-    /// window's; thurbox's windows hold one pane each, so it is the pane's too.
+    /// window's; talos's windows hold one pane each, so it is the pane's too.
     LayoutChange {
         window_id: String,
         rows: u16,
@@ -507,7 +507,7 @@ fn tmux_quote(s: &str) -> String {
 ///
 /// The text goes into a buffer and `paste-buffer -p` puts it in the pane, so it
 /// is **the server** that decides the markers: they are written only when the
-/// pane's app has mode 2004 on, from its own record of the pane. thurbox's grid
+/// pane's app has mode 2004 on, from its own record of the pane. talos's grid
 /// cannot answer that — a pane adopted after a restart never showed this
 /// process the `ESC[?2004h` that turned the mode on. `-r` keeps line feeds as
 /// they are (tmux would turn each into a CR) and `-d` deletes the buffer once
@@ -519,7 +519,7 @@ fn tmux_quote(s: &str) -> String {
 fn tmux_paste_commands(pane_id: &str, text: &str) -> Vec<String> {
     static PASTES: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let buffer = format!(
-        "thurbox-paste-{}-{}",
+        "talos-paste-{}-{}",
         std::process::id(),
         PASTES.fetch_add(1, Ordering::Relaxed)
     );
@@ -796,7 +796,7 @@ pub fn is_valid_window_id(s: &str) -> bool {
         .is_some_and(|rest| !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_digit()))
 }
 
-/// Parse `list-panes -F "#{pane_id} #{@thurbox_state}"` output into the
+/// Parse `list-panes -F "#{pane_id} #{@talos_state}"` output into the
 /// `(pane_id, value)` pairs whose option is **set**: one `%<id> [value]` line
 /// per pane; empty values (option unset) and malformed lines are skipped —
 /// wire data never panics. Shared by the hook poller's diff below and the
@@ -981,7 +981,7 @@ pub struct ControlPolicy {
 }
 
 impl ControlMode {
-    /// Start a control mode connection to the thurbox tmux session over the
+    /// Start a control mode connection to the talos tmux session over the
     /// given transport (local or ssh).
     /// `sizer` is this client's name in [`SIZER_OPTION`], so a pane named for
     /// anybody else can be reported as sized elsewhere.
@@ -1001,7 +1001,7 @@ impl ControlMode {
             .stderr(Stdio::null())
             .spawn()
             // No `tmux`/`ssh`/`wsl.exe` on this machine at all: the message
-            // names which, where thurbox looked and the fix, rather than the
+            // names which, where talos looked and the fix, rather than the
             // errno the launcher raised.
             .map_err(|e| transport.launch_failure("Failed to start tmux control mode", e))?;
 
@@ -1122,7 +1122,7 @@ impl ControlMode {
     /// A server with no format subscriptions **polls** the remote-hook pane
     /// option instead, where its adapter asks for it
     /// ([`ControlPolicy::status_poll`]): a background thread runs `cmd` — a
-    /// listing of every pane of the session with its `@thurbox_state` — each
+    /// listing of every pane of the session with its `@talos_state` — each
     /// [`HOOK_POLL_INTERVAL`], diffs against the previous poll
     /// ([`diff_polled_hook_states`]), and feeds changes into the same
     /// `sub_events` queue the tmux subscription uses — everything downstream

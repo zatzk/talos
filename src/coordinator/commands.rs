@@ -9,7 +9,7 @@
 
 use ratatui::DefaultTerminal;
 
-use thurbox::kernel::bands::Level;
+use talos::kernel::bands::Level;
 
 use super::{open_editor, snapshots_db};
 use crate::{App, TrackedCommand};
@@ -33,10 +33,10 @@ impl App {
     /// files. `true` = handled here; `false` = hand it to a worker.
     pub(crate) fn apply_local_command(
         &mut self,
-        command: &thurbox::kernel::command::Command,
+        command: &talos::kernel::command::Command,
         terminal: &mut DefaultTerminal,
     ) -> bool {
-        use thurbox::kernel::command::Command;
+        use talos::kernel::command::Command;
         match command {
             // Theme is applied here rather than dispatched: it mutates in-process
             // state a worker thread cannot reach, and it is instant, so nothing is
@@ -103,7 +103,7 @@ impl App {
                     .name_of_path(owner)
                     .unwrap_or(owner.as_str())
                     .to_string();
-                let mut event = thurbox::kernel::events::Event::new(name.clone());
+                let mut event = talos::kernel::events::Event::new(name.clone());
                 event.payload = payload.clone();
                 event.payload.push(("source".to_string(), source.into()));
                 self.enqueue_event(event);
@@ -220,10 +220,10 @@ impl App {
     pub(crate) fn apply_copy_command(&mut self, session: &str) {
         match self.terminals.visible_text(session) {
             Some(text) => {
-                let outcome = thurbox::clipboard::copy(
+                let outcome = talos::clipboard::copy(
                     &text,
                     self.clipboard.as_mut(),
-                    thurbox::session::settings::global().clipboard.provider,
+                    talos::session::settings::global().clipboard.provider,
                 );
                 self.toast(match outcome {
                     Ok(route) => {
@@ -299,7 +299,7 @@ impl App {
                 tracked.failed = true;
                 let tracked = tracked.clone();
                 self.report(
-                    thurbox::kernel::messages::failed(kind, label.as_deref(), &error),
+                    talos::kernel::messages::failed(kind, label.as_deref(), &error),
                     Level::Error,
                 );
                 self.note_command_failed(&tracked, &error);
@@ -336,7 +336,7 @@ impl App {
                 self.dirty = true;
             }
             if let Some(message) =
-                thurbox::kernel::messages::done(tracked.kind, tracked.label.as_deref())
+                talos::kernel::messages::done(tracked.kind, tracked.label.as_deref())
             {
                 self.toast(message);
             }
@@ -358,8 +358,8 @@ impl App {
     ///
     /// It is also the only moment the subject can be resolved: a delete's row is
     /// gone by the time it reports.
-    pub(crate) fn dispatch_tracked(&mut self, command: thurbox::kernel::command::Command) {
-        use thurbox::kernel::command::Command;
+    pub(crate) fn dispatch_tracked(&mut self, command: talos::kernel::command::Command) {
+        use talos::kernel::command::Command;
         let kind = command.kind();
         let session = command.session().to_string();
         let label = self
@@ -389,7 +389,7 @@ impl App {
                 force,
             },
         );
-        // Accepting a command changes `thurbox.commands`, which panes draw from:
+        // Accepting a command changes `talos.commands`, which panes draw from:
         // the session list drops the row a `delete` names as soon as one is
         // accepted. Such a pane is `pure`, so without moving the epoch here it
         // is handed the tree built *before* the command existed, and the change
@@ -419,7 +419,7 @@ impl App {
         close: bool,
         keys: Option<&[u8]>,
     ) {
-        let key = thurbox::kernel::terminal::ProgramKey::new(owner, name);
+        let key = talos::kernel::terminal::ProgramKey::new(owner, name);
         if close {
             if self.terminals.release_program(&key) {
                 self.changed_this_frame = true;
@@ -432,7 +432,7 @@ impl App {
         // broken.
         if !self
             .host
-            .may_path(owner, thurbox::kernel::host::Capability::Program)
+            .may_path(owner, talos::kernel::host::Capability::Program)
         {
             self.refuse_program(
                 name,
@@ -453,7 +453,7 @@ impl App {
         // tracked it in its own state would be wrong across an interface reload,
         // which keeps panes but re-runs the file.
         if let Some(keys) = keys {
-            use thurbox::kernel::terminal::{plan_keys, KeysPlan};
+            use talos::kernel::terminal::{plan_keys, KeysPlan};
             let running = self
                 .terminals
                 .program_state(&key)
@@ -512,7 +512,7 @@ impl App {
     /// `report_finished_commands` to report it through.
     fn refuse_program(&mut self, name: &str, error: String) {
         self.enqueue_event(
-            thurbox::kernel::events::Event::new("command.failed")
+            talos::kernel::events::Event::new("command.failed")
                 .with("kind", Some("program"))
                 .with("subject", Some(name))
                 .with("error", Some(error.as_str())),

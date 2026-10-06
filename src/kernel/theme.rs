@@ -143,7 +143,7 @@ impl Themes {
     /// Separate from [`Self::select`] because persistence is the difference
     /// between trying a palette and choosing one: a preview that wrote to the
     /// database would leak every theme the cursor passed over into every other
-    /// thurbox process, and leave the last one you glanced at active after you
+    /// talos process, and leave the last one you glanced at active after you
     /// pressed `Esc`.
     pub fn preview(&mut self, name: &str) -> Result<(), String> {
         if !self.choices.iter().any(|choice| choice.name == name) {

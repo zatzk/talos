@@ -85,7 +85,7 @@ local function selected()
   if not id then
     return nil
   end
-  for _, session in ipairs(thurbox and thurbox.sessions or {}) do
+  for _, session in ipairs(talos and talos.sessions or {}) do
     if session.id == id then
       return session
     end
@@ -247,7 +247,7 @@ end
 ---
 --- The row's own agent, plus the one observed in the pane when a driver started
 --- something else there — `(zsh → claude)`. Two names rather than one because
---- neither is the whole truth: the row says what thurbox launched, the arrow
+--- neither is the whole truth: the row says what talos launched, the arrow
 --- says what answered.
 local function agent_word(session)
   local agent = session.agent or ""
@@ -499,14 +499,14 @@ end
 --- terminal passes bare `Ctrl+<letter>` through to the agent — so the F-key is
 --- the hint that works from where the user is standing.
 ---
---- Memoized on the published registry's identity: `thurbox.registry` is a
+--- Memoized on the published registry's identity: `talos.registry` is a
 --- gated group, so the same table object means the same bindings — and this
 --- runs from the border strip on every render, scanning every plugin's
 --- bindings each time.
 local shortcut_cache = { src = nil, by_action = {} }
 
 local function shortcut_for(action)
-  local registry = thurbox and thurbox.registry
+  local registry = talos and talos.registry
   local keys = (registry and registry.keys) or {}
   if not rawequal(registry, shortcut_cache.src) then
     shortcut_cache.src = registry

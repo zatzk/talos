@@ -1,18 +1,18 @@
 ---
 layout: docs.njk
-title: 'Performance — Thurbox Docs'
-description: 'Measured costs of 50 agent sessions in Thurbox, Herdr, and tmux, plus a practical F12 performance walkthrough.'
+title: 'Performance — Talos Docs'
+description: 'Measured costs of 50 agent sessions in Talos, Herdr, and tmux, plus a practical F12 performance walkthrough.'
 currentPage: 'performance'
 breadcrumb: 'Performance'
 ---
 <h1>Performance at 50 sessions</h1>
 <p>
   Same-machine measurements of what it costs to start, keep, and show agent sessions.
-  <a href="https://github.com/Thurbeen/thurbox/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/BENCHMARK-MULTIPLEXERS.md">Read the benchmark report</a>.
+  <a href="https://github.com/zatzk/talos/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/BENCHMARK-MULTIPLEXERS.md">Read the benchmark report</a>.
 </p>
 <ul>
-  <li><strong>After closing the interface:</strong> 50 idle Thurbox sessions used 0% host CPU and about 9&nbsp;MiB of measured host memory; Herdr used 22.5% and about 41&nbsp;MiB.</li>
-  <li><strong>Creating:</strong> 50 sessions took 1.81&nbsp;s in Thurbox, 2.66&nbsp;s in Herdr, and 0.45&nbsp;s in plain tmux.</li>
+  <li><strong>After closing the interface:</strong> 50 idle Talos sessions used 0% host CPU and about 9&nbsp;MiB of measured host memory; Herdr used 22.5% and about 41&nbsp;MiB.</li>
+  <li><strong>Creating:</strong> 50 sessions took 1.81&nbsp;s in Talos, 2.66&nbsp;s in Herdr, and 0.45&nbsp;s in plain tmux.</li>
   <li><strong>Typing:</strong> Herdr echoed sooner: 2.23 versus 4.13&nbsp;ms at rest, and 0.45 versus 1.90&nbsp;ms with another session busy.</li>
 </ul>
 <p id="comparison-scale">
@@ -26,7 +26,7 @@ breadcrumb: 'Performance'
   <thead>
     <tr>
       <th scope="col">Scenario</th>
-      <th scope="col">Thurbox</th>
+      <th scope="col">Talos</th>
       <th scope="col">Herdr</th>
       <th scope="col">tmux</th>
     </tr>
@@ -89,11 +89,11 @@ breadcrumb: 'Performance'
 <p>
   Every session runs the same lightweight Python stand-in, not Claude Code or Codex. It records
   when it starts, prints a ready line, then waits for input or a signal. This keeps agent behavior
-  the same across Thurbox, Herdr, and tmux. The host CPU and memory measurements exclude these
+  the same across Talos, Herdr, and tmux. The host CPU and memory measurements exclude these
   Python processes, so they show the multiplexers' own costs. Creation time still includes the
   stand-in's identical startup on each host. See the
-  <a href="https://github.com/Thurbeen/thurbox/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/BENCHMARK-MULTIPLEXERS.md#method">method</a>
-  and <a href="https://github.com/Thurbeen/thurbox/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/scripts/bench/agent.py">stand-in code</a>.
+  <a href="https://github.com/zatzk/talos/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/BENCHMARK-MULTIPLEXERS.md#method">method</a>
+  and <a href="https://github.com/zatzk/talos/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/scripts/bench/agent.py">stand-in code</a>.
 </p>
 <ul>
   <li><strong>Create 50:</strong> starts 50 stand-ins one after another, with no client attached.</li>
@@ -119,30 +119,30 @@ breadcrumb: 'Performance'
 </p>
 <p>
   The resource rows combine a
-  <a href="https://github.com/Thurbeen/thurbox/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/current-resources/summary.md">Thurbox-only rerun</a>
+  <a href="https://github.com/zatzk/talos/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/current-resources/summary.md">Talos-only rerun</a>
   on source <code>78ca3f93</code> (25 September) with Herdr and tmux from the
-  <a href="https://github.com/Thurbeen/thurbox/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/after/summary.md">earlier three-host run</a>
-  (23 September, Thurbox build <code>1a6b60c0</code>). They used the same machine but were not
+  <a href="https://github.com/zatzk/talos/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/after/summary.md">earlier three-host run</a>
+  (23 September, Talos build <code>1a6b60c0</code>). They used the same machine but were not
   interleaved with each other. The typing and burst rows come from a separate
-  <a href="https://github.com/Thurbeen/thurbox/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/current-latency-throughput/summary.md">three-host final-source run</a>
+  <a href="https://github.com/zatzk/talos/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/current-latency-throughput/summary.md">three-host final-source run</a>
   (25 September).
 </p>
 <p>
-  Attached idle Thurbox memory
+  Attached idle Talos memory
   measured 46.9&nbsp;MiB at the final-head median and 56.7&nbsp;MiB at p95 (the worst of five
   repetitions): a short spike after attach remains. The
-  <a href="https://github.com/Thurbeen/thurbox/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/before/summary.md">earlier full run before the echo change</a>
+  <a href="https://github.com/zatzk/talos/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/before/summary.md">earlier full run before the echo change</a>
   read 46.0&nbsp;MiB, and its
-  <a href="https://github.com/Thurbeen/thurbox/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/after/summary.md">after run</a>
+  <a href="https://github.com/zatzk/talos/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/after/summary.md">after run</a>
   read 52.3&nbsp;MiB. Those earlier values are not final-head results.
 </p>
 <p>
-  Thurbox still loses to Herdr on typing: 4.13 versus 2.23&nbsp;ms at rest, and 1.90 versus
+  Talos still loses to Herdr on typing: 4.13 versus 2.23&nbsp;ms at rest, and 1.90 versus
   0.45&nbsp;ms with another session busy. In the final-source burst run, the last of 50,000 lines
-  appeared at 269&nbsp;ms in Thurbox and 158&nbsp;ms in Herdr. In the
-  <a href="https://github.com/Thurbeen/thurbox/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/current-latency-throughput/results.csv">same raw run</a>,
+  appeared at 269&nbsp;ms in Talos and 158&nbsp;ms in Herdr. In the
+  <a href="https://github.com/zatzk/talos/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/current-latency-throughput/results.csv">same raw run</a>,
   that attached burst also spent
-  0.38&nbsp;s of host CPU and left 37.1&nbsp;MiB PSS in Thurbox, versus 0.19&nbsp;s and
+  0.38&nbsp;s of host CPU and left 37.1&nbsp;MiB PSS in Talos, versus 0.19&nbsp;s and
   23.2&nbsp;MiB in Herdr. The steady 50-session resource result does not describe every output
   shape.
 </p>
@@ -152,10 +152,10 @@ breadcrumb: 'Performance'
 </h2>
 <p>
   Pick plain tmux when the smallest host cost and quickest local echo matter most. Pick Herdr when
-  typing latency or fast burst display matters most. Thurbox fits when you want its session
+  typing latency or fast burst display matters most. Talos fits when you want its session
   workflow, low unattended CPU cost, and diagnostics for your own interface panes. The resource
   advantage at 50 sessions does not hold at every size: with one attached idle session in the
-  earlier full run, Herdr used 1.10% CPU and 22.6&nbsp;MiB PSS, versus Thurbox's 2.89% and
+  earlier full run, Herdr used 1.10% CPU and 22.6&nbsp;MiB PSS, versus Talos's 2.89% and
   28.2&nbsp;MiB.
 </p>
 
@@ -165,11 +165,11 @@ breadcrumb: 'Performance'
 </h2>
 <ol>
   <li>
-    Open Thurbox and press <kbd>F12</kbd>. A <strong>perf</strong> overlay and a ranked
+    Open Talos and press <kbd>F12</kbd>. A <strong>perf</strong> overlay and a ranked
     <strong>panes</strong> table appear. Press <kbd>F12</kbd> again to close them. The HUD is on by
     default; if the key does nothing, set <code>perf_hud = true</code> under
     <code>[features]</code> in <code>settings.toml</code> in your
-    <a href="configuration.html">Thurbox config directory</a>. This setting applies when you save it.
+    <a href="configuration.html">Talos config directory</a>. This setting applies when you save it.
   </li>
   <li>
     Leave the interface alone for several seconds. <code>frames</code> counts painted screens;
@@ -190,7 +190,7 @@ breadcrumb: 'Performance'
     calls for those renders.
   </li>
   <li>
-    While the HUD is open, run <code>thurbox-cli perf --plugins</code> in another terminal for
+    While the HUD is open, run <code>talos-cli perf --plugins</code> in another terminal for
     every loaded pane, longer names, handler and render times, cache reuse, and the hints in full.
     The TUI publishes a snapshot every few seconds while timing is active; the CLI reads the latest
     snapshot. Use <code>--json</code> for a script.
@@ -208,25 +208,25 @@ breadcrumb: 'Performance'
 <p>These rows come from different builds on the same machine:</p>
 <ul>
   <li>
-    <strong>23 September 2026, Thurbox <code>1a6b60c0</code>:</strong> creation, plus the
+    <strong>23 September 2026, Talos <code>1a6b60c0</code>:</strong> creation, plus the
     Herdr/tmux resource comparators and the one-session example.
-    <a href="https://github.com/Thurbeen/thurbox/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/after/summary.md">Summary</a>
+    <a href="https://github.com/zatzk/talos/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/after/summary.md">Summary</a>
     and
-    <a href="https://github.com/Thurbeen/thurbox/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/after/results.csv">raw CSV</a>.
+    <a href="https://github.com/zatzk/talos/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/after/results.csv">raw CSV</a>.
   </li>
   <li>
-    <strong>25 September 2026, Thurbox <code>78ca3f93</code>:</strong> resource-only rerun
-    (<code>--hosts thurbox --scenarios resources</code>).
-    <a href="https://github.com/Thurbeen/thurbox/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/current-resources/summary.md">Summary</a>
+    <strong>25 September 2026, Talos <code>78ca3f93</code>:</strong> resource-only rerun
+    (<code>--hosts talos --scenarios resources</code>).
+    <a href="https://github.com/zatzk/talos/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/current-resources/summary.md">Summary</a>
     and
-    <a href="https://github.com/Thurbeen/thurbox/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/current-resources/results.csv">raw CSV</a>.
+    <a href="https://github.com/zatzk/talos/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/current-resources/results.csv">raw CSV</a>.
   </li>
   <li>
-    <strong>25 September 2026, Thurbox <code>78ca3f93</code>:</strong> three-host typing and
+    <strong>25 September 2026, Talos <code>78ca3f93</code>:</strong> three-host typing and
     burst rerun.
-    <a href="https://github.com/Thurbeen/thurbox/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/current-latency-throughput/summary.md">Summary</a>
+    <a href="https://github.com/zatzk/talos/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/current-latency-throughput/summary.md">Summary</a>
     and
-    <a href="https://github.com/Thurbeen/thurbox/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/current-latency-throughput/results.csv">raw CSV</a>.
+    <a href="https://github.com/zatzk/talos/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/benchmark-multiplexers/echo-and-create/current-latency-throughput/results.csv">raw CSV</a>.
   </li>
 </ul>
 <p>
@@ -234,18 +234,18 @@ breadcrumb: 'Performance'
   26.05, tmux 3.7c, and
   <a href="https://github.com/herdrdev/herdr/releases/tag/v0.9.1">Herdr 0.9.1</a>, the latest
   stable release checked on 25 September 2026.
-  Thurbox was built in release mode from the commits named in the report. The same Python stand-in
+  Talos was built in release mode from the commits named in the report. The same Python stand-in
   agent ran on every host. Each scenario used five measured repetitions after one discarded
   warm-up; latency sent 100 keys per repetition. In the raw summaries, <code>p95</code> means the
   95th percentile: the worst of five scenario repetitions, or the 95th-percentile key among 500
   latency samples. Hosts were interleaved within each three-host run; the final resource rerun
-  included only Thurbox. Herdr's documented creation path uses a shell and two CLI calls per
+  included only Talos. Herdr's documented creation path uses a shell and two CLI calls per
   session, which affects its creation result.
 </p>
 <p>
   A real coding agent, a different terminal, remote SSH, macOS, or Windows can change the result.
   The terminal emulator's own cost was outside the harness. The
-  <a href="https://github.com/Thurbeen/thurbox/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/BENCHMARK-MULTIPLEXERS.md">full benchmark report</a>
+  <a href="https://github.com/zatzk/talos/blob/30acd3d81f8568f3a4a969cfb6793fa446133987/docs/BENCHMARK-MULTIPLEXERS.md">full benchmark report</a>
   and the linked raw data include the commands, per-run samples, defaults, and threats to validity.
   The report also records the different headless grid sizes and the limits of a terminal harness.
 </p>
@@ -255,9 +255,9 @@ breadcrumb: 'Performance'
   <a href="#implementation" class="heading-anchor">#</a>
 </h2>
 <p>
-  When its interface is closed, Thurbox leaves the sessions in tmux. When it is open, it also
+  When its interface is closed, Talos leaves the sessions in tmux. When it is open, it also
   paints an editable Lua interface, so CPU and memory rise. It avoids painting unchanged frames
   and releases the terminal grid of a session that has been off screen. The
-  <a href="https://github.com/Thurbeen/thurbox/blob/main/docs/PERFORMANCE.md">technical performance report</a>
+  <a href="https://github.com/zatzk/talos/blob/main/docs/PERFORMANCE.md">technical performance report</a>
   explains those decisions, the F12 counters, and the tests behind them.
 </p>

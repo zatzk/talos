@@ -1,4 +1,4 @@
-//! Thurbox — multi-session TUI orchestrator for coding-agent CLIs.
+//! Talos — multi-session TUI orchestrator for coding-agent CLIs.
 
 pub mod agent;
 pub mod backend;

@@ -1,4 +1,4 @@
-# Contributing to Thurbox
+# Contributing to Talos
 
 This guide covers setting up your environment, the conventions the project
 follows, and how to get a change merged. Skimming [`README.md`](README.md),
@@ -34,7 +34,7 @@ the website linters), `git`, and the three Lua gates `just lint` runs (`selene`,
 `stylua`, `lua-language-server`).
 
 MSRV is Rust 1.75, Edition 2021. The full walkthrough — including the runtime
-sandbox for trying thurbox in isolation — is in
+sandbox for trying talos in isolation — is in
 [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
 
 ## Everyday tasks (`just`)
@@ -43,21 +43,21 @@ sandbox for trying thurbox in isolation — is in
 
 | Task | What it does |
 |------|--------------|
-| `just build` | build the dev binaries (`thurbox` + `thurbox-cli`) |
+| `just build` | build the dev binaries (`talos` + `talos-cli`) |
 | `just test` | `cargo nextest run --all` |
 | `just lint` | fmt-check + clippy + cargo-deny + rumdl + shellcheck + selene, stylua and lua-language-server |
 | `just fmt` | format Rust + website |
 | `just arch` | architecture-rule + rustdoc checks |
-| `just sandbox` | run thurbox in an isolated dev sandbox |
+| `just sandbox` | run talos in an isolated dev sandbox |
 
 ## Coding agents
 
-Thurbox is agent-neutral, and so is the repo. [`AGENTS.md`](AGENTS.md) is the
+Talos is agent-neutral, and so is the repo. [`AGENTS.md`](AGENTS.md) is the
 canonical guidance doc shared by coding agents. Keep repository instructions
 there so every agent reads the same source.
 
 The skills are checked in under `.agents/skills/`: eleven per-subsystem
-working references (`thurbox-testing`, `thurbox-kernel`, `thurbox-remote-hosts`,
+working references (`talos-testing`, `talos-kernel`, `talos-remote-hosts`,
 … — `AGENTS.md` indexes them) plus `ui-review`. They carry the
 detail that used to sit in `AGENTS.md`, so it stays an index and an agent loads
 only the subject it is working on. `.agents/skills/` is the agent-neutral home —
@@ -97,7 +97,7 @@ runs `just lint` plus the rustdoc check, so it needs the same dev toolchain the
 manual workflow does. It does not run the website linters — those need
 `npm ci`, and CI's `website-lint` job covers them. It is external tooling, so
 it is described here rather than in [`docs/CONFIG.md`](docs/CONFIG.md), which
-covers thurbox's own configuration.
+covers talos's own configuration.
 
 The project's code-quality rubric is [`docs/REVIEW.md`](docs/REVIEW.md), which
 `.publish.yaml` names in `review.rules`: the per-path house rules a reviewer
@@ -121,7 +121,7 @@ compiles `benches/` through `cargo clippy --all-targets`, so the instrument
 cannot rot while nobody is running it.
 
 The load harness stays out of the gate by refusing to run there
-(`THURBOX_GATE`). It lives under `scripts/dev/`, drives the real binary and
+(`TALOS_GATE`). It lives under `scripts/dev/`, drives the real binary and
 prints a result, so it reads as a test to anything deciding what "run the tests"
 means — and a step that waits through a release build and timed runs fails on
 the agent timeout, which is what happened once. That is also why the `test` step
@@ -145,7 +145,7 @@ yours.
 
 ## Testing
 
-Thurbox follows **test-driven development** — write a failing test first, make
+Talos follows **test-driven development** — write a failing test first, make
 it pass, then refactor. Bug fixes start with a test that reproduces the bug.
 
 ```bash
@@ -160,7 +160,7 @@ over the real `ui/`**: `tests/kernel_mvp.rs` for the kernel's contract and
 the new one to paste; there are no snapshot files and no tool to run. Crash
 invariants are properties in `tests/render_props.rs`, and `tests/tui_e2e.rs`
 drives the real binary on a real pty (`just smoke`). All of it runs in the one
-`cargo nextest run --all`; see the `thurbox-testing` skill under
+`cargo nextest run --all`; see the `talos-testing` skill under
 `.agents/skills/`.
 
 ## Linting and formatting
@@ -263,7 +263,7 @@ doc in the **same PR**. Rationale lives in:
 - [`docs/CONSTITUTION.md`](docs/CONSTITUTION.md) — non-negotiable principles
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — architectural decisions
 - [`docs/FEATURES.md`](docs/FEATURES.md) — feature-level design choices
-- [`docs/CONFIG.md`](docs/CONFIG.md) — thurbox's own config files, env vars and
+- [`docs/CONFIG.md`](docs/CONFIG.md) — talos's own config files, env vars and
   DB settings
 - [`docs/REVIEW.md`](docs/REVIEW.md) — the house rules a change is reviewed
   against, and which document owns which class of fact

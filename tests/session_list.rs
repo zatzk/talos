@@ -16,14 +16,14 @@ use ratatui::backend::TestBackend;
 use ratatui::buffer::Buffer;
 use ratatui::Terminal;
 
-use thurbox::kernel::command::{Command, InFlight, Phase};
-use thurbox::kernel::events::Event;
-use thurbox::kernel::host::{Click, KeyPress, LuaHost, Published, RenderContext};
-use thurbox::kernel::paint::{render as paint_node, PlaceholderSurfaces};
-use thurbox::kernel::registry::{Registry, Value};
-use thurbox::kernel::snapshot::{GitState, HostRow, SessionRow, Snapshot};
-use thurbox::kernel::theme::Themes;
-use thurbox::session::SessionState;
+use talos::kernel::command::{Command, InFlight, Phase};
+use talos::kernel::events::Event;
+use talos::kernel::host::{Click, KeyPress, LuaHost, Published, RenderContext};
+use talos::kernel::paint::{render as paint_node, PlaceholderSurfaces};
+use talos::kernel::registry::{Registry, Value};
+use talos::kernel::snapshot::{GitState, HostRow, SessionRow, Snapshot};
+use talos::kernel::theme::Themes;
+use talos::session::SessionState;
 
 const PLUGIN: &str = "sessions";
 
@@ -40,9 +40,9 @@ fn row(id: &str, name: &str) -> SessionRow {
         name: name.into(),
         agent: "claude".into(),
         status: SessionState::Idle,
-        cwd: Some(std::path::PathBuf::from("/src/thurbox")),
-        repo: Some("thurbox".into()),
-        repos: vec!["thurbox".into()],
+        cwd: Some(std::path::PathBuf::from("/src/talos")),
+        repo: Some("talos".into()),
+        repos: vec!["talos".into()],
         branch: Some("main".into()),
         base_branch: None,
         backend: "local-tmux".into(),
@@ -180,7 +180,7 @@ fn right_arrow_steps_through_a_folded_repo_one_level_at_a_time() {
     host.on_click(
         index,
         &Click {
-            id: Some("repo:example-ssh\x01thurbox".into()),
+            id: Some("repo:example-ssh\x01talos".into()),
             ..Click::default()
         },
     )
@@ -247,7 +247,7 @@ fn next_attention_reveals_a_folded_host_and_repo() {
     host.on_click(
         index,
         &Click {
-            id: Some("repo:example-ssh\x01thurbox".into()),
+            id: Some("repo:example-ssh\x01talos".into()),
             ..Click::default()
         },
     )
@@ -277,7 +277,7 @@ fn following_a_created_session_reveals_its_folded_host_and_repo() {
     host.on_click(
         index,
         &Click {
-            id: Some("repo:example-ssh\x01thurbox".into()),
+            id: Some("repo:example-ssh\x01talos".into()),
             ..Click::default()
         },
     )
@@ -321,13 +321,13 @@ fn repo_row_folds_only_its_own_sessions() {
     let registry = registry_for(&host);
     let expanded = list_text(&host, &snapshot, &registry);
     assert!(
-        expanded.contains("thurbox") && expanded.contains("website"),
+        expanded.contains("talos") && expanded.contains("website"),
         "{expanded}"
     );
     press_in(&host, &snapshot, "k");
     press_in(&host, &snapshot, "h");
     let folded = list_text(&host, &snapshot, &registry);
-    assert!(folded.contains("thurbox"), "{folded}");
+    assert!(folded.contains("talos"), "{folded}");
     assert!(!folded.contains("first"), "{folded}");
     assert!(folded.contains("second"), "{folded}");
     press_in(&host, &snapshot, "l");
@@ -361,7 +361,7 @@ fn repo_fold_is_scoped_to_host_and_focus_reveals_its_child() {
         .on_click(
             host.index_of(PLUGIN).unwrap(),
             &Click {
-                id: Some("repo:example-ssh\x01thurbox".into()),
+                id: Some("repo:example-ssh\x01talos".into()),
                 clicks: 1,
                 ..Click::default()
             },
@@ -718,10 +718,10 @@ fn publish_inflight(
     inflight: &[InFlight],
 ) {
     let themes = Themes::load(None);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     host.publish(&Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot,
         attach_errors: &Default::default(),
         inflight,
@@ -1188,7 +1188,7 @@ fn a_pending_jump_loses_to_the_users_own_cursor_move() {
 #[test]
 fn only_a_create_this_interface_made_is_subscribed_to() {
     // `session.created` fires for every row that appears, whoever made it —
-    // subscribing to it would let a `thurbox-cli session create`, an automation
+    // subscribing to it would let a `talos-cli session create`, an automation
     // or a second instance take the keyboard out from under the user.
     let host = host();
     let index = host.index_of(PLUGIN).expect("no sessions plugin");
@@ -1409,7 +1409,7 @@ fn shift_s_sorts_each_group_by_name() {
 fn sorting_with_a_creation_in_flight_does_not_take_the_pane_down() {
     let host = host();
     let snapshot = snapshot();
-    let inflight = [creating("thurbox")];
+    let inflight = [creating("talos")];
 
     render_in(&host, &snapshot);
     press_inflight(&host, &snapshot, &inflight, "S");
@@ -1491,7 +1491,7 @@ fn the_sort_puts_a_nameless_block_at_its_groups_end() {
     // the next caller inherits a comparator that indexes a session that is not
     // there.
     let items = r#"{
-      { session = { name = "zulu" }, depth = 0, header = "thurbox", target = "z" },
+      { session = { name = "zulu" }, depth = 0, header = "talos", target = "z" },
       { command = {}, depth = 0, target = false },
       { session = { name = "alpha" }, depth = 0, target = "a" },
     }"#;

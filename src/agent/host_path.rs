@@ -1,12 +1,12 @@
 //! The `PATH` an agent gets on an SSH host or inside a WSL distro.
 //!
-//! Every command thurbox runs on a host goes through a launcher that hands it
+//! Every command talos runs on a host goes through a launcher that hands it
 //! a **non-login** environment: `wsl.exe -e sh -c …` bypasses the user's shell
 //! altogether (the distro's default `PATH` plus the translated Windows one),
 //! and sshd runs a command with its own compiled-in `PATH`. Neither reads
 //! `~/.profile`, `~/.zprofile` or — for `wsl.exe -e` — even `~/.zshenv`, which
 //! is where `~/.local/bin`, `~/.cargo/bin`, `~/.bun/bin` and the nvm/fnm shims
-//! go. A delegated `thurbox-cli session create` (ADR-24) inherited exactly that
+//! go. A delegated `talos-cli session create` (ADR-24) inherited exactly that
 //! environment and pinned it on the pane (`backend::tmux_compat::server::path_prefix_args`), so
 //! an agent installed under `~/.local/bin` died with `env: 'claude': No such
 //! file or directory`.

@@ -14,7 +14,7 @@
 //! time.
 //!
 //! The fix is not reap-shaped, so neither is this suite any more: every window
-//! carries the id of the session row that owns it (`@thurbox_session`, ADR-25),
+//! carries the id of the session row that owns it (`@talos_session`, ADR-25),
 //! and force delete, stop and restart resolve that stamp exactly as the reap
 //! does. The last test here walks all three.
 //!
@@ -31,7 +31,7 @@ mod tmux_server;
 use tmux_server::TmuxServer;
 
 /// A throwaway tmux socket, so this never touches the real one.
-const SOCKET: &str = "thurbox-reap-e2e";
+const SOCKET: &str = "talos-reap-e2e";
 
 fn have_tmux() -> bool {
     Command::new("tmux")
@@ -68,7 +68,7 @@ fn open_shell_window(session_id: &str, name: &str) -> String {
     let target = String::from_utf8_lossy(&sessions.stdout)
         .lines()
         .next()
-        .expect("a thurbox tmux session")
+        .expect("a talos tmux session")
         .to_string();
     let out = tmux(&[
         "new-window",
@@ -86,11 +86,11 @@ fn open_shell_window(session_id: &str, name: &str) -> String {
     assert!(pane.starts_with('%'), "new-window said {pane:?}");
     for (option, value) in [
         (
-            thurbox::backend::tmux_compat::server::WINDOW_SESSION_OPTION,
+            talos::backend::tmux_compat::server::WINDOW_SESSION_OPTION,
             session_id,
         ),
         (
-            thurbox::backend::tmux_compat::server::WINDOW_ROLE_OPTION,
+            talos::backend::tmux_compat::server::WINDOW_ROLE_OPTION,
             "shell",
         ),
     ] {
@@ -137,7 +137,7 @@ fn repo() -> tempfile::TempDir {
     let dir = tempfile::tempdir().expect("tempdir");
     git(dir.path(), &["init", "-q", "-b", "main"]);
     git(dir.path(), &["config", "user.email", "t@example.com"]);
-    git(dir.path(), &["config", "user.name", "thurbox-test"]);
+    git(dir.path(), &["config", "user.name", "talos-test"]);
     // Signing would make this depend on a key in the user's agent; the repo is
     // throwaway, so it is disabled rather than required of the machine.
     git(dir.path(), &["config", "commit.gpgsign", "false"]);
@@ -150,8 +150,8 @@ fn repo() -> tempfile::TempDir {
 /// A shell rather than a real agent: the reap path is what is under test, and
 /// launching a coding agent would want credentials and a network.
 fn isolate_paths(home: &Path) {
-    thurbox::paths::set_test_dir(home);
-    let config = thurbox::paths::config_file()
+    talos::paths::set_test_dir(home);
+    let config = talos::paths::config_file()
         .expect("config path")
         .parent()
         .expect("config dir")
@@ -165,14 +165,14 @@ fn isolate_paths(home: &Path) {
 }
 
 fn spawn(
-    db: &thurbox::storage::Database,
+    db: &talos::storage::Database,
     repo: &Path,
     name: &str,
-) -> Option<thurbox::session_ops::SpawnResult> {
-    let result = thurbox::session_ops::spawn_session_headless(
+) -> Option<talos::session_ops::SpawnResult> {
+    let result = talos::session_ops::spawn_session_headless(
         db,
-        &thurbox::backend::wiring::configured().0,
-        thurbox::session_ops::SpawnRequest {
+        &talos::backend::wiring::configured().0,
+        talos::session_ops::SpawnRequest {
             name: name.into(),
             repo_path: repo.to_path_buf(),
             // In place: a worktree is irrelevant to which window a reap targets.
@@ -213,7 +213,7 @@ fn reaping_a_stale_row_spares_the_live_window_of_the_same_name() {
     }
 
     let repo = repo();
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let _server = TmuxServer::pin(SOCKET);
     let home = tempfile::tempdir().expect("tempdir");
     isolate_paths(home.path());
@@ -224,9 +224,9 @@ fn reaping_a_stale_row_spares_the_live_window_of_the_same_name() {
     };
 
     // 2. Soft-deleted: the row is kept for undo, the window is left alone.
-    let report = thurbox::session_ops::delete_session_headless(
+    let report = talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         stale.session_id,
         false,
     )
@@ -254,9 +254,9 @@ fn reaping_a_stale_row_spares_the_live_window_of_the_same_name() {
     );
 
     // 5. The undo window closes and the reaper collects the stale row.
-    let reaped = thurbox::session_ops::reap_soft_deleted(
+    let reaped = talos::session_ops::reap_soft_deleted(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         stale.session_id,
     )
     .expect("reap");
@@ -293,7 +293,7 @@ fn reaping_still_kills_the_row_its_own_window() {
     }
 
     let repo = repo();
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let _server = TmuxServer::pin(SOCKET);
     let home = tempfile::tempdir().expect("tempdir");
     isolate_paths(home.path());
@@ -306,9 +306,9 @@ fn reaping_still_kills_the_row_its_own_window() {
         "the spawn should be running"
     );
 
-    thurbox::session_ops::delete_session_headless(
+    talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         session.session_id,
         false,
     )
@@ -316,9 +316,9 @@ fn reaping_still_kills_the_row_its_own_window() {
 
     // The undo window closes with the pane still there: this row owns it, so it
     // is exactly what the reap should collect.
-    let reaped = thurbox::session_ops::reap_soft_deleted(
+    let reaped = talos::session_ops::reap_soft_deleted(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         session.session_id,
     )
     .expect("reap");
@@ -347,7 +347,7 @@ fn reaping_collects_its_window_when_the_pane_id_resolves_to_nothing() {
     }
 
     let repo = repo();
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let _server = TmuxServer::pin(SOCKET);
     let home = tempfile::tempdir().expect("tempdir");
     isolate_paths(home.path());
@@ -361,17 +361,17 @@ fn reaping_collects_its_window_when_the_pane_id_resolves_to_nothing() {
             .expect("clear the pane id"),
         "the spawned row should be there to update"
     );
-    thurbox::session_ops::delete_session_headless(
+    talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         session.session_id,
         false,
     )
     .expect("delete");
 
-    let reaped = thurbox::session_ops::reap_soft_deleted(
+    let reaped = talos::session_ops::reap_soft_deleted(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         session.session_id,
     )
     .expect("reap");
@@ -406,7 +406,7 @@ fn reaping_spares_a_namesakes_pane_the_stale_row_remembers() {
     }
 
     let repo = repo();
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let _server = TmuxServer::pin(SOCKET);
     let home = tempfile::tempdir().expect("tempdir");
     isolate_paths(home.path());
@@ -414,9 +414,9 @@ fn reaping_spares_a_namesakes_pane_the_stale_row_remembers() {
     let Some(stale) = spawn(&db, repo.path(), "fleet") else {
         return;
     };
-    thurbox::session_ops::delete_session_headless(
+    talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         stale.session_id,
         false,
     )
@@ -441,9 +441,9 @@ fn reaping_spares_a_namesakes_pane_the_stale_row_remembers() {
     db.soft_delete_session(stale.session_id)
         .expect("soft-delete again");
 
-    let reaped = thurbox::session_ops::reap_soft_deleted(
+    let reaped = talos::session_ops::reap_soft_deleted(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         stale.session_id,
     )
     .expect("reap");
@@ -472,7 +472,7 @@ fn reaping_spares_a_soft_deleted_namesake_still_inside_its_undo_window() {
     }
 
     let repo = repo();
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let _server = TmuxServer::pin(SOCKET);
     let home = tempfile::tempdir().expect("tempdir");
     isolate_paths(home.path());
@@ -480,9 +480,9 @@ fn reaping_spares_a_soft_deleted_namesake_still_inside_its_undo_window() {
     let Some(stale) = spawn(&db, repo.path(), "fleet") else {
         return;
     };
-    thurbox::session_ops::delete_session_headless(
+    talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         stale.session_id,
         false,
     )
@@ -494,9 +494,9 @@ fn reaping_spares_a_soft_deleted_namesake_still_inside_its_undo_window() {
     let Some(undoable) = spawn(&db, repo.path(), "fleet") else {
         return;
     };
-    thurbox::session_ops::delete_session_headless(
+    talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         undoable.session_id,
         false,
     )
@@ -506,9 +506,9 @@ fn reaping_spares_a_soft_deleted_namesake_still_inside_its_undo_window() {
         "a soft delete must leave the window for the undo window"
     );
 
-    let stale_reaped = thurbox::session_ops::reap_soft_deleted(
+    let stale_reaped = talos::session_ops::reap_soft_deleted(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         stale.session_id,
     )
     .expect("reap stale");
@@ -516,9 +516,9 @@ fn reaping_spares_a_soft_deleted_namesake_still_inside_its_undo_window() {
 
     // And the strictness is not a leak: the undoable row's own reap, when its
     // turn comes, takes its window down.
-    let own_reaped = thurbox::session_ops::reap_soft_deleted(
+    let own_reaped = talos::session_ops::reap_soft_deleted(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         undoable.session_id,
     )
     .expect("reap own");
@@ -556,7 +556,7 @@ fn reaping_spares_a_live_window_whose_name_only_collides_once_sanitized() {
     }
 
     let repo = repo();
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let _server = TmuxServer::pin(SOCKET);
     let home = tempfile::tempdir().expect("tempdir");
     isolate_paths(home.path());
@@ -564,9 +564,9 @@ fn reaping_spares_a_live_window_whose_name_only_collides_once_sanitized() {
     let Some(stale) = spawn(&db, repo.path(), "fleet 1") else {
         return;
     };
-    thurbox::session_ops::delete_session_headless(
+    talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         stale.session_id,
         false,
     )
@@ -589,9 +589,9 @@ fn reaping_spares_a_live_window_whose_name_only_collides_once_sanitized() {
         "the replacement should be running"
     );
 
-    let reaped = thurbox::session_ops::reap_soft_deleted(
+    let reaped = talos::session_ops::reap_soft_deleted(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         stale.session_id,
     )
     .expect("reap");
@@ -623,7 +623,7 @@ fn force_delete_stop_and_restart_all_spare_a_live_namesakes_window() {
     }
 
     let repo = repo();
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let _server = TmuxServer::pin(SOCKET);
     let home = tempfile::tempdir().expect("tempdir");
     isolate_paths(home.path());
@@ -645,24 +645,24 @@ fn force_delete_stop_and_restart_all_spare_a_live_namesakes_window() {
         cases.push((stale, live));
     }
 
-    let forced = thurbox::session_ops::delete_session_headless(
+    let forced = talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         cases[0].0.session_id,
         true,
     );
     let after_delete = pane_alive(&cases[0].1.backend_id);
 
-    let stopped = thurbox::session_ops::restart::stop_session_headless(
+    let stopped = talos::session_ops::restart::stop_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         cases[1].0.session_id,
     );
     let after_stop = pane_alive(&cases[1].1.backend_id);
 
-    let restarted = thurbox::session_ops::restart_session_headless(
+    let restarted = talos::session_ops::restart_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         cases[2].0.session_id,
     );
     let after_restart = pane_alive(&cases[2].1.backend_id);
@@ -693,7 +693,7 @@ fn force_delete_still_kills_the_rows_own_window() {
     }
 
     let repo = repo();
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let _server = TmuxServer::pin(SOCKET);
     let home = tempfile::tempdir().expect("tempdir");
     isolate_paths(home.path());
@@ -701,9 +701,9 @@ fn force_delete_still_kills_the_rows_own_window() {
     let Some(session) = spawn(&db, repo.path(), "solo") else {
         return;
     };
-    let report = thurbox::session_ops::delete_session_headless(
+    let report = talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         session.session_id,
         true,
     )
@@ -730,7 +730,7 @@ fn a_row_with_no_pane_id_still_resolves_its_own_stamped_window() {
     }
 
     let repo = repo();
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let _server = TmuxServer::pin(SOCKET);
     let home = tempfile::tempdir().expect("tempdir");
     isolate_paths(home.path());
@@ -741,9 +741,9 @@ fn a_row_with_no_pane_id_still_resolves_its_own_stamped_window() {
     db.set_backend_id(session.session_id, "")
         .expect("clear the pane id");
 
-    let backend = thurbox::backend::tmux::TmuxBackend::new();
-    let outcome = thurbox::backend::SessionBackend::discover(&backend).map(|listing| {
-        thurbox::backend::identity::WindowIndex::from_listing(listing)
+    let backend = talos::backend::tmux::TmuxBackend::new();
+    let outcome = talos::backend::SessionBackend::discover(&backend).map(|listing| {
+        talos::backend::identity::WindowIndex::from_listing(listing)
             .live_agent_window(&session.session_id.to_string(), "stamped")
             .pane()
     });
@@ -776,7 +776,7 @@ fn restoring_a_session_never_joins_a_live_namesake_on_its_name() {
     }
 
     let repo = repo();
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let _server = TmuxServer::pin(SOCKET);
     let home = tempfile::tempdir().expect("tempdir");
     isolate_paths(home.path());
@@ -784,9 +784,9 @@ fn restoring_a_session_never_joins_a_live_namesake_on_its_name() {
     let Some(stale) = spawn(&db, repo.path(), "fleet") else {
         return;
     };
-    thurbox::session_ops::delete_session_headless(
+    talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         stale.session_id,
         false,
     )
@@ -800,9 +800,9 @@ fn restoring_a_session_never_joins_a_live_namesake_on_its_name() {
 
     // `--best-effort` too: that flag says the caller accepts a lossy recovery,
     // and a name two rows would answer to is not about loss.
-    let restored = thurbox::session_ops::restore_session_headless(
+    let restored = talos::session_ops::restore_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         stale.session_id,
         true,
     );
@@ -840,7 +840,7 @@ fn force_delete_and_reap_both_collect_the_companion_shell() {
     }
 
     let repo = repo();
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let _server = TmuxServer::pin(SOCKET);
     let home = tempfile::tempdir().expect("tempdir");
     isolate_paths(home.path());
@@ -854,25 +854,25 @@ fn force_delete_and_reap_both_collect_the_companion_shell() {
     };
     let reaped_shell = open_shell_window(&reaped.session_id.to_string(), "reaped");
 
-    thurbox::session_ops::delete_session_headless(
+    talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         forced.session_id,
         true,
     )
     .expect("delete");
     let forced_shell_alive = pane_alive(&forced_shell);
 
-    thurbox::session_ops::delete_session_headless(
+    talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         reaped.session_id,
         false,
     )
     .expect("delete");
-    thurbox::session_ops::reap_soft_deleted(
+    talos::session_ops::reap_soft_deleted(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         reaped.session_id,
     )
     .expect("reap");
@@ -900,7 +900,7 @@ fn a_teardown_spares_a_live_namesakes_companion_shell() {
     }
 
     let repo = repo();
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let _server = TmuxServer::pin(SOCKET);
     let home = tempfile::tempdir().expect("tempdir");
     isolate_paths(home.path());
@@ -917,9 +917,9 @@ fn a_teardown_spares_a_live_namesakes_companion_shell() {
     };
     let live_shell = open_shell_window(&live.session_id.to_string(), "fleet");
 
-    thurbox::session_ops::delete_session_headless(
+    talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         stale.session_id,
         true,
     )
@@ -937,9 +937,9 @@ fn a_teardown_spares_a_live_namesakes_companion_shell() {
 /// A teardown asks the server what it holds; it must not bring one into being.
 ///
 /// The remote path used to call `ensure_ready` first, which starts the server
-/// *and* creates the thurbox session on the host — so a one-shot `thurbox-cli`
+/// *and* creates the talos session on the host — so a one-shot `talos-cli`
 /// tearing a session down left an empty server on somebody else's machine,
-/// often on a socket the host's own thurbox does not even use. Both paths read
+/// often on a socket the host's own talos does not even use. Both paths read
 /// the same one-shot listing now, and this pins the property where it can be
 /// observed: on a socket with nothing running.
 #[test]
@@ -949,21 +949,21 @@ fn a_teardown_never_brings_a_tmux_server_into_being() {
         return;
     }
 
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let _server = TmuxServer::pin(SOCKET);
     let home = tempfile::tempdir().expect("tempdir");
     isolate_paths(home.path());
     // Nothing was spawned, so there is no server on this socket.
     assert!(!tmux(&["has-session"]).status.success());
 
-    let id = thurbox::session::SessionId::default();
-    let backend = thurbox::backend::tmux::TmuxBackend::new();
-    let _ = thurbox::backend::SessionBackend::locate(
+    let id = talos::session::SessionId::default();
+    let backend = talos::backend::tmux::TmuxBackend::new();
+    let _ = talos::backend::SessionBackend::locate(
         &backend,
-        thurbox::backend::Owner::new(&id.to_string(), "ghost"),
+        talos::backend::Owner::new(&id.to_string(), "ghost"),
     );
     let _ =
-        thurbox::session_ops::reap_soft_deleted(&db, &thurbox::backend::wiring::configured().0, id);
+        talos::session_ops::reap_soft_deleted(&db, &talos::backend::wiring::configured().0, id);
 
     let started = tmux(&["has-session"]).status.success();
     assert!(!started, "a teardown started a tmux server on the socket");
@@ -982,7 +982,7 @@ fn the_sweep_collects_a_row_deleted_while_nothing_was_watching() {
     }
 
     let repo = repo();
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let _server = TmuxServer::pin(SOCKET);
     let home = tempfile::tempdir().expect("tempdir");
     isolate_paths(home.path());
@@ -990,9 +990,9 @@ fn the_sweep_collects_a_row_deleted_while_nothing_was_watching() {
     let Some(session) = spawn(&db, repo.path(), "unwatched") else {
         return;
     };
-    thurbox::session_ops::delete_session_headless(
+    talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         session.session_id,
         false,
     )
@@ -1000,9 +1000,9 @@ fn the_sweep_collects_a_row_deleted_while_nothing_was_watching() {
 
     // Inside the undo window: the sweep leaves it, and the agent runs on.
     assert!(
-        thurbox::session_ops::reap_overdue_soft_deletes(
+        talos::session_ops::reap_overdue_soft_deletes(
             &db,
-            &thurbox::backend::wiring::configured().0
+            &talos::backend::wiring::configured().0
         )
         .is_empty(),
         "a delete still inside its undo window is not overdue"
@@ -1016,16 +1016,16 @@ fn the_sweep_collects_a_row_deleted_while_nothing_was_watching() {
             [session.session_id.to_string()],
         )
         .expect("backdate the delete");
-    let reaped = thurbox::session_ops::reap_overdue_soft_deletes(
+    let reaped = talos::session_ops::reap_overdue_soft_deletes(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
     );
     let collected = !pane_alive(&session.backend_id);
     // Idempotent: the row owns nothing on the next pass, so it is not reported
     // again on every tick for as long as it stays deleted.
-    let second = thurbox::session_ops::reap_overdue_soft_deletes(
+    let second = talos::session_ops::reap_overdue_soft_deletes(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
     );
 
     assert!(untouched, "the agent runs on until the undo window closes");

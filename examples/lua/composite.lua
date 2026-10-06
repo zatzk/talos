@@ -3,10 +3,10 @@
 -- Two of them at once — `git status --porcelain` and `git log --oneline` — each
 -- parsed rather than echoed, drawn as a table whose rows carry their own state.
 -- That combination is the point: a pane that shells out and prints the output
--- verbatim is a worse terminal, and thurbox already has a real one (`Ctrl+T`).
+-- verbatim is a worse terminal, and talos already has a real one (`Ctrl+T`).
 -- What a pane is *for* is deriving something you can read at a glance.
 --
--- To use it, copy it into your interface directory (`thurbox-cli plugin dir`),
+-- To use it, copy it into your interface directory (`talos-cli plugin dir`),
 -- then trust it: settings (`Ctrl+,`) → `]` → find it → `t`. Until you do, `run`
 -- is not a function here and the pane says so. That is not an error state; it is
 -- the state every plugin starts in, and drawing it well is part of the job.
@@ -25,7 +25,7 @@ local function selected()
   if not id then
     return nil
   end
-  for _, session in ipairs((thurbox and thurbox.sessions) or {}) do
+  for _, session in ipairs((talos and talos.sessions) or {}) do
     if session.id == id then
       return session
     end
@@ -35,7 +35,7 @@ end
 
 --- One run's answer, or nil while it has not arrived.
 local function answer(key)
-  local runs = (thurbox and thurbox.runs) or {}
+  local runs = (talos and talos.runs) or {}
   local got = runs[key]
   if got and got.state == "done" then
     return got

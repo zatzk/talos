@@ -16,7 +16,7 @@
 //! keys like `j`/`k` can be rebound per-pane without stealing them from the
 //! terminal, which forwards everything to the PTY. Defaults reproduce the
 //! table in `AGENTS.md`; users override via the F1 editor or by hand-editing
-//! `~/.config/thurbox/keybindings.json`.
+//! `~/.config/talos/keybindings.json`.
 //!
 //! A few stateful keys remain literal in `key_handlers.rs` and are *not*
 //! rebindable: modal-internal selectors (j/k/Enter/Esc), the automations/tasks
@@ -322,15 +322,15 @@ impl Action {
     }
 
     /// Whether this action should **defer to the agent CLI** when a session
-    /// terminal is focused, instead of running as a thurbox command.
+    /// terminal is focused, instead of running as a talos command.
     ///
-    /// thurbox's global chords share the `Ctrl+<letter>` namespace with the
+    /// talos's global chords share the `Ctrl+<letter>` namespace with the
     /// readline / shell line-editing chords users have in muscle memory
     /// (`Ctrl+A` = start-of-line, `Ctrl+E` = end-of-line, `Ctrl+W` =
     /// delete-word, `Ctrl+U` = kill-line, `Ctrl+R` = reverse-search, `Ctrl+D`
     /// = EOF, …). For the actions below we let those keystrokes pass through to
     /// the PTY while the terminal is focused, so the inner agent CLI behaves
-    /// normally; the thurbox command stays reachable from the session list (and
+    /// normally; the talos command stays reachable from the session list (and
     /// via its `F`-key alternate, where one exists). The deferral is gated on
     /// the *bound chord* still being a bare `Ctrl+<letter>`, so rebinding an
     /// action to a non-conflicting key keeps it working in the terminal. In v2
@@ -1008,7 +1008,7 @@ impl KeyBindings {
         self.map.insert(action, action.default_chords());
     }
 
-    /// Serialize to the JSON shape `~/.config/thurbox/keybindings.json` uses.
+    /// Serialize to the JSON shape `~/.config/talos/keybindings.json` uses.
     pub fn to_json(&self) -> Result<String, String> {
         let mut out: HashMap<String, Vec<String>> = HashMap::new();
         for (action, chords) in &self.map {
@@ -1315,7 +1315,7 @@ mod tests {
     #[test]
     fn lookup_returns_none_for_unbound_chord() {
         // Ctrl+A is unbound by default (it is a readline editing chord, not a
-        // thurbox action), so it is the neutral "free chord" for fixtures.
+        // talos action), so it is the neutral "free chord" for fixtures.
         let kb = KeyBindings::default();
         assert_eq!(kb.lookup(KeyCode::Char('a'), KeyModifiers::CONTROL), None);
     }

@@ -751,7 +751,7 @@ fn host_shell_c_wsl_passes_script_unquoted_via_exec() {
     assert_eq!(args, expected);
 }
 
-/// A Windows host, declared the only way thurbox declares one.
+/// A Windows host, declared the only way talos declares one.
 fn windows_host() -> HostDef {
     HostDef {
         name: "winbox".into(),
@@ -1095,13 +1095,13 @@ fn collect_scanned_children_joins_and_sorts() {
 #[test]
 fn parse_dir_listing_reads_the_line_protocol() {
     // `g`/`d` tagged lines, sorted; unknown lines skipped, not fatal.
-    let listing = parse_dir_listing("g thurbox\nd scratch\nnoise\ng api server\n");
+    let listing = parse_dir_listing("g talos\nd scratch\nnoise\ng api server\n");
     assert_eq!(
         listing,
         DirListing::Entries(vec![
             ("api server".into(), true),
             ("scratch".into(), false),
-            ("thurbox".into(), true),
+            ("talos".into(), true),
         ])
     );
     assert_eq!(parse_dir_listing("!missing\n"), DirListing::Missing);
@@ -1263,8 +1263,8 @@ fn worktree_path_for_local_matches_worktree_path() {
 #[test]
 fn parse_ssh_url() {
     assert_eq!(
-        parse_repo_name_from_url("git@github.com:user/thurbox.git"),
-        Some("thurbox".to_string())
+        parse_repo_name_from_url("git@github.com:user/talos.git"),
+        Some("talos".to_string())
     );
 }
 
@@ -1428,7 +1428,7 @@ worktree /wt\nHEAD 2\nbranch refs/heads/x\nlocked in use\n";
 #[test]
 fn list_worktrees_reports_a_worktree_at_a_foreign_path() {
     // The point of the feature: a worktree the user (or their agent) made at
-    // an arbitrary location is found, not just ones under thurbox's own dir.
+    // an arbitrary location is found, not just ones under talos's own dir.
     let tmp = tempfile::tempdir().unwrap();
     let repo = tmp.path().join("repo");
     seed_repo(&repo, "file.txt", "hi");

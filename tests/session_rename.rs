@@ -1,4 +1,4 @@
-//! `thurbox-cli session rename`, through the real binary.
+//! `talos-cli session rename`, through the real binary.
 //!
 //! The refusals need a row and never a pane, so they seed one and are answered
 //! before any multiplexer is asked. The rest reach the window step — a session's
@@ -11,8 +11,8 @@ use std::path::PathBuf;
 use std::process::{Command, Output};
 
 use serde_json::Value;
-use thurbox::session::SessionId;
-use thurbox::sync::SharedSession;
+use talos::session::SessionId;
+use talos::sync::SharedSession;
 
 /// The guard every tmux server in this file is reaped by — see its own doc.
 #[path = "support/tmux_server.rs"]
@@ -58,7 +58,7 @@ impl Env {
             "default = \"shell\"\n\n[[agents]]\nname = \"shell\"\ncommand = \"sh\"\nargs = []\n",
         )
         .expect("seed agents");
-        let server = TmuxServer::private(&format!("thurbox-rename-{}", std::process::id()));
+        let server = TmuxServer::private(&format!("talos-rename-{}", std::process::id()));
         Self { root, server }
     }
 
@@ -66,29 +66,29 @@ impl Env {
         self.root.path().join(sub)
     }
 
-    fn db(&self) -> thurbox::storage::Database {
-        thurbox::storage::Database::open(&self.path("data").join("thurbox.db"))
+    fn db(&self) -> talos::storage::Database {
+        talos::storage::Database::open(&self.path("data").join("talos.db"))
             .expect("open the instance database")
     }
 
     fn run(&self, args: &[&str]) -> Output {
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         cmd.args(args)
             .current_dir(self.root.path())
             .env("HOME", self.path("home"))
             .env("USERPROFILE", self.path("home"))
-            .env("THURBOX_CONFIG_DIR", self.path("config"))
-            .env("THURBOX_DATA_DIR", self.path("data"))
+            .env("TALOS_CONFIG_DIR", self.path("config"))
+            .env("TALOS_DATA_DIR", self.path("data"))
             .env_remove("TMUX")
-            .env_remove("THURBOX_SESSION")
-            .env_remove("THURBOX_SESSION_ID");
+            .env_remove("TALOS_SESSION")
+            .env_remove("TALOS_SESSION_ID");
         for var in GIT_LOCATION_ENV {
             cmd.env_remove(var);
         }
         // Pinned socket, cleared owner tag, private socket directory — and the
         // guard that reaps whatever this run starts on it.
         self.server.scope(&mut cmd);
-        cmd.output().expect("run thurbox-cli")
+        cmd.output().expect("run talos-cli")
     }
 
     /// A session row with no pane — all a refusal needs.
@@ -146,7 +146,7 @@ impl Env {
         let target = String::from_utf8_lossy(&sessions.stdout)
             .lines()
             .next()
-            .expect("a thurbox tmux session")
+            .expect("a talos tmux session")
             .to_string();
         let out = self.tmux(&[
             "new-window",
@@ -164,11 +164,11 @@ impl Env {
         assert!(pane.starts_with('%'), "new-window said {pane:?}");
         for (option, value) in [
             (
-                thurbox::backend::tmux_compat::server::WINDOW_SESSION_OPTION,
+                talos::backend::tmux_compat::server::WINDOW_SESSION_OPTION,
                 session_id,
             ),
             (
-                thurbox::backend::tmux_compat::server::WINDOW_ROLE_OPTION,
+                talos::backend::tmux_compat::server::WINDOW_ROLE_OPTION,
                 "shell",
             ),
         ] {
@@ -213,7 +213,7 @@ fn repo(under: &Path) -> PathBuf {
     std::fs::create_dir_all(&dir).expect("mkdir");
     git(&dir, &["init", "-q", "-b", "main"]);
     git(&dir, &["config", "user.email", "t@example.com"]);
-    git(&dir, &["config", "user.name", "thurbox-test"]);
+    git(&dir, &["config", "user.name", "talos-test"]);
     git(&dir, &["config", "commit.gpgsign", "false"]);
     std::fs::write(dir.join("README.md"), "# probe\n").expect("write");
     git(&dir, &["add", "."]);

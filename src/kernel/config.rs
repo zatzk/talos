@@ -18,7 +18,7 @@
 //! and it is what gets published to plugins.
 //!
 //! The reason this module exists at all: `settings::global` is a write-once
-//! `OnceLock` shared with `thurbox-cli` and v1. That is what makes those callers
+//! `OnceLock` shared with `talos-cli` and v1. That is what makes those callers
 //! safe, so it must not become mutable — a live setting needs somewhere else to
 //! live.
 

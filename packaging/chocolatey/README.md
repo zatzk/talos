@@ -1,21 +1,21 @@
 # Chocolatey packaging
 
-Thurbox ships a [Chocolatey](https://chocolatey.org) package that installs the
-**prebuilt** x86_64 Windows release binaries (`thurbox.exe` + `thurbox-cli.exe`)
+Talos ships a [Chocolatey](https://chocolatey.org) package that installs the
+**prebuilt** x86_64 Windows release binaries (`talos.exe` + `talos-cli.exe`)
 from the GitHub Release and shims them onto your `PATH`.
 
 ```powershell
-choco install thurbox
+choco install talos
 ```
 
 > **Status: live.** The package has been approved by the Chocolatey community
 > moderators and resolves from the community feed:
-> [community.chocolatey.org/packages/thurbox](https://community.chocolatey.org/packages/thurbox).
+> [community.chocolatey.org/packages/talos](https://community.chocolatey.org/packages/talos).
 > New versions still go through community-repo moderation before they appear (see
 > [Moderation](#automated-publishing-ci) below).
 
 The canonical package source lives here:
-[`thurbox.nuspec`](thurbox.nuspec) (metadata) plus
+[`talos.nuspec`](talos.nuspec) (metadata) plus
 [`tools/chocolateyinstall.ps1`](tools/chocolateyinstall.ps1) (downloads the
 release zip via `Install-ChocolateyZipPackage` and verifies its SHA256). The
 `version`/`$url64`/`$checksum64` values committed here are a last-known-good
@@ -24,14 +24,14 @@ template — CI overrides them per release.
 ## Supported platforms
 
 Windows x86_64 only — the single published Windows release artifact is
-`thurbox-v<version>-x86_64-pc-windows-msvc.zip`. ARM64 Windows installs the
+`talos-v<version>-x86_64-pc-windows-msvc.zip`. ARM64 Windows installs the
 x86_64 build and runs it under x64 emulation (matching
 [`scripts/install.ps1`](../../scripts/install.ps1)).
 
 ## Runtime dependencies
 
 - **[psmux](https://github.com/psmux/psmux)** — the native-Windows terminal
-  multiplexer thurbox drives (a drop-in tmux clone). There is **no Chocolatey
+  multiplexer talos drives (a drop-in tmux clone). There is **no Chocolatey
   package for psmux**, so it cannot be declared as a package `<dependencies>`
   entry; install it separately. This is documented in the package
   `<description>`, and `chocolateyinstall.ps1` emits a `Write-Warning` at
@@ -44,10 +44,10 @@ On a Windows machine with Chocolatey installed:
 
 ```powershell
 # Bump the template to a published release first (see below), then:
-choco pack packaging\chocolatey\thurbox.nuspec --outputdirectory packaging\chocolatey
-choco install thurbox -s packaging\chocolatey -y
-thurbox-cli --version
-choco uninstall thurbox -y
+choco pack packaging\chocolatey\talos.nuspec --outputdirectory packaging\chocolatey
+choco install talos -s packaging\chocolatey -y
+talos-cli --version
+choco uninstall talos -y
 ```
 
 ## Automated publishing (CI)
@@ -57,24 +57,24 @@ The `publish-chocolatey` job in
 `windows-latest` after the GitHub Release is created and, **when the throttle
 window has elapsed** (below):
 
-1. downloads the release `thurbox-<version>-checksums.txt`,
+1. downloads the release `talos-<version>-checksums.txt`,
 2. runs [`bump-nuspec.py`](bump-nuspec.py) to set the nuspec `<version>` and the
    install script's `$url64`/`$checksum64` from those checksums,
 3. runs `choco pack` (the version comes from the bumped nuspec), then
 4. `choco push`es the `.nupkg` to `https://push.chocolatey.org/`.
 
-The `CHOCOLATEY_API_KEY` secret is **already configured** on the main thurbox
+The `CHOCOLATEY_API_KEY` secret is **already configured** on the main talos
 repo. The job is skipped only where the secret is absent (e.g. on forks). The
 committed template files are not modified by CI — they stay as last-known-good,
 exactly like the Homebrew formula template.
 
 > **Throttled to one push per `THROTTLE_DAYS` (30 days).** The community repo
-> moderates *and* rate-limits every push, so it can't absorb thurbox's
+> moderates *and* rate-limits every push, so it can't absorb talos's
 > per-`feat`/`fix`/`perf` release cadence — versions pile up in the moderation
 > queue and `choco push` starts returning **403**. So the job first reads the
 > community OData feed
 > (`community.chocolatey.org/api/v2/Packages()`, filtered to the latest
-> `thurbox` version) for the last-published version's age. If it is younger than
+> `talos` version) for the last-published version's age. If it is younger than
 > `THROTTLE_DAYS` the job **skips the push and exits green** with a
 > `::warning::`, coalescing the intervening patch releases into the next monthly
 > Chocolatey version. The binary itself always ships immediately via GitHub
@@ -103,11 +103,11 @@ by hand (on Windows):
 $ver = "<version>"   # a tag with published release assets, e.g. 0.79.46
 # curl.exe (not the `curl` alias for Invoke-WebRequest) ships on Windows 10+.
 curl.exe -fsSL -o checksums.txt `
-  "https://github.com/Thurbeen/thurbox/releases/download/v$ver/thurbox-v$ver-checksums.txt"
+  "https://github.com/zatzk/talos/releases/download/v$ver/talos-v$ver-checksums.txt"
 python packaging\chocolatey\bump-nuspec.py "v$ver" packaging\chocolatey checksums.txt
 
-choco pack packaging\chocolatey\thurbox.nuspec --outputdirectory packaging\chocolatey
-choco push packaging\chocolatey\thurbox.$ver.nupkg `
+choco pack packaging\chocolatey\talos.nuspec --outputdirectory packaging\chocolatey
+choco push packaging\chocolatey\talos.$ver.nupkg `
   --source https://push.chocolatey.org/ --api-key <your-api-key>
 ```
 

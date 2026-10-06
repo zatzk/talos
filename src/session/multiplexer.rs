@@ -58,7 +58,7 @@ impl Multiplexer {
 
     /// The one thing to do when this multiplexer's binary is missing here.
     ///
-    /// Never a package-manager line thurbox has not verified: where the command
+    /// Never a package-manager line talos has not verified: where the command
     /// depends on a distribution, this names the package and links the
     /// project's own install page instead of guessing an invocation.
     pub fn install_hint(self) -> String {

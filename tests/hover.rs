@@ -18,12 +18,12 @@ use ratatui::backend::TestBackend;
 use ratatui::style::Color;
 use ratatui::Terminal;
 
-use thurbox::kernel::host::{LuaHost, Published, RenderContext};
-use thurbox::kernel::node::Identity;
-use thurbox::kernel::registry::Registry;
-use thurbox::kernel::snapshot::Snapshot;
-use thurbox::kernel::theme::Themes;
-use thurbox::session::SessionState;
+use talos::kernel::host::{LuaHost, Published, RenderContext};
+use talos::kernel::node::Identity;
+use talos::kernel::registry::Registry;
+use talos::kernel::snapshot::Snapshot;
+use talos::kernel::theme::Themes;
+use talos::session::SessionState;
 
 fn host() -> LuaHost {
     let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui");
@@ -39,12 +39,12 @@ fn chip_backgrounds(host: &LuaHost, hovered: Option<&Identity>) -> Vec<(String, 
     let mut registry = Registry::default();
     let (bindings, settings) = host.declarations();
     registry.declare(bindings, settings);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
+    let diffs = talos::kernel::diff::DiffStore::new();
     let snapshot = one_session();
 
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     host.publish(&Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot: &snapshot,
         attach_errors: &Default::default(),
         inflight: &[],
@@ -110,11 +110,11 @@ fn chip_backgrounds(host: &LuaHost, hovered: Option<&Identity>) -> Vec<(String, 
     let mut terminal = Terminal::new(TestBackend::new(WIDTH, 10)).expect("terminal");
     terminal
         .draw(|frame| {
-            thurbox::kernel::paint::render(
+            talos::kernel::paint::render(
                 frame,
                 frame.area(),
                 &node,
-                &thurbox::kernel::paint::PlaceholderSurfaces,
+                &talos::kernel::paint::PlaceholderSurfaces,
             )
         })
         .expect("draw");
@@ -134,14 +134,14 @@ const WIDTH: u16 = 120;
 /// state.
 fn one_session() -> Snapshot {
     Snapshot {
-        sessions: vec![thurbox::kernel::snapshot::SessionRow {
+        sessions: vec![talos::kernel::snapshot::SessionRow {
             id: "s1-0000-0000-0000-000000000000".into(),
             name: "fix-osc52".into(),
             agent: "claude".into(),
             status: SessionState::Idle,
             cwd: None,
-            repo: Some("thurbox".into()),
-            repos: vec!["thurbox".into()],
+            repo: Some("talos".into()),
+            repos: vec!["talos".into()],
             branch: Some("fix/osc52".into()),
             base_branch: None,
             backend: "local-tmux".into(),
@@ -203,7 +203,7 @@ fn a_hovered_pill_changes_and_its_neighbours_do_not() {
 
 #[test]
 fn hovering_nothing_leaves_every_chip_at_rest() {
-    // Guards the nil path: `thurbox.hover` is always published, empty when the
+    // Guards the nil path: `talos.hover` is always published, empty when the
     // pointer is over nothing, and an empty table must not match a chip.
     let host = host();
     let resting = chip_backgrounds(&host, None);
@@ -257,7 +257,7 @@ fn a_hovered_row_is_banded_and_keeps_its_own_colours() {
     let mut snapshot = one_session();
     snapshot
         .sessions
-        .push(thurbox::kernel::snapshot::SessionRow {
+        .push(talos::kernel::snapshot::SessionRow {
             id: "s2-0000-0000-0000-000000000000".into(),
             name: "add-wsl".into(),
             ..snapshot.sessions[0].clone()
@@ -269,10 +269,10 @@ fn a_hovered_row_is_banded_and_keeps_its_own_colours() {
         let mut registry = Registry::default();
         let (bindings, settings) = host.declarations();
         registry.declare(bindings, settings);
-        let diffs = thurbox::kernel::diff::DiffStore::new();
-        let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+        let diffs = talos::kernel::diff::DiffStore::new();
+        let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
         host.publish(&Published {
-            epoch: thurbox::kernel::host::Epoch::always_fresh(),
+            epoch: talos::kernel::host::Epoch::always_fresh(),
             snapshot: &snapshot,
             attach_errors: &Default::default(),
             inflight: &[],
@@ -319,11 +319,11 @@ fn a_hovered_row_is_banded_and_keeps_its_own_colours() {
         let mut terminal = Terminal::new(TestBackend::new(40, 8)).expect("terminal");
         terminal
             .draw(|frame| {
-                thurbox::kernel::paint::render(
+                talos::kernel::paint::render(
                     frame,
                     frame.area(),
                     &node,
-                    &thurbox::kernel::paint::PlaceholderSurfaces,
+                    &talos::kernel::paint::PlaceholderSurfaces,
                 )
             })
             .expect("draw");
@@ -409,10 +409,10 @@ return {
     let backgrounds = |hovered: Option<&Identity>| -> Vec<Color> {
         let themes = Themes::load(None);
         let registry = Registry::default();
-        let diffs = thurbox::kernel::diff::DiffStore::new();
-        let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+        let diffs = talos::kernel::diff::DiffStore::new();
+        let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
         host.publish(&Published {
-            epoch: thurbox::kernel::host::Epoch::always_fresh(),
+            epoch: talos::kernel::host::Epoch::always_fresh(),
             snapshot: &Snapshot::default(),
             attach_errors: &Default::default(),
             inflight: &[],
@@ -453,11 +453,11 @@ return {
         let mut terminal = Terminal::new(TestBackend::new(20, 1)).expect("terminal");
         terminal
             .draw(|frame| {
-                thurbox::kernel::paint::render(
+                talos::kernel::paint::render(
                     frame,
                     frame.area(),
                     &node,
-                    &thurbox::kernel::paint::PlaceholderSurfaces,
+                    &talos::kernel::paint::PlaceholderSurfaces,
                 )
             })
             .expect("draw");

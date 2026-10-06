@@ -11,7 +11,7 @@
 //!   marker). Marker-based — not value-based — so it stays correct even after the
 //!   shipped payload's schema changes across an extension update (no orphans).
 //! - [`prune_marked_under`]: the same, scoped to the arrays the source merges
-//!   into — the one-time sweep for entries written before thurbox stamped what
+//!   into — the one-time sweep for entries written before talos stamped what
 //!   it merged, which have no stamp to match.
 
 use serde_json::Value;
@@ -79,7 +79,7 @@ pub fn prune_marked(value: &mut Value, marker: &str) {
 ///
 /// Ownership is normally decided by a stamp the payload writes into each entry,
 /// which [`prune_marked`] matches wherever it sits. This exists for the one case
-/// that has no stamp to match: a file written before thurbox stamped what it
+/// that has no stamp to match: a file written before talos stamped what it
 /// merged (hooks extension < 1.11). Those entries can only be recognised by the
 /// `session signal` command they carry — and so can a hook the user wrote
 /// themselves, which `extensions/hooks/README.md` invites. Confining the sweep
@@ -118,7 +118,7 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    const M: &str = "thurbox-cli session signal";
+    const M: &str = "talos-cli session signal";
 
     fn ours(state: &str) -> Value {
         json!({"hooks": [{"type": "command", "command": format!("{M} --state {state} || true")}]})

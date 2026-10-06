@@ -15,11 +15,11 @@ use std::path::Path;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::layout::Rect;
 
-use thurbox::kernel::bundled::{self, Source};
-use thurbox::kernel::host::LuaHost;
-use thurbox::kernel::inventory::{self, State};
-use thurbox::kernel::layout::resolve;
-use thurbox::kernel::registry::Registry;
+use talos::kernel::bundled::{self, Source};
+use talos::kernel::host::LuaHost;
+use talos::kernel::inventory::{self, State};
+use talos::kernel::layout::resolve;
+use talos::kernel::registry::Registry;
 
 /// A pane that draws nothing, in as few lines as a plugin can be written.
 fn pane(name: &str, slot: &str) -> String {
@@ -75,7 +75,7 @@ fn the_inventory_view_draws_what_the_kernel_computed() {
         &|_| false,
     );
 
-    let mut modal = thurbox::kernel::modals::settings::SettingsModal::default();
+    let mut modal = talos::kernel::modals::settings::SettingsModal::default();
     // `]` moves to the Interface tab; the settings half is the one that opens.
     modal.on_key(
         &KeyEvent::new(KeyCode::Char(']'), KeyModifiers::NONE),
@@ -84,7 +84,7 @@ fn the_inventory_view_draws_what_the_kernel_computed() {
         &rows,
     );
 
-    let palette = thurbox::session::theme_config::ThemePreset::Default.palette();
+    let palette = talos::session::theme_config::ThemePreset::Default.palette();
     let mut terminal =
         ratatui::Terminal::new(ratatui::backend::TestBackend::new(90, 26)).expect("terminal");
     terminal
@@ -94,11 +94,11 @@ fn the_inventory_view_draws_what_the_kernel_computed() {
                 frame.area(),
                 &Registry::default(),
                 &Default::default(),
-                thurbox::kernel::modals::interface::Files {
+                talos::kernel::modals::interface::Files {
                     rows: &rows,
-                    dir: "/home/me/.config/thurbox/ui",
+                    dir: "/home/me/.config/talos/ui",
                 },
-                thurbox::kernel::modals::chrome::Chrome::new(&palette),
+                talos::kernel::modals::chrome::Chrome::new(&palette),
             );
         })
         .expect("draw");
@@ -116,7 +116,7 @@ fn the_inventory_view_draws_what_the_kernel_computed() {
         "modules too, since they are restorable: {screen}"
     );
     assert!(
-        screen.contains("thurbox/ui"),
+        screen.contains("talos/ui"),
         "the directory in use is named: {screen}"
     );
     assert!(screen.contains("restore"), "the keys are offered: {screen}");
@@ -339,7 +339,7 @@ fn restoring_brings_a_removed_pane_back() {
 
 /// The recovery floor is a state, not a one-way door.
 ///
-/// A user copy that will not load is swapped for the bundled interface so thurbox
+/// A user copy that will not load is swapped for the bundled interface so talos
 /// stays usable while the file is fixed from inside it. But a `LuaHost` reloads
 /// from the directory it was *built* from, so once the floor was installed every
 /// later reload rebuilt the bundled copy: the watcher fired on the user's fix,
@@ -527,7 +527,7 @@ fn a_float_drawing_nothing_is_reported_on_demand_rather_than_on_screen() {
     // The distinction is the point: `Hidden` still means a slot held by someone
     // else or a closed column, which is a different thing from a modal at rest.
     assert!(
-        thurbox::kernel::focus::is_drawn(thurbox::kernel::focus::Placement {
+        talos::kernel::focus::is_drawn(talos::kernel::focus::Placement {
             floats: true,
             float_open: true,
             slot_placed: false,
@@ -622,7 +622,7 @@ fn the_demo_examples_load_and_stack_where_the_layout_says() {
         .expect("top loaded");
     assert!(
         top.capabilities
-            .contains(&thurbox::kernel::host::Capability::Run),
+            .contains(&talos::kernel::host::Capability::Run),
         "the example declares `run`, so the trust prompt has something to be about"
     );
 

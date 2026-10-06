@@ -2,11 +2,11 @@
 //! machine, rather than one adapter that becomes the other when the binary's
 //! name or the build OS says so.
 
-use thurbox::backend::psmux::PsmuxBackend;
-use thurbox::backend::rmux::RmuxBackend;
-use thurbox::backend::tmux::TmuxBackend;
-use thurbox::backend::SessionBackend;
-use thurbox::session::{HostDef, Multiplexer, Platform, Route};
+use talos::backend::psmux::PsmuxBackend;
+use talos::backend::rmux::RmuxBackend;
+use talos::backend::tmux::TmuxBackend;
+use talos::backend::SessionBackend;
+use talos::session::{HostDef, Multiplexer, Platform, Route};
 
 #[path = "support/backend_contract.rs"]
 mod backend_contract;
@@ -154,7 +154,7 @@ fn the_psmux_backend_keeps_the_contract_where_psmux_is_installed() {
     // psmux has no socket directory, so the pinned socket's name is all that
     // keeps this off the operator's own server — and a tmux reap does not
     // reach a psmux server, so it is killed by name too.
-    const SOCKET: &str = "thurbox-psmux-contract";
+    const SOCKET: &str = "talos-psmux-contract";
     let _pinned = tmux_server::TmuxServer::pin(SOCKET);
     struct Reap;
     impl Drop for Reap {

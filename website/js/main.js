@@ -526,7 +526,7 @@
       overlay.hidden = true;
       overlay.setAttribute('role', 'dialog');
       overlay.setAttribute('aria-modal', 'true');
-      overlay.setAttribute('aria-label', 'God mode: Doom running inside a thurbox pane');
+      overlay.setAttribute('aria-label', 'God mode: Doom running inside a talos pane');
 
       var frame = document.createElement('div');
       frame.className = 'doom-overlay__frame';
@@ -564,13 +564,13 @@
       var caption = document.createElement('p');
       caption.className = 'doom-overlay__caption';
       caption.textContent =
-        'Doom inside a thurbox pane — the thurbox-doom plugin, in a program pane of its own. ';
+        'Doom inside a talos pane — the talos-doom plugin, in a program pane of its own. ';
 
       // The plugin is advertised nowhere else on the site, and somebody who just
       // typed a 1993 cheat code is exactly the person who would go and install it.
       var pluginLink = document.createElement('a');
       pluginLink.className = 'doom-overlay__link';
-      pluginLink.href = 'https://github.com/Thurbeen/thurbox-doom';
+      pluginLink.href = 'https://github.com/zatzk/talos-doom';
       pluginLink.target = '_blank';
       pluginLink.rel = 'noopener';
       pluginLink.textContent = 'Install it';

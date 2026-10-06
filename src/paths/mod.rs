@@ -1,11 +1,11 @@
 //! Centralized path resolution for application data files.
 //!
 //! This module provides a unified interface for resolving paths to:
-//! - Config files (`~/.config/thurbox[-dev]/config.toml`)
-//! - SQLite database (`~/.local/share/thurbox[-dev]/thurbox.db`)
-//! - Log directories (`~/.local/share/thurbox[-dev]/`)
+//! - Config files (`~/.config/talos[-dev]/config.toml`)
+//! - SQLite database (`~/.local/share/talos[-dev]/talos.db`)
+//! - Log directories (`~/.local/share/talos[-dev]/`)
 //!
-//! Dev builds (`0.0.0-dev`) use `thurbox-dev` subdirectories to avoid
+//! Dev builds (`0.0.0-dev`) use `talos-dev` subdirectories to avoid
 //! interfering with an installed release binary.
 //!
 //! ## Production Behavior
@@ -34,24 +34,24 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
 /// Env var pinning the resolved config app dir for a child process (an agent
-/// whose hook calls `thurbox-cli`), so it targets the same config the spawning
-/// thurbox uses regardless of XDG/binary-flavor/tmux-server-env drift. Injected
+/// whose hook calls `talos-cli`), so it targets the same config the spawning
+/// talos uses regardless of XDG/binary-flavor/tmux-server-env drift. Injected
 /// at spawn ([`crate::session_ops`]); consumed by `config_app_dir`.
-pub const CONFIG_DIR_OVERRIDE_ENV: &str = "THURBOX_CONFIG_DIR";
-/// Data counterpart of [`CONFIG_DIR_OVERRIDE_ENV`] (`THURBOX_DATA_DIR`).
-pub const DATA_DIR_OVERRIDE_ENV: &str = "THURBOX_DATA_DIR";
+pub const CONFIG_DIR_OVERRIDE_ENV: &str = "TALOS_CONFIG_DIR";
+/// Data counterpart of [`CONFIG_DIR_OVERRIDE_ENV`] (`TALOS_DATA_DIR`).
+pub const DATA_DIR_OVERRIDE_ENV: &str = "TALOS_DATA_DIR";
 
-/// Returns "thurbox-dev" for dev builds, "thurbox" for release builds.
+/// Returns "talos-dev" for dev builds, "talos" for release builds.
 ///
-/// Also the name of thurbox's directory on a *host* this build shares sessions
+/// Also the name of talos's directory on a *host* this build shares sessions
 /// with (`session_ops::host_cli`): a dev build provisions and looks for its
-/// CLI under `thurbox-dev` there, so a dev and a release laptop sharing one
+/// CLI under `talos-dev` there, so a dev and a release laptop sharing one
 /// host never overwrite each other's copy.
 pub fn app_dir_name() -> &'static str {
     if cfg!(dev_build) {
-        "thurbox-dev"
+        "talos-dev"
     } else {
-        "thurbox"
+        "talos"
     }
 }
 
@@ -106,7 +106,7 @@ pub fn resolve_on_path(exe: &str) -> Option<PathBuf> {
 ///
 /// Public because a lookup that finds nothing has to be able to say *where it
 /// looked*: an error naming only the binary leaves the reader unable to tell a
-/// missing install from a `PATH` thurbox was started without. Deriving that
+/// missing install from a `PATH` talos was started without. Deriving that
 /// list a second time in the message would let the two drift, so the resolver
 /// and the message read the same function.
 ///
@@ -201,11 +201,11 @@ fn data_base() -> Option<PathBuf> {
 /// Per-process temp sandbox for the XDG fallback in **test builds only**.
 ///
 /// The unit-test harness (`cargo test`/`nextest`) frequently runs *inside* a
-/// live thurbox session (the dev shell is itself an agent session), whose env
-/// carries `THURBOX_CONFIG_DIR`/`THURBOX_DATA_DIR` pointing at the developer's
-/// **real** config/data dirs (injected so an agent's `thurbox-cli` hook targets
-/// the same DB — see `session_ops::inject_thurbox_env`). Honoring those in tests
-/// — or falling through to the real `$HOME/.config/thurbox` — let any unguarded
+/// live talos session (the dev shell is itself an agent session), whose env
+/// carries `TALOS_CONFIG_DIR`/`TALOS_DATA_DIR` pointing at the developer's
+/// **real** config/data dirs (injected so an agent's `talos-cli` hook targets
+/// the same DB — see `session_ops::inject_talos_env`). Honoring those in tests
+/// — or falling through to the real `$HOME/.config/talos` — let any unguarded
 /// test that writes config (settings save, hooks install, keybindings) clobber
 /// the user's live settings. So in test builds the XDG fallback ignores the
 /// override env entirely and resolves under a temp sandbox instead;
@@ -240,7 +240,7 @@ fn test_sandbox_base() -> PathBuf {
     SANDBOX
         .get_or_init(|| {
             let dir = tempfile::Builder::new()
-                .prefix("thurbox-unittest-")
+                .prefix("talos-unittest-")
                 .tempdir()
                 .expect("temp sandbox for the unit-test config/data dirs");
             // SAFETY: registered once, from inside `get_or_init`, with a
@@ -252,11 +252,11 @@ fn test_sandbox_base() -> PathBuf {
         .clone()
 }
 
-/// Resolved thurbox config app dir. A `THURBOX_CONFIG_DIR` env override (the
-/// already-resolved dir, incl. the `thurbox`/`thurbox-dev` segment) wins — this
-/// is how the TUI pins child processes (agent hooks calling `thurbox-cli`) to
+/// Resolved talos config app dir. A `TALOS_CONFIG_DIR` env override (the
+/// already-resolved dir, incl. the `talos`/`talos-dev` segment) wins — this
+/// is how the TUI pins child processes (agent hooks calling `talos-cli`) to
 /// the *same* config it uses, immune to a stale tmux-server env or which
-/// `thurbox-cli` binary is on PATH. Otherwise `<config_base>/<app>`. In test
+/// `talos-cli` binary is on PATH. Otherwise `<config_base>/<app>`. In test
 /// builds the env override is ignored in favor of a temp sandbox — see
 /// [`test_sandbox_base`].
 #[cfg(not(test))]
@@ -268,13 +268,13 @@ fn config_app_dir() -> Option<PathBuf> {
 }
 
 /// Test build: pin the config dir to a temp sandbox, ignoring the inherited
-/// `THURBOX_CONFIG_DIR` — see [`test_sandbox_base`].
+/// `TALOS_CONFIG_DIR` — see [`test_sandbox_base`].
 #[cfg(test)]
 fn config_app_dir() -> Option<PathBuf> {
     Some(test_sandbox_base().join("config"))
 }
 
-/// Resolved thurbox data app dir; see [`config_app_dir`] (`THURBOX_DATA_DIR`).
+/// Resolved talos data app dir; see [`config_app_dir`] (`TALOS_DATA_DIR`).
 #[cfg(not(test))]
 fn data_app_dir() -> Option<PathBuf> {
     if let Some(x) = std::env::var_os(DATA_DIR_OVERRIDE_ENV).filter(|s| !s.is_empty()) {
@@ -291,9 +291,9 @@ fn data_app_dir() -> Option<PathBuf> {
 
 /// The data directory when this instance has been **relocated** — i.e.
 /// [`DATA_DIR_OVERRIDE_ENV`] names a directory other than the XDG default.
-/// `None` for a default instance, *including* one whose `THURBOX_DATA_DIR`
-/// merely restates the default: thurbox injects that variable into every
-/// session it spawns (`session_ops::inject_thurbox_env`), so "the variable is
+/// `None` for a default instance, *including* one whose `TALOS_DATA_DIR`
+/// merely restates the default: talos injects that variable into every
+/// session it spawns (`session_ops::inject_talos_env`), so "the variable is
 /// set" is a different question from "this instance was moved".
 ///
 /// A relocated instance keeps its own database, and so its own record of which
@@ -341,31 +341,31 @@ fn xdg_data_subpath(segments: &[&str]) -> Option<PathBuf> {
 /// Categories of application paths.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PathKind {
-    /// The config directory's anchor: `~/.config/thurbox/config.toml`.
+    /// The config directory's anchor: `~/.config/talos/config.toml`.
     ///
     /// The *file* is legacy and read only for migration, but the path is not:
     /// every config location is derived from it by
     /// `with_file_name`/`parent().join(..)` — `agents.toml`, `hosts.toml`,
     /// `settings.toml`, `themes.toml`, `extensions/`, `ui/`, `ui.json`. So this is
-    /// the single place the `thurbox` / `thurbox-dev` split enters for all of
+    /// the single place the `talos` / `talos-dev` split enters for all of
     /// them, and calling it "migration only" invited the conclusion that the
     /// interface directory was derived from something vestigial.
     Config,
-    /// Log directory: `~/.local/share/thurbox/`
+    /// Log directory: `~/.local/share/talos/`
     LogDir,
-    /// SQLite database: `~/.local/share/thurbox/thurbox.db`
+    /// SQLite database: `~/.local/share/talos/talos.db`
     Database,
-    /// Agent metrics files: `~/.local/share/thurbox/metrics/`
+    /// Agent metrics files: `~/.local/share/talos/metrics/`
     MetricsDir,
     /// Embedded built-in extensions materialized for install:
-    /// `~/.local/share/thurbox/builtin-extensions/`
+    /// `~/.local/share/talos/builtin-extensions/`
     BuiltinExtensionsDir,
-    /// Git worktrees: `~/.local/share/thurbox/worktrees/`
+    /// Git worktrees: `~/.local/share/talos/worktrees/`
     WorktreesDir,
     /// Per-session multi-repo symlink workspaces:
-    /// `~/.local/share/thurbox/workspaces/`
+    /// `~/.local/share/talos/workspaces/`
     WorkspacesDir,
-    /// User keybindings JSON file: `~/.config/thurbox/keybindings.json`
+    /// User keybindings JSON file: `~/.config/talos/keybindings.json`
     KeybindingsFile,
 }
 
@@ -402,7 +402,7 @@ pub fn resolve(kind: PathKind) -> Option<PathBuf> {
 fn resolve_xdg(kind: PathKind) -> Option<PathBuf> {
     match kind {
         PathKind::Config => xdg_config_subpath("config.toml"),
-        PathKind::Database => xdg_data_subpath(&["thurbox.db"]),
+        PathKind::Database => xdg_data_subpath(&["talos.db"]),
         PathKind::LogDir => xdg_data_subpath(&[]),
         PathKind::MetricsDir => xdg_data_subpath(&["metrics"]),
         PathKind::BuiltinExtensionsDir => xdg_data_subpath(&["builtin-extensions"]),
@@ -417,7 +417,7 @@ fn resolve_override(base: &Path, kind: PathKind) -> PathBuf {
     match kind {
         PathKind::Config => base.join("config.toml"),
         PathKind::LogDir => base.to_path_buf(),
-        PathKind::Database => base.join("thurbox.db"),
+        PathKind::Database => base.join("talos.db"),
         PathKind::MetricsDir => base.join("metrics"),
         PathKind::BuiltinExtensionsDir => base.join("builtin-extensions"),
         PathKind::WorktreesDir => base.join("worktrees"),
@@ -428,21 +428,21 @@ fn resolve_override(base: &Path, kind: PathKind) -> PathBuf {
 
 /// Resolve the config file path.
 ///
-/// Returns: `$XDG_CONFIG_HOME/thurbox/config.toml` or `$HOME/.config/thurbox/config.toml`
+/// Returns: `$XDG_CONFIG_HOME/talos/config.toml` or `$HOME/.config/talos/config.toml`
 pub fn config_file() -> Option<PathBuf> {
     resolve(PathKind::Config)
 }
 
 /// Resolve the log directory path.
 ///
-/// Returns: `$XDG_DATA_HOME/thurbox/` or `$HOME/.local/share/thurbox/`
+/// Returns: `$XDG_DATA_HOME/talos/` or `$HOME/.local/share/talos/`
 pub fn log_directory() -> Option<PathBuf> {
     resolve(PathKind::LogDir)
 }
 
 /// Resolve the database file path.
 ///
-/// Returns: `$XDG_DATA_HOME/thurbox/thurbox.db` or `$HOME/.local/share/thurbox/thurbox.db`
+/// Returns: `$XDG_DATA_HOME/talos/talos.db` or `$HOME/.local/share/talos/talos.db`
 pub fn database_file() -> Option<PathBuf> {
     resolve(PathKind::Database)
 }
@@ -468,7 +468,7 @@ pub fn validate_safe_name(name: &str) -> Result<(), String> {
 
 /// Resolve the agent metrics directory path.
 ///
-/// Returns: `$XDG_DATA_HOME/thurbox/metrics/` or `$HOME/.local/share/thurbox/metrics/`
+/// Returns: `$XDG_DATA_HOME/talos/metrics/` or `$HOME/.local/share/talos/metrics/`
 pub fn metrics_directory() -> Option<PathBuf> {
     resolve(PathKind::MetricsDir)
 }
@@ -476,15 +476,15 @@ pub fn metrics_directory() -> Option<PathBuf> {
 /// Directory where embedded built-in extensions are materialized so the
 /// extension installer can treat them as a local source.
 ///
-/// Returns: `$XDG_DATA_HOME/thurbox/builtin-extensions/` or
-/// `$HOME/.local/share/thurbox/builtin-extensions/`
+/// Returns: `$XDG_DATA_HOME/talos/builtin-extensions/` or
+/// `$HOME/.local/share/talos/builtin-extensions/`
 pub fn builtin_extensions_directory() -> Option<PathBuf> {
     resolve(PathKind::BuiltinExtensionsDir)
 }
 
 /// Resolve the worktrees directory path.
 ///
-/// Returns: `$XDG_DATA_HOME/thurbox/worktrees/` or `$HOME/.local/share/thurbox/worktrees/`
+/// Returns: `$XDG_DATA_HOME/talos/worktrees/` or `$HOME/.local/share/talos/worktrees/`
 pub fn worktrees_directory() -> Option<PathBuf> {
     resolve(PathKind::WorktreesDir)
 }
@@ -502,16 +502,16 @@ pub fn data_directory() -> Option<PathBuf> {
 
 /// Resolve the multi-repo workspaces directory path.
 ///
-/// Returns: `$XDG_DATA_HOME/thurbox/workspaces/` or
-/// `$HOME/.local/share/thurbox/workspaces/`
+/// Returns: `$XDG_DATA_HOME/talos/workspaces/` or
+/// `$HOME/.local/share/talos/workspaces/`
 pub fn workspaces_directory() -> Option<PathBuf> {
     resolve(PathKind::WorkspacesDir)
 }
 
 /// Resolve the user keybindings file path.
 ///
-/// Returns: `$XDG_CONFIG_HOME/thurbox/keybindings.json` or
-/// `$HOME/.config/thurbox/keybindings.json`.
+/// Returns: `$XDG_CONFIG_HOME/talos/keybindings.json` or
+/// `$HOME/.config/talos/keybindings.json`.
 pub fn keybindings_file() -> Option<PathBuf> {
     resolve(PathKind::KeybindingsFile)
 }
@@ -555,7 +555,7 @@ pub fn claude_transcript_exists(
 /// This is primarily intended for testing. All paths will resolve under the given base:
 /// - `config_file()` → `base/config.toml`
 /// - `log_directory()` → `base/`
-/// - `database_file()` → `base/thurbox.db`
+/// - `database_file()` → `base/talos.db`
 ///
 /// # Note
 ///
@@ -644,8 +644,8 @@ fn strip_tilde_prefix(path: &str) -> Option<&str> {
 /// Short display label for a repo/dir path: the final path component,
 /// falling back to the full path when there is no file name (e.g. `/`).
 ///
-/// - `/home/user/Repositories/thurbox` → `thurbox`
-/// - `/home/user/Repositories/thurbox/` → `thurbox` (trailing slash ignored)
+/// - `/home/user/Repositories/talos` → `talos`
+/// - `/home/user/Repositories/talos/` → `talos` (trailing slash ignored)
 /// - `/` → `/`
 pub fn display_path(path: &Path) -> String {
     match path.file_name() {
@@ -832,15 +832,15 @@ pub fn safe_join(base: &Path, rel: &str) -> Result<PathBuf, String> {
     Ok(base.join(rel))
 }
 
-/// Resolve the path to the `thurbox-cli` binary that sits next to the currently
-/// running executable (TUI or CLI), falling back to a bare `thurbox-cli` on
+/// Resolve the path to the `talos-cli` binary that sits next to the currently
+/// running executable (TUI or CLI), falling back to a bare `talos-cli` on
 /// `PATH` when resolution fails.
 ///
 /// The platform executable suffix (`.exe` on Windows, empty elsewhere) is
 /// applied via [`std::env::consts::EXE_SUFFIX`], so the self/sibling match works
-/// for `thurbox-cli.exe` too.
+/// for `talos-cli.exe` too.
 pub fn resolve_cli_binary() -> std::path::PathBuf {
-    let cli_name = format!("thurbox-cli{}", std::env::consts::EXE_SUFFIX);
+    let cli_name = format!("talos-cli{}", std::env::consts::EXE_SUFFIX);
     if let Ok(exe) = std::env::current_exe() {
         if exe.file_name().and_then(std::ffi::OsStr::to_str) == Some(cli_name.as_str()) {
             return exe;

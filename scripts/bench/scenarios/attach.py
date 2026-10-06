@@ -2,7 +2,7 @@
 
 ``attach_ms``: from starting the client until it has drawn session 1's agent.
 ``detach_ms``: from the host's own leave key until the client process is gone
-(thurbox's is Quit — the interface exits, tmux keeps the sessions).
+(talos's is Quit — the interface exits, tmux keeps the sessions).
 ``reattach_ms``: a second client, 3 s after the first left, with everything in
 the page cache. (The gap matters for Herdr: one attaching within about a
 second of a detach took ~280 ms on 0.9.1 instead of ~50.)

@@ -1,5 +1,5 @@
 //! The operating system a machine runs, as its own dimension: independent of
-//! how thurbox reaches it (the route's place) and of which multiplexer serves
+//! how talos reaches it (the route's place) and of which multiplexer serves
 //! it (the route's multiplexer).
 //!
 //! It decides shell and path semantics — `sh -c` or PowerShell, `$HOME` or
@@ -10,7 +10,7 @@
 
 use serde::{Deserialize, Serialize};
 
-/// A machine's OS family, as far as thurbox's shell and path handling cares.
+/// A machine's OS family, as far as talos's shell and path handling cares.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Platform {
@@ -30,7 +30,7 @@ impl Platform {
         }
     }
 
-    /// The machine this thurbox runs on. The one place the build OS is read
+    /// The machine this talos runs on. The one place the build OS is read
     /// as a platform: every other machine's comes from its host entry.
     pub fn local() -> Self {
         #[cfg(test)]
@@ -51,7 +51,7 @@ thread_local! {
         const { std::cell::Cell::new(None) };
 }
 
-/// Run `f` as though this thurbox were built for `platform`, so a Linux test
+/// Run `f` as though this talos were built for `platform`, so a Linux test
 /// run covers the decisions a Windows build makes (and the reverse). Only
 /// [`Platform::local`] answers differently: code gated on `cfg(windows)`
 /// itself is not simulated, which is why no backend decision may be.

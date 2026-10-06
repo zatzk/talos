@@ -1,4 +1,4 @@
-//! Which thurbox window is whose: the names thurbox gives each role's
+//! Which talos window is whose: the names talos gives each role's
 //! window, and the resolution rule every reconciler asks
 //! (ADR-25) — a stamp is proof, a lone namesake is the fallback, and an
 //! ambiguous listing is never read as an absent one.
@@ -12,7 +12,7 @@ use std::collections::HashMap;
 pub use crate::backend::contract::Located;
 use crate::backend::contract::{BackendLiveness, DiscoveredSession, WindowRole};
 
-/// Window-name prefix for a thurbox agent window. Combined with the
+/// Window-name prefix for a talos agent window. Combined with the
 /// sanitized session name (`{prefix}{sanitized_name}`) to form its name. Live
 /// windows carry it, so it never changes.
 pub(crate) const WINDOW_PREFIX: &str = "tb-";
@@ -43,7 +43,7 @@ pub(crate) fn sanitize_window_name(name: &str) -> String {
     out
 }
 
-/// The window name for a thurbox agent session: `tb-<safe>`.
+/// The window name for a talos agent session: `tb-<safe>`.
 pub(crate) fn agent_window_name(session_name: &str) -> String {
     format!("{WINDOW_PREFIX}{}", sanitize_window_name(session_name))
 }
@@ -81,7 +81,7 @@ pub(crate) fn program_window_name(owner: &str, pane: &str) -> String {
     )
 }
 
-/// The window name a session's `role` window carries — thurbox's naming
+/// The window name a session's `role` window carries — talos's naming
 /// convention, which every backend names a session's windows by.
 pub fn window_name_for(role: WindowRole, session_name: &str) -> String {
     match role {
@@ -92,7 +92,7 @@ pub fn window_name_for(role: WindowRole, session_name: &str) -> String {
 
 impl WindowRole {
     /// The role a window *name* implies, for one spawned before windows were
-    /// stamped. `None` for a window that is not thurbox's at all.
+    /// stamped. `None` for a window that is not talos's at all.
     pub(in crate::backend) fn from_window_name(name: &str) -> Option<Self> {
         if name.starts_with(SHELL_WINDOW_PREFIX) {
             Some(Self::Shell)
@@ -106,17 +106,17 @@ impl WindowRole {
     }
 }
 
-/// One thurbox window as a listing reported it.
+/// One talos window as a listing reported it.
 #[derive(Clone, Debug)]
 struct ListedWindow {
     pane: String,
-    /// The owning session's stamp (on tmux, `@thurbox_session`), empty for a window spawned before
+    /// The owning session's stamp (on tmux, `@talos_session`), empty for a window spawned before
     /// windows were stamped (or by a multiplexer without window options).
     session: String,
     alive: bool,
 }
 
-/// A backend's thurbox windows, indexed the two ways ownership is asked about.
+/// A backend's talos windows, indexed the two ways ownership is asked about.
 ///
 /// Built from one `list-windows`, so every question below is answered against
 /// the same instant rather than a fresh round trip each.
@@ -124,7 +124,7 @@ struct ListedWindow {
 pub struct WindowIndex {
     /// Windows carrying a stamp, by the identity they carry.
     stamped: HashMap<(String, WindowRole), Vec<ListedWindow>>,
-    /// Every thurbox window by name, stamped or not. This is what tells an
+    /// Every talos window by name, stamped or not. This is what tells an
     /// *ambiguous* name apart from an absent one.
     by_name: HashMap<String, Vec<ListedWindow>>,
     /// The window each listed pane sits in, for the one question asked the

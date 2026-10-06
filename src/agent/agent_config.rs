@@ -1,6 +1,6 @@
 //! Loading and seeding of the agent-definition config file.
 //!
-//! Agents are defined declaratively in `~/.config/thurbox/agents.toml`. On
+//! Agents are defined declaratively in `~/.config/talos/agents.toml`. On
 //! first run (or whenever the file is missing) the built-in definitions are
 //! written out so users have a working starting point they can edit. If the
 //! file exists but cannot be read or parsed, we fall back to the built-ins
@@ -17,9 +17,9 @@ use crate::session::{AgentDef, AgentRegistry};
 /// automatically. See the checklist in `docs/AGENTS.md`.
 ///
 /// Kept deliberately small per agent: just the command, plus resume/fork/
-/// session-id groups. `claude` and `pi` pin a thurbox-generated id
+/// session-id groups. `claude` and `pi` pin a talos-generated id
 /// (`--session-id`) so they can resume/fork by that exact id; `omp` pins the
-/// same id as a session-file path (`--session {home}/…/thurbox-{id}.jsonl`)
+/// same id as a session-file path (`--session {home}/…/talos-{id}.jsonl`)
 /// since it generates its own id but accepts a file. Codex reports its id through
 /// `SessionStart`. The remaining built-ins use `resume_latest = true` with
 /// id-less, cwd-scoped flags (`opencode --continue`, …):
@@ -27,14 +27,14 @@ use crate::session::{AgentDef, AgentRegistry};
 /// without any resume group simply start fresh on restart. No model is passed —
 /// each agent uses its own default config. Bake extra flags (including a model)
 /// into `args` if you want them.
-const BUILTIN_AGENTS_HEAD: &str = r#"# Thurbox coding-agent definitions.
+const BUILTIN_AGENTS_HEAD: &str = r#"# Talos coding-agent definitions.
 #
 # Each [[agents]] entry describes how to launch one coding-agent CLI. The
 # `*_args` groups are appended only when their value is present, with {id}
 # substituted. `args` is always passed — put any extra flags (e.g. a model)
 # there. Add your own [[agents]] entries to support any CLI.
 #
-# Unknown keys are reported on startup (and fail `thurbox-cli config
+# Unknown keys are reported on startup (and fail `talos-cli config
 # validate`) but don't break the load — your agents stay in effect.
 
 config_version = 1
@@ -47,7 +47,7 @@ resume_args = ["--resume", "{id}"]
 fork_args = ["--resume", "{id}", "--fork-session"]
 new_session_args = ["--session-id", "{id}"]
 
-# Codex reports its conversation id in the SessionStart hook. Thurbox stores
+# Codex reports its conversation id in the SessionStart hook. Talos stores
 # that id separately from its own row identity and addresses it exactly.
 [[agents]]
 name = "codex"
@@ -93,7 +93,7 @@ resume_latest = true
 name = "vibe"
 command = "vibe"
 
-# pi (the pi.dev CLI) accepts a thurbox-generated session id at creation
+# pi (the pi.dev CLI) accepts a talos-generated session id at creation
 # (`--session-id`), so — like claude — it resumes/forks by that exact id.
 # Sessions live under ~/.pi/agent/, organized by working directory.
 [[agents]]
@@ -104,20 +104,20 @@ fork_args = ["--fork", "{id}"]
 new_session_args = ["--session-id", "{id}"]
 
 # omp (Oh My Pi, https://github.com/can1357/oh-my-pi) is Pi-compatible but
-# generates its own internal session id and won't accept thurbox's UUID as one.
+# generates its own internal session id and won't accept talos's UUID as one.
 # Its `--session <path>` flag creates a fresh session at a missing path (and
-# reopens an existing one), so thurbox maps its UUID to a deterministic JSONL
+# reopens an existing one), so talos maps its UUID to a deterministic JSONL
 # under OMP's default root (~/.omp/agent/sessions/). The `{home}` token is
-# expanded to the resolved home dir at spawn time (thurbox, not the shell —
+# expanded to the resolved home dir at spawn time (talos, not the shell —
 # args are POSIX-quoted, so a literal `~` would never expand); it also
 # translates onto the remote/WSL home. No fork_args: OMP has no way to pin a
-# fork's target file to a thurbox UUID, so Ctrl+F starts a fresh session (see
+# fork's target file to a talos UUID, so Ctrl+F starts a fresh session (see
 # the OMP note in docs/CONFIG.md).
 [[agents]]
 name = "omp"
 command = "omp"
-resume_args = ["--resume", "{home}/.omp/agent/sessions/thurbox-{id}.jsonl"]
-new_session_args = ["--session", "{home}/.omp/agent/sessions/thurbox-{id}.jsonl"]
+resume_args = ["--resume", "{home}/.omp/agent/sessions/talos-{id}.jsonl"]
+new_session_args = ["--session", "{home}/.omp/agent/sessions/talos-{id}.jsonl"]
 "#;
 
 /// The `shell` built-in, spelled for the platform's own interactive shell.
@@ -171,8 +171,8 @@ const BUILTIN_AGENTS_TAIL: &str = r#"# ─────────────�
 # Add your own agent (uncomment and edit)
 # ──────────────────────────────────────────────────────────────────────────
 #
-# Any CLI works — thurbox only needs `command` plus the optional `*_args`
-# groups below. The agent uses its OWN default config; thurbox never passes a
+# Any CLI works — talos only needs `command` plus the optional `*_args`
+# groups below. The agent uses its OWN default config; talos never passes a
 # model or permissions of its own.
 #
 # [[agents]]
@@ -191,19 +191,19 @@ const BUILTIN_AGENTS_TAIL: &str = r#"# ─────────────�
 #                               #   claude's --settings hook wiring under its own
 #                               #   name. Omit if the agent has no known family.
 #
-# {id} is a thurbox-generated UUID. Only agents that accept it at creation
+# {id} is a talos-generated UUID. Only agents that accept it at creation
 # (claude and pi both take `--session-id {id}`) can resume/fork by that exact
 # id; for everything else use `resume_latest = true` with id-less, cwd-scoped flags
 # (e.g. `["resume", "--last"]`). Omit every resume group to start fresh on
 # restart. {home} expands to the resolved home dir at spawn (the remote home for
 # an SSH/WSL host) — use it for an agent that wants a session *path* rather than
-# a bare id (e.g. `["--session", "{home}/.foo/thurbox-{id}.jsonl"]`).
+# a bare id (e.g. `["--session", "{home}/.foo/talos-{id}.jsonl"]`).
 #
 # ──────────────────────────────────────────────────────────────────────────
 # Pin a model (or any flag) — put it in `args`, which is always passed
 # ──────────────────────────────────────────────────────────────────────────
 #
-# thurbox is model-neutral; to force a model, bake the flag into `args`. E.g.
+# talos is model-neutral; to force a model, bake the flag into `args`. E.g.
 # a claude variant pinned to Opus, kept alongside the default `claude` entry:
 #
 # [[agents]]
@@ -218,7 +218,7 @@ const BUILTIN_AGENTS_TAIL: &str = r#"# ─────────────�
 "#;
 
 /// Path to the agent-definition config file:
-/// `~/.config/thurbox/agents.toml` (sibling of `config.toml`).
+/// `~/.config/talos/agents.toml` (sibling of `config.toml`).
 pub fn agents_config_path() -> Option<PathBuf> {
     crate::paths::config_file().map(|p| p.with_file_name("agents.toml"))
 }
@@ -340,7 +340,7 @@ const KNOWN_TOP_LEVEL_KEYS: [&str; 3] = ["config_version", "default", "agents"];
 /// registry only when the document is syntactically broken (unrecoverable) or
 /// yields no usable agents at all.
 ///
-/// This is deliberately more forgiving than `thurbox-cli config validate`,
+/// This is deliberately more forgiving than `talos-cli config validate`,
 /// which still strict-parses the whole document — `validate` is the diagnostic
 /// that tells you to fix the file, while the TUI degrades gracefully so a
 /// single typo never strands you on the built-ins.
@@ -462,7 +462,7 @@ fn deserialize_agent(
 }
 
 /// Parse a TOML config document leniently, reporting every unknown field by
-/// path instead of failing on it. Stale keys from older thurbox versions and
+/// path instead of failing on it. Stale keys from older talos versions and
 /// typos both surface as warnings without stranding the user on defaults; a
 /// real syntax/type error still fails the parse.
 pub(crate) fn parse_toml_reporting_unknown<T: serde::de::DeserializeOwned>(
@@ -512,7 +512,7 @@ mod tests {
         assert!(reg.get("pi").is_some());
         assert!(reg.get("omp").is_some());
 
-        // Claude pins a thurbox id and resumes/forks by it.
+        // Claude pins a talos id and resumes/forks by it.
         let claude = reg.get("claude").unwrap();
         assert!(!claude.resume_args.is_empty());
         assert!(!claude.resume_latest);
@@ -527,17 +527,17 @@ mod tests {
         assert_eq!(pi.fork_args, ["--fork", "{id}"]);
 
         // omp (Oh My Pi) pins by a deterministic session-file PATH, not a bare
-        // id: `--session {home}/…/thurbox-{id}.jsonl` on create, `--resume` the
+        // id: `--session {home}/…/talos-{id}.jsonl` on create, `--resume` the
         // same on restart. It has no native fork (Ctrl+F → fresh session).
         let omp = reg.get("omp").unwrap();
         assert!(!omp.resume_latest);
         assert_eq!(
             omp.new_session_args,
-            ["--session", "{home}/.omp/agent/sessions/thurbox-{id}.jsonl"]
+            ["--session", "{home}/.omp/agent/sessions/talos-{id}.jsonl"]
         );
         assert_eq!(
             omp.resume_args,
-            ["--resume", "{home}/.omp/agent/sessions/thurbox-{id}.jsonl"]
+            ["--resume", "{home}/.omp/agent/sessions/talos-{id}.jsonl"]
         );
         assert!(omp.fork_args.is_empty(), "omp has no native fork target");
 
@@ -644,7 +644,7 @@ mod tests {
         let path = agents_config_path().unwrap();
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         // Typo'd field: `resumeargs` instead of `resume_args`. The user's
-        // agents must stay in effect (stale keys from older thurbox versions
+        // agents must stay in effect (stale keys from older talos versions
         // are common); the warning names the bad key.
         std::fs::write(
             &path,

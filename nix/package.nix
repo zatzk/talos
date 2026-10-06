@@ -1,4 +1,4 @@
-# thurbox as a Nix package. Kept out of flake.nix so the same file can be
+# talos as a Nix package. Kept out of flake.nix so the same file can be
 # `callPackage`d from an overlay, the flake's own `packages`, or a nixpkgs
 # checkout.
 {
@@ -14,7 +14,7 @@
 }:
 
 rustPlatform.buildRustPackage {
-  pname = "thurbox";
+  pname = "talos";
   inherit version;
 
   src = lib.fileset.toSource {
@@ -35,17 +35,17 @@ rustPlatform.buildRustPackage {
   cargoLock.lockFile = ../Cargo.lock;
 
   # build.rs takes the version from here. It must not contain `-dev`: that
-  # turns on the `dev_build` cfg, which moves a build onto the `thurbox-dev`
+  # turns on the `dev_build` cfg, which moves a build onto the `talos-dev`
   # tmux socket and data directory. A `0.0.0` version still counts as
   # unreleased at runtime (`is_dev_version`), which is what keeps
-  # `thurbox-cli update` from trying to replace a binary in the read-only store.
-  env.THURBOX_RELEASE_VERSION = version + lib.optionalString (rev != null) "+${rev}";
+  # `talos-cli update` from trying to replace a binary in the read-only store.
+  env.TALOS_RELEASE_VERSION = version + lib.optionalString (rev != null) "+${rev}";
 
   cargoBuildFlags = [
     "--bin"
-    "thurbox"
+    "talos"
     "--bin"
-    "thurbox-cli"
+    "talos-cli"
   ];
 
   # CI's Nextest job covers the tests; compiling them again here takes longer
@@ -56,9 +56,9 @@ rustPlatform.buildRustPackage {
 
   # tmux is the session backend and git drives worktrees. Appended rather than
   # prepended, so a tmux or git the user already has keeps winning, and so the
-  # agents thurbox starts see the same PATH they would without Nix.
+  # agents talos starts see the same PATH they would without Nix.
   postInstall = ''
-    for bin in thurbox thurbox-cli; do
+    for bin in talos talos-cli; do
       wrapProgram "$out/bin/$bin" --suffix PATH : ${
         lib.makeBinPath [
           tmux
@@ -70,9 +70,9 @@ rustPlatform.buildRustPackage {
 
   meta = {
     description = "TUI for orchestrating multiple coding-agent CLI sessions in persistent tmux panels";
-    homepage = "https://github.com/Thurbeen/thurbox";
+    homepage = "https://github.com/zatzk/talos";
     license = lib.licenses.mit;
-    mainProgram = "thurbox";
+    mainProgram = "talos";
     platforms = lib.platforms.linux ++ lib.platforms.darwin;
   };
 }

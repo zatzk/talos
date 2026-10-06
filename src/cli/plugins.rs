@@ -1,8 +1,8 @@
-//! `thurbox-cli plugin` — the headless half of what `F11` shows.
+//! `talos-cli plugin` — the headless half of what `F11` shows.
 //!
 //! Writing a plugin needs three answers the interface only gives to a keyboard:
 //! which directory is actually being read, what a valid plugin looks like, and
-//! whether the one you just wrote will load. A session driving thurbox through a
+//! whether the one you just wrote will load. A session driving talos through a
 //! pipe — increasingly, an agent — cannot press `F11`, so it guesses, and the
 //! usual outcome is a file edited in a directory nothing reads.
 //!
@@ -199,7 +199,7 @@ fn new(name: &str) -> Result<CommandOutput, String> {
     std::fs::write(&file, body).map_err(|e| format!("{}: {e}", file.display()))?;
 
     let mut human = format!(
-        "wrote {}\n  edit it, then `thurbox-cli plugin check`\n  ({} — {})",
+        "wrote {}\n  edit it, then `talos-cli plugin check`\n  ({} — {})",
         file.display(),
         chosen.as_str(),
         chosen.reason()
@@ -272,7 +272,7 @@ fn check() -> Result<CommandOutput, String> {
     let (dir, chosen) = resolve()?;
     if !dir.is_dir() {
         return Err(format!(
-            "no interface at {} ({}) — run the TUI once, or set THURBOX_UI_DIR",
+            "no interface at {} ({}) — run the TUI once, or set TALOS_UI_DIR",
             dir.display(),
             chosen.as_str()
         ));
@@ -796,7 +796,7 @@ fn install(src: &str, as_file: Option<&str>, pin: Option<&str>) -> Result<Comman
     for hint in &hints {
         human.push_str(&format!("\n  {hint}"));
     }
-    human.push_str("\n  `thurbox-cli plugin check` to confirm it loads and draws");
+    human.push_str("\n  `talos-cli plugin check` to confirm it loads and draws");
     Ok(CommandOutput::new(
         json!({
             "dir": dir.display().to_string(),
@@ -948,9 +948,9 @@ mod tests {
         // The override is the documented way to point the CLI at a directory,
         // and nextest runs each test in its own process, so setting it here
         // reaches nothing else.
-        std::env::set_var("THURBOX_UI_DIR", dir.path());
+        std::env::set_var("TALOS_UI_DIR", dir.path());
         let output = check().expect("check runs");
-        std::env::remove_var("THURBOX_UI_DIR");
+        std::env::remove_var("TALOS_UI_DIR");
         assert!(
             output.failure.is_some(),
             "an unknown subscription must fail the check"

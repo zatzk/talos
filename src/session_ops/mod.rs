@@ -3,7 +3,7 @@
 //! Callers (MCP, CLI) use these helpers to drive the same local-tmux-backed
 //! sessions the TUI manages, without requiring the TUI event loop. All
 //! operations are synchronous against the SQLite database and the `tmux -L
-//! thurbox` server.
+//! talos` server.
 
 pub mod builtin;
 pub mod builtin_hooks;
@@ -41,7 +41,7 @@ pub use restart::{restart_session_headless, RestartReport};
 pub use restore::{restore_refusal, restore_session_headless, RestoreReport};
 
 pub(crate) const CODEX_PICKER_REQUIRED: &str = "picker-required";
-pub(crate) const CODEX_PICKER_ENV: &str = "THURBOX_CODEX_PICKER";
+pub(crate) const CODEX_PICKER_ENV: &str = "TALOS_CODEX_PICKER";
 pub use spawn::{spawn_session_headless, SpawnRequest, SpawnResult};
 pub use wsl_loopback::repair_wsl_loopback_rows;
 
@@ -171,19 +171,19 @@ pub(crate) fn exec_tail(stream: &[u8]) -> String {
     ring.into_iter().collect()
 }
 
-/// Where this process resolved thurbox's state, as the env vars `thurbox-cli`
-/// honours: the config/data dirs (`THURBOX_CONFIG_DIR` / `THURBOX_DATA_DIR`,
+/// Where this process resolved talos's state, as the env vars `talos-cli`
+/// honours: the config/data dirs (`TALOS_CONFIG_DIR` / `TALOS_DATA_DIR`,
 /// derived from the resolved file paths' parents, so a dev build, a sandbox and
-/// a `THURBOX_*_DIR` override all hand the same answer on) and the multiplexer
-/// socket those sessions live on (`THURBOX_SOCKET`). One definition, shared by
-/// the agent's environment and a lifecycle hook — "a `thurbox-cli` inside hits
+/// a `TALOS_*_DIR` override all hand the same answer on) and the multiplexer
+/// socket those sessions live on (`TALOS_SOCKET`). One definition, shared by
+/// the agent's environment and a lifecycle hook — "a `talos-cli` inside hits
 /// the right DB, and finds the right server" is one property, not two.
 ///
 /// The socket is passed rather than left to be re-derived: the child would
 /// otherwise recompute it (`backend::instance::socket_for`) from an environment that
 /// need not match this one — a tmux server carries the env it was started with,
 /// which is the same reason the dirs are pinned here at all.
-pub(crate) fn thurbox_env_overrides() -> Vec<(String, String)> {
+pub(crate) fn talos_env_overrides() -> Vec<(String, String)> {
     let mut vars = Vec::with_capacity(3);
     if let Some(dir) = crate::paths::config_file().and_then(|p| p.parent().map(|d| d.to_path_buf()))
     {
@@ -204,10 +204,10 @@ pub(crate) fn thurbox_env_overrides() -> Vec<(String, String)> {
         crate::backend::instance::SOCKET_OVERRIDE_ENV.into(),
         crate::backend::instance::local_socket_name(),
     ));
-    // Which instance that socket belongs to. A pane's `thurbox-cli` inherits
+    // Which instance that socket belongs to. A pane's `talos-cli` inherits
     // both, and they agree — but a child that relocates itself out of this
     // instance (a sandbox, `tests/`, an agent exporting its own
-    // `THURBOX_DATA_DIR`) must not keep a socket naming *this* server. Pairing
+    // `TALOS_DATA_DIR`) must not keep a socket naming *this* server. Pairing
     // the two is what lets `backend::instance::socket_for` tell them apart.
     if let Some(dir) = crate::paths::data_directory() {
         vars.push((
@@ -218,11 +218,11 @@ pub(crate) fn thurbox_env_overrides() -> Vec<(String, String)> {
     vars
 }
 
-/// How often the heartbeat runs `thurbox-cli automation tick`.
+/// How often the heartbeat runs `talos-cli automation tick`.
 pub const HEARTBEAT_EVERY: std::time::Duration = std::time::Duration::from_secs(60);
 
 /// Ask this machine's backend — the registry's default — to keep the
-/// heartbeat running: `thurbox-cli automation tick` every
+/// heartbeat running: `talos-cli automation tick` every
 /// [`HEARTBEAT_EVERY`], with no interface attached. Where and how it runs is
 /// the backend's; that it is this build's own CLI is this.
 pub fn arm_heartbeat(backends: &crate::backend::BackendRegistry) -> Result<(), String> {
@@ -277,7 +277,7 @@ pub(crate) fn resume_trigger_for(
         return Some(agent_session_id.to_string());
     }
     // A path-pinned agent (omp) records its conversation at a deterministic file
-    // thurbox chose — `--session {home}/.../thurbox-{id}.jsonl`. If that file
+    // talos chose — `--session {home}/.../talos-{id}.jsonl`. If that file
     // exists, resume it; the `resume_args` (`--resume <same path>`) reopen it
     // exactly. This must run before the claude-transcript check, which only
     // knows claude's `~/.claude` layout. The check is inherently *local* — it
@@ -305,7 +305,7 @@ pub(crate) fn resume_trigger_for(
 
 /// The session *file* template of a path-pinned agent — a `new_session_args`
 /// token that both names a filesystem path (has a separator) and carries the
-/// `{id}` placeholder (e.g. omp's `{home}/.omp/.../thurbox-{id}.jsonl`).
+/// `{id}` placeholder (e.g. omp's `{home}/.omp/.../talos-{id}.jsonl`).
 /// `None` for id-only agents (claude/pi pass a bare `{id}`, not a path). Used to
 /// decide resume-vs-fresh by that file's existence. Agent-neutral: it reads the
 /// def's own args rather than matching an agent name.
@@ -331,10 +331,10 @@ fn session_file_template(def: &crate::session::AgentDef) -> Option<String> {
 /// `session_ops`' job; `cli` may not reach into `shell` at all.
 ///
 /// `env` is layered onto the inherited environment, and every inherited
-/// `THURBOX_*` variable is dropped first. That scrub is the substance, not
+/// `TALOS_*` variable is dropped first. That scrub is the substance, not
 /// hygiene: this runs *in a session's context*, and the caller invoking it is
-/// itself usually inside a different session, whose `THURBOX_SESSION` the child
-/// would otherwise inherit — so a `thurbox-cli session signal` run through here
+/// itself usually inside a different session, whose `TALOS_SESSION` the child
+/// would otherwise inherit — so a `talos-cli session signal` run through here
 /// would record state against the caller, silently and with exit 0. Anything
 /// the target session should carry is in `env`, which is passed explicitly for
 /// exactly this reason. Nothing crosses an SSH connection, so the remote form
@@ -353,7 +353,7 @@ pub fn exec_in_dir(
             cmd.args(args).current_dir(cwd);
             for key in std::env::vars_os()
                 .map(|(k, _)| k)
-                .filter(|k| k.to_string_lossy().starts_with(THURBOX_ENV_PREFIX))
+                .filter(|k| k.to_string_lossy().starts_with(TALOS_ENV_PREFIX))
             {
                 cmd.env_remove(key);
             }
@@ -382,15 +382,15 @@ pub fn exec_in_dir(
     }
 }
 
-/// The prefix every variable thurbox injects into a session's processes shares.
-const THURBOX_ENV_PREFIX: &str = "THURBOX_";
+/// The prefix every variable talos injects into a session's processes shares.
+const TALOS_ENV_PREFIX: &str = "TALOS_";
 
-/// How thurbox would launch a registered agent: the executable, its arguments,
+/// How talos would launch a registered agent: the executable, its arguments,
 /// and the environment around them.
 ///
 /// The point of reporting it is the arguments. An agent's status hooks are
 /// installed by *appending to its `args`* in `agents.toml` (claude's
-/// `--settings <hooks>.json`), so they only fire when thurbox builds the
+/// `--settings <hooks>.json`), so they only fire when talos builds the
 /// command line. A driver that launches the agent itself — the documented
 /// `--command` path, or typing into a shell session — got no hooks, and so an
 /// empty `state` and a `watch` stream that never mentioned that session.
@@ -398,12 +398,12 @@ const THURBOX_ENV_PREFIX: &str = "THURBOX_";
 pub struct LaunchPlan {
     /// The registry name the plan was resolved from.
     pub agent: String,
-    /// The executable, resolved on `PATH` at launch exactly as thurbox leaves
+    /// The executable, resolved on `PATH` at launch exactly as talos leaves
     /// it to the multiplexer.
     pub command: String,
     pub args: Vec<String>,
     /// The environment to launch under. Without a session this is only the
-    /// pointers to *this* thurbox instance (config dir, data dir, multiplexer
+    /// pointers to *this* talos instance (config dir, data dir, multiplexer
     /// socket); with one it also carries that session's identity, which is what
     /// makes the agent's `session signal` land on the right row.
     pub env: BTreeMap<String, String>,
@@ -459,13 +459,13 @@ pub fn agent_launch_plan(
     match session {
         Some(s) => config.env.extend(session_process_env(db, s)?),
         // No session to take an identity from, but the instance is still
-        // knowable — and a child `thurbox-cli` that resolves a different data
+        // knowable — and a child `talos-cli` that resolves a different data
         // dir or socket would report into a database nothing here reads.
-        None => config.env.extend(thurbox_env_overrides()),
+        None => config.env.extend(talos_env_overrides()),
     }
     let hooks = hooks_enabled(db);
     // The command a hook reports through on that session's route — asked only
-    // for a host, where `thurbox-cli session signal` cannot reach this DB.
+    // for a host, where `talos-cli session signal` cannot reach this DB.
     let signal = match (session, &host) {
         (Some(s), Some(_)) => windows::backend_for(backends, &s.backend_type)
             .ok()
@@ -487,13 +487,13 @@ pub fn agent_launch_plan(
 /// The environment a process run **in a session's context** must carry: the
 /// session's own recorded `--env`, then the identity variables its pane has.
 ///
-/// The order is the spawn's, and for the same reason: thurbox's identity wins,
-/// so a session cannot rename its own `THURBOX_SESSION` and report another
-/// session's state. Built from `inject_thurbox_env` rather than beside it, so
+/// The order is the spawn's, and for the same reason: talos's identity wins,
+/// so a session cannot rename its own `TALOS_SESSION` and report another
+/// session's state. Built from `inject_talos_env` rather than beside it, so
 /// what `session exec` hands a child and what the pane holds cannot drift —
 /// the surprise this exists to remove is precisely that the two disagreed.
 ///
-/// A session with no `agent_session_id` gets no `THURBOX_SESSION_ID`: an empty
+/// A session with no `agent_session_id` gets no `TALOS_SESSION_ID`: an empty
 /// one would read as a conversation id rather than as the absence of one.
 pub fn session_process_env(
     db: &crate::storage::Database,
@@ -512,13 +512,13 @@ pub fn session_process_env(
         db.load_launch_env(session.id)
             .map_err(|e| format!("read the launch env of '{}': {e}", session.name))?,
     );
-    inject_thurbox_env(
+    inject_talos_env(
         &mut config,
         session.agent_session_id.as_deref().unwrap_or_default(),
         None,
     );
     if session.agent_session_id.is_none() {
-        config.env.remove("THURBOX_SESSION_ID");
+        config.env.remove("TALOS_SESSION_ID");
     }
     Ok(config.env.into_iter().collect())
 }
@@ -533,7 +533,7 @@ pub fn session_process_env(
 /// told so by the returned session's own `agent_session_id` differing with no
 /// parent conversation behind it.
 ///
-/// Shared by the interface's fork command and `thurbox-cli session fork`.
+/// Shared by the interface's fork command and `talos-cli session fork`.
 pub fn fork_session_headless(
     db: &crate::storage::Database,
     backends: &crate::backend::BackendRegistry,
@@ -584,7 +584,7 @@ pub fn fork_session_headless(
         && resolve_agent_def(Some("codex")).resume_args == ["resume", "{id}"];
     let fork_session_id = if codex_builtin {
         Some(
-            db.get_session_meta(source.id, "thurbox.codex_conversation_id")
+            db.get_session_meta(source.id, "talos.codex_conversation_id")
                 .map_err(|e| format!("read Codex conversation id: {e}"))?
                 .filter(|id| uuid::Uuid::parse_str(id).is_ok())
                 .unwrap_or_default(),
@@ -690,7 +690,7 @@ pub(crate) fn resolve_agent_def(requested: Option<&str>) -> crate::session::Agen
 /// UUID substituted in `build_args`), `{home}` needs a filesystem side effect
 /// — the home dir — so it is resolved here in `session_ops`, not in the pure
 /// `session` layer. Used by agents that want a session *file path* rather than
-/// a bare id (e.g. omp's `--session {home}/.omp/…/thurbox-{id}.jsonl`); the
+/// a bare id (e.g. omp's `--session {home}/.omp/…/talos-{id}.jsonl`); the
 /// path can't rely on the shell to expand `~`, since args are POSIX-quoted.
 pub(crate) const HOME_PLACEHOLDER: &str = "{home}";
 
@@ -791,54 +791,54 @@ pub fn same_machine(a: &str, b: &str) -> bool {
     }
 }
 
-/// Inject the standard thurbox env hints into a session config so a
-/// `thurbox-cli` call running *inside* the session can prove its own identity
+/// Inject the standard talos env hints into a session config so a
+/// `talos-cli` call running *inside* the session can prove its own identity
 /// without scraping panes or names:
 ///
-/// - `THURBOX_SESSION` — the thurbox [`SessionId`] (the registry key). Read by
+/// - `TALOS_SESSION` — the talos [`SessionId`] (the registry key). Read by
 ///   the mailbox CLI to auto-stamp provenance and default the inbox to "me".
 ///   Requires `config.session_id` to be set before calling.
-/// - `THURBOX_SESSION_ID` — the *agent's* conversation id (`agent_session_id`),
-///   consumed by the metrics statusline. Distinct from `THURBOX_SESSION`.
-/// - `THURBOX_TASK` — the originating task id, when this session was spawned for
+/// - `TALOS_SESSION_ID` — the *agent's* conversation id (`agent_session_id`),
+///   consumed by the metrics statusline. Distinct from `TALOS_SESSION`.
+/// - `TALOS_TASK` — the originating task id, when this session was spawned for
 ///   a task (so messages auto-tag `from_task_id`). Headless `task run` only; the
 ///   TUI task-spawn path tracks the link in-memory instead.
-/// - `THURBOX_METRICS_DIR` — metrics output dir.
-/// - `THURBOX_CONFIG_DIR` / `THURBOX_DATA_DIR` — the resolved config/data dirs,
-///   so the agent's `thurbox-cli` (its status hook) targets the same DB the TUI
+/// - `TALOS_METRICS_DIR` — metrics output dir.
+/// - `TALOS_CONFIG_DIR` / `TALOS_DATA_DIR` — the resolved config/data dirs,
+///   so the agent's `talos-cli` (its status hook) targets the same DB the TUI
 ///   reads regardless of XDG / PATH / a stale tmux-server env.
-/// - `THURBOX_SOCKET` — the multiplexer socket this instance's sessions live
-///   on, so an in-session `thurbox-cli` reaches the same server rather than
+/// - `TALOS_SOCKET` — the multiplexer socket this instance's sessions live
+///   on, so an in-session `talos-cli` reaches the same server rather than
 ///   re-deriving one from an environment that need not match.
 ///
 /// The four *location* vars are **local-only**: a remote (SSH/WSL) session skips
 /// them — the local dirs don't exist on the host, its socket is the host's own,
-/// and a remote `thurbox-cli` pinned to them would resolve garbage instead of
+/// and a remote `talos-cli` pinned to them would resolve garbage instead of
 /// its own defaults. The
-/// identity vars (`THURBOX_SESSION`/`THURBOX_SESSION_ID`/`THURBOX_TASK`) are
+/// identity vars (`TALOS_SESSION`/`TALOS_SESSION_ID`/`TALOS_TASK`) are
 /// opaque and travel everywhere.
 ///
 /// Kept in sync with `App::build_spawn_inputs` so headless and TUI sessions look
-/// identical to the spawned process (modulo `THURBOX_TASK` as noted above).
+/// identical to the spawned process (modulo `TALOS_TASK` as noted above).
 ///
 /// Shared by the headless spawn/restart paths and the TUI `Ctrl+R` restart
 /// (`App::restart_active_session`), so a restarted session keeps the same
 /// identity env a fresh spawn would have had.
-pub(crate) fn inject_thurbox_env(
+pub(crate) fn inject_talos_env(
     config: &mut SessionConfig,
     agent_session_id: &str,
     task_id: Option<i64>,
 ) {
     config
         .env
-        .insert("THURBOX_SESSION_ID".into(), agent_session_id.into());
+        .insert("TALOS_SESSION_ID".into(), agent_session_id.into());
     if let Some(id) = config.session_id {
-        config.env.insert("THURBOX_SESSION".into(), id.to_string());
+        config.env.insert("TALOS_SESSION".into(), id.to_string());
     }
     if let Some(task_id) = task_id {
         config
             .env
-            .insert("THURBOX_TASK".into(), task_id.to_string());
+            .insert("TALOS_TASK".into(), task_id.to_string());
     }
     if config
         .backend
@@ -850,14 +850,14 @@ pub(crate) fn inject_thurbox_env(
     if let Some(dir) = crate::paths::metrics_directory() {
         config
             .env
-            .insert("THURBOX_METRICS_DIR".into(), dir.to_string_lossy().into());
+            .insert("TALOS_METRICS_DIR".into(), dir.to_string_lossy().into());
     }
-    // Pin the agent's `thurbox-cli` (its status hook) to the *same* config/data
-    // dirs and multiplexer socket this thurbox resolved, so a status `signal`
+    // Pin the agent's `talos-cli` (its status hook) to the *same* config/data
+    // dirs and multiplexer socket this talos resolved, so a status `signal`
     // always lands in the DB the TUI reads and a `session send` reaches the
     // server the session is actually on — independent of XDG, which
-    // `thurbox-cli` is on PATH, or a stale tmux-server env.
-    config.env.extend(thurbox_env_overrides());
+    // `talos-cli` is on PATH, or a stale tmux-server env.
+    config.env.extend(talos_env_overrides());
 }
 
 #[cfg(test)]
@@ -889,28 +889,28 @@ mod tests {
             session_id: Some(sid),
             ..SessionConfig::default()
         };
-        inject_thurbox_env(&mut config, "agent-conv-uuid", Some(42));
-        // The thurbox session key and the agent conversation id are distinct.
-        assert_eq!(config.env.get("THURBOX_SESSION"), Some(&sid.to_string()));
+        inject_talos_env(&mut config, "agent-conv-uuid", Some(42));
+        // The talos session key and the agent conversation id are distinct.
+        assert_eq!(config.env.get("TALOS_SESSION"), Some(&sid.to_string()));
         assert_eq!(
-            config.env.get("THURBOX_SESSION_ID"),
+            config.env.get("TALOS_SESSION_ID"),
             Some(&"agent-conv-uuid".to_string())
         );
-        assert_eq!(config.env.get("THURBOX_TASK"), Some(&"42".to_string()));
+        assert_eq!(config.env.get("TALOS_TASK"), Some(&"42".to_string()));
     }
 
     #[test]
     fn inject_env_pins_config_data_dirs_and_socket() {
         // The agent's status hook must target the same DB the TUI reads and the
         // same multiplexer server its session lives on, so both are injected
-        // for `thurbox-cli` to honour rather than resolve for itself.
+        // for `talos-cli` to honour rather than resolve for itself.
         let tmp = tempfile::tempdir().unwrap();
         let _guard = crate::paths::TestPathGuard::new(tmp.path());
         let mut config = SessionConfig {
             session_id: Some(SessionId::default()),
             ..SessionConfig::default()
         };
-        inject_thurbox_env(&mut config, "agent-conv-uuid", None);
+        inject_talos_env(&mut config, "agent-conv-uuid", None);
 
         let cfg_dir = config
             .env
@@ -944,7 +944,7 @@ mod tests {
     #[test]
     fn inject_env_skips_local_path_dirs_for_remote_backend() {
         // The metrics/config/data dirs are *local* paths — meaningless on an
-        // SSH/WSL host, and a remote `thurbox-cli` pinned to them would resolve
+        // SSH/WSL host, and a remote `talos-cli` pinned to them would resolve
         // garbage. Identity vars still travel.
         let tmp = tempfile::tempdir().unwrap();
         let _guard = crate::paths::TestPathGuard::new(tmp.path());
@@ -953,10 +953,10 @@ mod tests {
             backend: Some("ssh:devbox".into()),
             ..SessionConfig::default()
         };
-        inject_thurbox_env(&mut config, "agent-conv-uuid", None);
-        assert!(config.env.contains_key("THURBOX_SESSION"));
-        assert!(config.env.contains_key("THURBOX_SESSION_ID"));
-        assert!(!config.env.contains_key("THURBOX_METRICS_DIR"));
+        inject_talos_env(&mut config, "agent-conv-uuid", None);
+        assert!(config.env.contains_key("TALOS_SESSION"));
+        assert!(config.env.contains_key("TALOS_SESSION_ID"));
+        assert!(!config.env.contains_key("TALOS_METRICS_DIR"));
         assert!(!config
             .env
             .contains_key(crate::paths::CONFIG_DIR_OVERRIDE_ENV));
@@ -974,9 +974,9 @@ mod tests {
             session_id: Some(SessionId::default()),
             ..SessionConfig::default()
         };
-        inject_thurbox_env(&mut config, "agent-conv-uuid", None);
-        assert!(config.env.contains_key("THURBOX_SESSION"));
-        assert!(!config.env.contains_key("THURBOX_TASK"));
+        inject_talos_env(&mut config, "agent-conv-uuid", None);
+        assert!(config.env.contains_key("TALOS_SESSION"));
+        assert!(!config.env.contains_key("TALOS_TASK"));
     }
 
     #[test]
@@ -1014,8 +1014,8 @@ mod tests {
         assert!(opencode.resumes_latest());
         let env = HashMap::new();
         assert_eq!(
-            resume_trigger_for(&opencode, "thurbox-uuid", &env),
-            Some("thurbox-uuid".to_string())
+            resume_trigger_for(&opencode, "talos-uuid", &env),
+            Some("talos-uuid".to_string())
         );
     }
 
@@ -1055,14 +1055,14 @@ mod tests {
             omp.new_session_args,
             vec![
                 "--session".to_string(),
-                "/home/me/.omp/agent/sessions/thurbox-{id}.jsonl".to_string()
+                "/home/me/.omp/agent/sessions/talos-{id}.jsonl".to_string()
             ]
         );
         assert_eq!(
             omp.resume_args,
             vec![
                 "--resume".to_string(),
-                "/home/me/.omp/agent/sessions/thurbox-{id}.jsonl".to_string()
+                "/home/me/.omp/agent/sessions/talos-{id}.jsonl".to_string()
             ]
         );
         // `{id}` is left for build_args; only `{home}` was touched.
@@ -1085,7 +1085,7 @@ mod tests {
         let omp = reg.get("omp").unwrap();
         assert_eq!(
             session_file_template(omp).as_deref(),
-            Some("{home}/.omp/agent/sessions/thurbox-{id}.jsonl")
+            Some("{home}/.omp/agent/sessions/talos-{id}.jsonl")
         );
         // claude/pi pass a bare `{id}`, not a path → no template.
         assert_eq!(session_file_template(reg.get("claude").unwrap()), None);
@@ -1109,11 +1109,11 @@ mod tests {
         // No file yet → fresh session.
         assert_eq!(resume_trigger_for(&omp, sid, &env), None);
 
-        // Create the exact JSONL thurbox would launch against → resume triggers.
+        // Create the exact JSONL talos would launch against → resume triggers.
         let file = tmp
             .path()
             .join(".omp/agent/sessions")
-            .join(format!("thurbox-{sid}.jsonl"));
+            .join(format!("talos-{sid}.jsonl"));
         std::fs::create_dir_all(file.parent().unwrap()).unwrap();
         std::fs::write(&file, b"").unwrap();
         assert_eq!(resume_trigger_for(&omp, sid, &env), Some(sid.to_string()));

@@ -9,12 +9,12 @@ use std::path::PathBuf;
 use std::process::Command as ProcessCommand;
 
 use serde_json::{json, Value};
-use thurbox::cli::sessions::{run, Action};
-use thurbox::kernel::command::{Args, Command};
-use thurbox::session::{HostDef, SessionId};
-use thurbox::session_ops::mirror::{self, HostDeletedRow, MirrorReport, Transitive};
-use thurbox::storage::Database;
-use thurbox::sync::{SharedSession, SharedWorktree};
+use talos::cli::sessions::{run, Action};
+use talos::kernel::command::{Args, Command};
+use talos::session::{HostDef, SessionId};
+use talos::session_ops::mirror::{self, HostDeletedRow, MirrorReport, Transitive};
+use talos::storage::Database;
+use talos::sync::{SharedSession, SharedWorktree};
 
 const BACKEND: &str = "ssh:devbox";
 
@@ -66,7 +66,7 @@ fn list_deleted_prints_what_a_mirroring_peer_reads() {
             verify: false,
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .unwrap();
     let rows = out.as_array().unwrap();
@@ -85,7 +85,7 @@ fn list_deleted_prints_what_a_mirroring_peer_reads() {
             verify: false,
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .unwrap();
     let only = &active.as_array().unwrap()[0];
@@ -130,7 +130,7 @@ fn register_records_only_a_window_that_is_running() {
             json_row: body.to_string(),
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .unwrap_err();
     assert!(err.contains("no live window"), "{err}");
@@ -141,7 +141,7 @@ fn register_records_only_a_window_that_is_running() {
             json_row: "{not json".into(),
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .unwrap_err();
     assert!(err.contains("--json-row"), "{err}");
@@ -158,7 +158,7 @@ fn register_refuses_an_id_or_a_name_already_here() {
             json_row: same_id.to_string(),
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .unwrap_err();
     assert!(err.contains("already registered"), "{err}");
@@ -173,7 +173,7 @@ fn register_refuses_an_id_or_a_name_already_here() {
             json_row: same_name.to_string(),
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .unwrap_err();
     assert!(err.contains("already exists"), "{err}");
@@ -182,7 +182,7 @@ fn register_refuses_an_id_or_a_name_already_here() {
 #[test]
 fn sync_with_no_shareable_host_configured_is_an_empty_report() {
     let temp = tempfile::TempDir::new().unwrap();
-    let _guard = thurbox::paths::TestPathGuard::new(temp.path());
+    let _guard = talos::paths::TestPathGuard::new(temp.path());
     let db = Database::open_in_memory().unwrap();
     let out = run(
         Action::Sync {
@@ -190,7 +190,7 @@ fn sync_with_no_shareable_host_configured_is_an_empty_report() {
             adopt: false,
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .unwrap();
     assert_eq!(out.as_array().map(Vec::len), Some(0));
@@ -326,7 +326,7 @@ fn own(db: &Database, name: &str) -> SessionId {
             repo_path: PathBuf::from("/srv/repo"),
             worktree_path: PathBuf::from(format!("/srv/worktrees/{name}")),
             branch: name.into(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         }],
         shell_backend_id: None,
         parent_session_id: None,
@@ -347,7 +347,7 @@ fn listing(db: &Database, deleted: bool) -> Value {
             verify: false,
         },
         db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .unwrap()
     .json
@@ -455,13 +455,13 @@ fn a_session_only_reachable_through_a_host_is_listed_through_it() {
         // B's own row names B's pane and B's checkout, and both are B's.
         let bs = a.get_session_by_id(on_b).unwrap().unwrap();
         assert_eq!(bs.backend_id, "%1");
-        assert!(bs.worktrees[0].created_by_thurbox);
+        assert!(bs.worktrees[0].created_by_talos);
         // C's does not: `%1` there is a pane on C's server, and on B's it is
         // B's own agent — attaching to it would type into the wrong session.
         // Its checkout is C's, so nothing run on B may remove it.
         let cs = a.get_session_by_id(on_c).unwrap().unwrap();
         assert_eq!(cs.backend_id, "", "the second pass keeps it clear too");
-        assert!(!cs.worktrees[0].created_by_thurbox);
+        assert!(!cs.worktrees[0].created_by_talos);
         assert_eq!(cs.worktrees[0].branch, "charlie-own", "still described");
     }
 }

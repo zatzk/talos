@@ -266,13 +266,13 @@ impl Tree {
         self.modules.contains(path)
     }
 
-    /// A `use` path made absolute: `crate`/`thurbox` (the library's name, the
+    /// A `use` path made absolute: `crate`/`talos` (the library's name, the
     /// only spelling the binary's own modules have), `super`, `self`, or a
     /// child module of the scope. Anything else is another crate.
     fn absolute_use(&self, scope: &[String], raw: &[String]) -> Option<ModPath> {
         let (first, rest) = raw.split_first()?;
         let mut base: ModPath = match first.as_str() {
-            "crate" | "thurbox" => Vec::new(),
+            "crate" | "talos" => Vec::new(),
             "self" => scope.to_vec(),
             "super" => {
                 let mut base = scope.to_vec();
@@ -294,7 +294,7 @@ impl Tree {
                 scope.to_vec()
             }
         };
-        if !matches!(first.as_str(), "crate" | "thurbox" | "self") {
+        if !matches!(first.as_str(), "crate" | "talos" | "self") {
             base.push(first.clone());
         }
         base.extend(rest.iter().cloned());

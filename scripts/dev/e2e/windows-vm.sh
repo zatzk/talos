@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# e2e: thurbox's Windows/psmux support against a throwaway Windows VM — the
+# e2e: talos's Windows/psmux support against a throwaway Windows VM — the
 # ephemeral-Windows member of the e2e family (see scripts/dev/README.md).
 # Mirrors linux-container.sh: a single Podman container runs a real,
 # KVM-accelerated Windows VM via dockur/windows, with an unattended first-boot
@@ -17,7 +17,7 @@
 #   scripts/dev/e2e/windows-vm.sh test     # headless smoke test (asserts psmux + a control-mode session round-trip)
 #   scripts/dev/e2e/windows-vm.sh test-suite # run the FULL nextest suite inside the VM (cross-built archive)
 #   scripts/dev/e2e/windows-vm.sh ssh      # open a PowerShell shell inside the VM
-#   scripts/dev/e2e/windows-vm.sh deploy   # cross-build thurbox for Windows + copy the .exe into the VM
+#   scripts/dev/e2e/windows-vm.sh deploy   # cross-build talos for Windows + copy the .exe into the VM
 #   scripts/dev/e2e/windows-vm.sh web      # print the browser viewer URL (eyes-on)
 #   scripts/dev/e2e/windows-vm.sh rdp      # print RDP connection details
 #   scripts/dev/e2e/windows-vm.sh logs     # follow container/install logs
@@ -25,15 +25,15 @@
 #   scripts/dev/e2e/windows-vm.sh clean    # remove container + all local state (disk image included)
 #
 # Env overrides:
-#   THURBOX_WIN_SSH_PORT  (default 2223)   host port forwarded to the VM's :22
-#   THURBOX_WIN_RDP_PORT  (default 3389)   host port forwarded to the VM's :3389
-#   THURBOX_WIN_WEB_PORT  (default 8006)   host port for the browser viewer
-#   THURBOX_WIN_VERSION   (default 11) any dockur VERSION (11, 10, 2025, 2022, ...);
+#   TALOS_WIN_SSH_PORT  (default 2223)   host port forwarded to the VM's :22
+#   TALOS_WIN_RDP_PORT  (default 3389)   host port forwarded to the VM's :3389
+#   TALOS_WIN_WEB_PORT  (default 8006)   host port for the browser viewer
+#   TALOS_WIN_VERSION   (default 11) any dockur VERSION (11, 10, 2025, 2022, ...);
 #                                       note: dockur has no "tiny" edition token.
-#   THURBOX_WIN_RAM       (default 4G)
-#   THURBOX_WIN_CPUS      (default 4)
-#   THURBOX_WIN_DISK      (default 64G)
-#   THURBOX_WIN_TEST_DIR  (default <repo>/target/windows-test)
+#   TALOS_WIN_RAM       (default 4G)
+#   TALOS_WIN_CPUS      (default 4)
+#   TALOS_WIN_DISK      (default 64G)
+#   TALOS_WIN_TEST_DIR  (default <repo>/target/windows-test)
 #   PSMUX_VERSION         (default v3.3.6) psmux release tag to install in the VM
 #   NEXTEST_VERSION       (default latest) cargo-nextest release to install in the VM
 #
@@ -50,16 +50,16 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 # shellcheck disable=SC1091
 . "$REPO_ROOT/scripts/dev/e2e/lib/e2e-common.sh"
 
-WORKDIR="${THURBOX_WIN_TEST_DIR:-$REPO_ROOT/target/windows-test}"
+WORKDIR="${TALOS_WIN_TEST_DIR:-$REPO_ROOT/target/windows-test}"
 IMAGE="docker.io/dockurr/windows"
-CONTAINER="thurbox-windows"
-SSH_PORT="${THURBOX_WIN_SSH_PORT:-2223}"
-RDP_PORT="${THURBOX_WIN_RDP_PORT:-3389}"
-WEB_PORT="${THURBOX_WIN_WEB_PORT:-8006}"
-WIN_VERSION="${THURBOX_WIN_VERSION:-11}"
-WIN_RAM="${THURBOX_WIN_RAM:-4G}"
-WIN_CPUS="${THURBOX_WIN_CPUS:-4}"
-WIN_DISK="${THURBOX_WIN_DISK:-64G}"
+CONTAINER="talos-windows"
+SSH_PORT="${TALOS_WIN_SSH_PORT:-2223}"
+RDP_PORT="${TALOS_WIN_RDP_PORT:-3389}"
+WEB_PORT="${TALOS_WIN_WEB_PORT:-8006}"
+WIN_VERSION="${TALOS_WIN_VERSION:-11}"
+WIN_RAM="${TALOS_WIN_RAM:-4G}"
+WIN_CPUS="${TALOS_WIN_CPUS:-4}"
+WIN_DISK="${TALOS_WIN_DISK:-64G}"
 PSMUX_VERSION="${PSMUX_VERSION:-v3.3.6}"
 PSMUX_ZIP_URL="https://github.com/psmux/psmux/releases/download/${PSMUX_VERSION}/psmux-${PSMUX_VERSION}-windows-x64.zip"
 NEXTEST_VERSION="${NEXTEST_VERSION:-latest}"
@@ -76,9 +76,9 @@ STORAGE_DIR="$WORKDIR/storage"
 WIN_USER="Docker"
 WIN_PASS="admin"
 
-# Dev builds share the thurbox-dev tmux socket name (see AGENTS.md / demo
+# Dev builds share the talos-dev tmux socket name (see AGENTS.md / demo
 # isolation). psmux honours -L the same way, so the smoke test uses it too.
-SOCKET="thurbox-dev"
+SOCKET="talos-dev"
 
 ssh_vm() {
   ssh -p "$SSH_PORT" -i "$KEY" \
@@ -109,7 +109,7 @@ build_oem() {
 
   if [ ! -f "$KEY" ]; then
     log "generating throwaway keypair at $KEY"
-    ssh-keygen -t ed25519 -N "" -C thurbox-windows-test -f "$KEY" >/dev/null
+    ssh-keygen -t ed25519 -N "" -C talos-windows-test -f "$KEY" >/dev/null
   fi
   cp "$KEY.pub" "$OEM_DIR/authorized_keys"
 
@@ -130,16 +130,16 @@ build_oem() {
   # off to PowerShell, where the real work (CRLF-agnostic) lives.
   cat > "$OEM_DIR/install.bat" <<'EOF'
 @echo off
-echo [thurbox] running first-boot setup...
+echo [talos] running first-boot setup...
 powershell -ExecutionPolicy Bypass -NoProfile -File "%~dp0setup.ps1" >> "%~dp0setup.log" 2>&1
-echo [thurbox] setup exit code %errorlevel% >> "%~dp0setup.log"
+echo [talos] setup exit code %errorlevel% >> "%~dp0setup.log"
 EOF
 
   # PowerShell does the heavy lifting: OpenSSH server + key, psmux on PATH, git.
   cat > "$OEM_DIR/setup.ps1" <<'EOF'
 $ErrorActionPreference = 'Continue'
 $oem = $PSScriptRoot
-Write-Host "[thurbox] setup.ps1 starting from $oem"
+Write-Host "[talos] setup.ps1 starting from $oem"
 
 # --- OpenSSH server (so the harness can drive the VM headlessly) -------------
 Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
@@ -161,7 +161,7 @@ Copy-Item "$oem\authorized_keys" $adminKeys -Force
 icacls $adminKeys /inheritance:r | Out-Null
 icacls $adminKeys /grant 'Administrators:F' /grant 'SYSTEM:F' | Out-Null
 
-# --- psmux (the Windows tmux that thurbox's TmuxBackend invokes) -------------
+# --- psmux (the Windows tmux that talos's TmuxBackend invokes) -------------
 $tools = 'C:\Tools\psmux'
 New-Item -ItemType Directory -Force -Path $tools | Out-Null
 Expand-Archive -Path "$oem\psmux.zip" -DestinationPath $tools -Force
@@ -189,21 +189,21 @@ if (Test-Path "$oem\nextest.zip") {
       Invoke-WebRequest 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile $vcr -UseBasicParsing
       Start-Process $vcr -ArgumentList '/install','/quiet','/norestart' -Wait
     } catch {
-      Write-Host "[thurbox] VC++ redist install failed: $_"
+      Write-Host "[talos] VC++ redist install failed: $_"
     }
   }
 }
 
-# --- git (thurbox needs it for worktrees); best-effort via winget ------------
+# --- git (talos needs it for worktrees); best-effort via winget ------------
 try {
   winget install --id Git.Git -e --silent --accept-source-agreements --accept-package-agreements
 } catch {
-  Write-Host "[thurbox] winget git install skipped: $_"
+  Write-Host "[talos] winget git install skipped: $_"
 }
 
-New-Item -ItemType File -Force -Path 'C:\thurbox-oem-done.txt' `
+New-Item -ItemType File -Force -Path 'C:\talos-oem-done.txt' `
   -Value (Get-Date -Format o) | Out-Null
-Write-Host "[thurbox] setup.ps1 finished"
+Write-Host "[talos] setup.ps1 finished"
 EOF
 
   log "/oem payload ready in $OEM_DIR"
@@ -254,7 +254,7 @@ cmd_wait() {
   for i in $(seq 1 "$tries"); do
     if ssh_vm 'echo ok' >/dev/null 2>&1; then
       log "SSH reachable after ~$((i * 10))s"
-      ssh_vm 'powershell -NoProfile -Command "Test-Path C:\thurbox-oem-done.txt"' 2>/dev/null \
+      ssh_vm 'powershell -NoProfile -Command "Test-Path C:\talos-oem-done.txt"' 2>/dev/null \
         | grep -qi true && log "first-boot setup completed (psmux + OpenSSH installed)" \
         || warn "SSH is up but first-boot setup marker not found yet — psmux may still be installing"
       return 0
@@ -285,24 +285,24 @@ cmd_ssh() {
 # whichever way the measurement went is evidence of nothing.
 #
 # Those two are the mailbox, and the mailbox is not the whole gate: it also
-# rests on claude accepting the forward-slash `--settings` path thurbox
+# rests on claude accepting the forward-slash `--settings` path talos
 # generates on Windows, which needs a real agent launch rather than a psmux
 # capability check and is measured nowhere in this harness. It is named here so
 # the verdict can say what it does not know, and so that giving it a probe is a
 # change to one line.
 PSMUX_GATE_UNPROBED="claude's forward-slash --settings path on Windows"
 
-# psmux_hook_gate [CLI] — "open" or "closed": whether thurbox's psmux adapter
-# offers a hook status channel, as the binary itself answers it in `thurbox-cli
+# psmux_hook_gate [CLI] — "open" or "closed": whether talos's psmux adapter
+# offers a hook status channel, as the binary itself answers it in `talos-cli
 # runtime status --json` (`hook_status`, one entry per local backend). Asked
 # rather than restated or read out of the source, so there is one record of
-# what thurbox believes and it is the behaviour: a gate flipped without this
-# evidence then fails the verdict below. CLI defaults to $THURBOX_CLI, else the
+# what talos believes and it is the behaviour: a gate flipped without this
+# evidence then fails the verdict below. CLI defaults to $TALOS_CLI, else the
 # repo's debug build. Non-zero if the CLI cannot be run or its answer names no
 # psmux entry — a gate the harness cannot read is an error, not an assumption.
 # shellcheck disable=SC2120 # CLI defaults; windows-vm.bats passes a stand-in
 psmux_hook_gate() {
-  local cli="${1:-${THURBOX_CLI:-$REPO_ROOT/target/debug/thurbox-cli}}" answer
+  local cli="${1:-${TALOS_CLI:-$REPO_ROOT/target/debug/talos-cli}}" answer
   answer="$("$cli" --json runtime status 2>/dev/null)" || return 1
   case "$(printf '%s' "$answer" | grep -o '"local:psmux":[a-z]*')" in
     '"local:psmux":true')  printf 'open\n' ;;
@@ -387,7 +387,7 @@ smoke_verdict() {
   if ! printf '%s\n' "$sessions" | grep -qx smoke; then
     fail "could not create/list a psmux session (got: ${sessions:-<none>})"
   elif [ "$fails" -gt 0 ]; then
-    fail "psmux session round-tripped, but $fails probe check(s) disagree with thurbox's own psmux gate — see the miss lines above"
+    fail "psmux session round-tripped, but $fails probe check(s) disagree with talos's own psmux gate — see the miss lines above"
   else
     pass "psmux is installed and a -L $SOCKET session round-tripped"
   fi
@@ -401,7 +401,7 @@ cmd_test() {
 
   log "checking psmux is installed and control-mode capable"
   local ver sessions
-  # `psmux` is the canonical binary thurbox's psmux adapter invokes (the default
+  # `psmux` is the canonical binary talos's psmux adapter invokes (the default
   # multiplexer on Windows); it also ships `tmux`/`pmux` aliases. -V proves
   # binary + PATH.
   ver="$(ssh_vm 'psmux -V' 2>/dev/null | tr -d '\r')" \
@@ -412,7 +412,7 @@ cmd_test() {
   # spin up headless, create a detached session in, and enumerate. No command is
   # passed so the session holds its default shell open — a self-exiting command
   # (e.g. `cmd /c ver`) would close the session before we list it. This mirrors
-  # how thurbox launches a long-running agent CLI inside the session.
+  # how talos launches a long-running agent CLI inside the session.
   ssh_vm "psmux -L $SOCKET kill-server 2>\$null; psmux -L $SOCKET new-session -d -s smoke" >/dev/null 2>&1 || true
   sessions="$(ssh_vm "psmux -L $SOCKET list-sessions -F '#{session_name}'" 2>/dev/null | tr -d '\r')"
   ssh_vm "psmux -L $SOCKET kill-server" >/dev/null 2>&1 || true
@@ -424,12 +424,12 @@ cmd_test() {
   local gate pane opt inpane measured_a=unknown measured_b=unknown
   # The gate is the binary's answer, so the binary has to be this checkout's:
   # an older build would report the gate the source no longer has.
-  if [ -z "${THURBOX_CLI:-}" ]; then
-    ( cd "$REPO_ROOT" && cargo build --quiet --bin thurbox-cli ) \
-      || die "could not build thurbox-cli to read the psmux gate from"
+  if [ -z "${TALOS_CLI:-}" ]; then
+    ( cd "$REPO_ROOT" && cargo build --quiet --bin talos-cli ) \
+      || die "could not build talos-cli to read the psmux gate from"
   fi
   gate="$(psmux_hook_gate)" \
-    || die "could not read the psmux status channel from 'thurbox-cli runtime status --json' (build it: cargo build --bin thurbox-cli, or set THURBOX_CLI) — the gate probes have nothing to check against"
+    || die "could not read the psmux status channel from 'talos-cli runtime status --json' (build it: cargo build --bin talos-cli, or set TALOS_CLI) — the gate probes have nothing to check against"
   ssh_vm "psmux -L $SOCKET new-session -d -s probe" >/dev/null 2>&1 || true
   pane="$(ssh_vm "psmux -L $SOCKET list-panes -s -t probe -F '#{pane_id}'" 2>/dev/null | tr -d '\r' | head -n1)"
   # A second pane is what makes the per-pane half observable: with one pane an
@@ -438,13 +438,13 @@ cmd_test() {
   # isolation check with nothing to see rather than failing the probe.
   ssh_vm "psmux -L $SOCKET split-window -d -t probe" >/dev/null 2>&1 || true
   if [ -n "$pane" ]; then
-    ssh_vm "psmux -L $SOCKET set-option -p -t $pane @thurboxprobe working" >/dev/null 2>&1 || true
-    opt="$(ssh_vm "psmux -L $SOCKET list-panes -s -t probe -F '#{pane_id} #{@thurboxprobe}'" 2>/dev/null | tr -d '\r')"
+    ssh_vm "psmux -L $SOCKET set-option -p -t $pane @talosprobe working" >/dev/null 2>&1 || true
+    opt="$(ssh_vm "psmux -L $SOCKET list-panes -s -t probe -F '#{pane_id} #{@talosprobe}'" 2>/dev/null | tr -d '\r')"
     measured_a="$(pane_option_measured "$pane" 'working' "$opt")"
     info "probe A (set-option -p, then #{@opt} in list-panes -F): $measured_a (got: ${opt:-<none>})"
-    ssh_vm "psmux -L $SOCKET send-keys -t $pane 'psmux -L $SOCKET set-option -p @thurboxinpane done' Enter" >/dev/null 2>&1 || true
+    ssh_vm "psmux -L $SOCKET send-keys -t $pane 'psmux -L $SOCKET set-option -p @talosinpane done' Enter" >/dev/null 2>&1 || true
     sleep 2
-    inpane="$(ssh_vm "psmux -L $SOCKET list-panes -s -t probe -F '#{pane_id} #{@thurboxinpane}'" 2>/dev/null | tr -d '\r')"
+    inpane="$(ssh_vm "psmux -L $SOCKET list-panes -s -t probe -F '#{pane_id} #{@talosinpane}'" 2>/dev/null | tr -d '\r')"
     measured_b="$(pane_option_measured "$pane" 'done' "$inpane")"
     info "probe B (id-less in-pane set-option -p on the calling pane): $measured_b (got: ${inpane:-<none>})"
   else
@@ -456,7 +456,7 @@ cmd_test() {
   # --- paste-delivery probe (evidence, not verdict) -------------------------
   # A paste cannot be key-encoded for psmux (a split ESC arrives as a bare
   # Escape keypress, losing the ESC[200~ marker, and every embedded CR then
-  # submits — issue #916), so thurbox hands pastes to psmux's own
+  # submits — issue #916), so talos hands pastes to psmux's own
   # `send-paste` (see `backend::psmux`'s `PsmuxPaste`). This probes the two
   # properties that path relies on: the payload is standard **base64**, and a
   # multi-line payload keeps its newlines instead of being cut on the wire with
@@ -490,9 +490,9 @@ cmd_test() {
   # psmux classifies a send-keys argument only *after* tokenizing it, dropping
   # every one that starts with `-` as an unknown flag — so a quoted literal `-`
   # never reached the pane and hyphens could not be typed on Windows (issue
-  # #920). thurbox escapes such a run into psmux's own `0xNN` codepoint form
+  # #920). talos escapes such a run into psmux's own `0xNN` codepoint form
   # (`control_mode::psmux_literal_args`). The psmux CLI forwards both encodings
-  # to the same server-side classifier thurbox's control-mode line hits, so
+  # to the same server-side classifier talos's control-mode line hits, so
   # typing them into one prompt line is evidence about that rule: the old
   # encoding must lose its hyphen, the new one must keep it.
   log "probing psmux literal-hyphen delivery (keystroke encoding evidence)"
@@ -519,7 +519,7 @@ cmd_test() {
   ssh_vm "psmux -L $SOCKET kill-server" >/dev/null 2>&1 || true
 
   # --- shared-sessions probe (evidence, not verdict) -------------------------
-  # A shared Windows host (ADR-24) is driven through its own thurbox-cli over
+  # A shared Windows host (ADR-24) is driven through its own talos-cli over
   # the PowerShell path: `session_ops::host_cli` probes for the CLI where
   # install.ps1 and provisioning put it, and delegates `session create` to it.
   # With the cross-built binaries deployed (`cmd_deploy`), this asks the VM's
@@ -528,11 +528,11 @@ cmd_test() {
   log "probing the shared-sessions CLI path on the VM"
   local vcli
   # shellcheck disable=SC2016 # the $… are PowerShell's, evaluated on the VM
-  vcli="$(ssh_vm '$c = @("thurbox-cli", "$env:LOCALAPPDATA\thurbox\bin\thurbox-cli.exe", "$env:LOCALAPPDATA\Programs\thurbox\thurbox-cli.exe"); foreach ($p in $c) { $g = Get-Command $p -ErrorAction SilentlyContinue; if ($g) { & $g.Source version --json; exit 0 } }; Write-Output "@none"' 2>/dev/null | tr -d '\r')"
+  vcli="$(ssh_vm '$c = @("talos-cli", "$env:LOCALAPPDATA\talos\bin\talos-cli.exe", "$env:LOCALAPPDATA\Programs\talos\talos-cli.exe"); foreach ($p in $c) { $g = Get-Command $p -ErrorAction SilentlyContinue; if ($g) { & $g.Source version --json; exit 0 } }; Write-Output "@none"' 2>/dev/null | tr -d '\r')"
   case "$vcli" in
-    *'"schema_version"'*) ok "probe E: the VM's thurbox-cli answers version --json with a schema (delegation possible)" ;;
-    *'"version"'*) info "probe E: the VM's thurbox-cli predates session sharing (no schema_version): a matching one would be provisioned" ;;
-    *) info "probe E: no thurbox-cli on the VM — run '$0 deploy' first, or let a shared spawn provision one (got: ${vcli:-<none>})" ;;
+    *'"schema_version"'*) ok "probe E: the VM's talos-cli answers version --json with a schema (delegation possible)" ;;
+    *'"version"'*) info "probe E: the VM's talos-cli predates session sharing (no schema_version): a matching one would be provisioned" ;;
+    *) info "probe E: no talos-cli on the VM — run '$0 deploy' first, or let a shared spawn provision one (got: ${vcli:-<none>})" ;;
   esac
 
   echo
@@ -546,17 +546,17 @@ cmd_deploy() {
   rustup target list --installed 2>/dev/null | grep -qx "$target" \
     || die "missing Rust target $target — run: rustup target add $target (and install mingw-w64)"
 
-  log "cross-building thurbox + thurbox-cli for $target"
-  ( cd "$REPO_ROOT" && cargo build --release --target "$target" --bin thurbox --bin thurbox-cli )
+  log "cross-building talos + talos-cli for $target"
+  ( cd "$REPO_ROOT" && cargo build --release --target "$target" --bin talos --bin talos-cli )
 
   local bindir="$REPO_ROOT/target/$target/release"
-  log "copying binaries into the VM (C:\\Tools\\thurbox)"
-  ssh_vm 'powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path C:\Tools\thurbox | Out-Null"' >/dev/null
-  scp_vm "$bindir/thurbox.exe" "$bindir/thurbox-cli.exe" "$WIN_USER@localhost:C:/Tools/thurbox/"
+  log "copying binaries into the VM (C:\\Tools\\talos)"
+  ssh_vm 'powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path C:\Tools\talos | Out-Null"' >/dev/null
+  scp_vm "$bindir/talos.exe" "$bindir/talos-cli.exe" "$WIN_USER@localhost:C:/Tools/talos/"
 
   echo
   printf '\033[1;32mdeployed\033[0m  run it with:  %s ssh\n' "$0"
-  printf '  then inside the VM:  C:\\Tools\\thurbox\\thurbox.exe\n'
+  printf '  then inside the VM:  C:\\Tools\\talos\\talos.exe\n'
 }
 
 # Run the ENTIRE test suite inside the VM. No Rust toolchain lives in the VM, so
@@ -585,10 +585,10 @@ cmd_test_suite() {
   tar --exclude=./target --exclude=./.git -cf "$src_tar" -C "$REPO_ROOT" .
 
   log "shipping archive + sources into the VM"
-  ssh_vm 'powershell -NoProfile -Command "Remove-Item -Recurse -Force C:\thurbox-tests -ErrorAction SilentlyContinue; New-Item -ItemType Directory -Force -Path C:\thurbox-tests\src | Out-Null"' >/dev/null
-  scp_vm "$archive" "$WIN_USER@localhost:C:/thurbox-tests/nextest-archive.tar.zst"
-  scp_vm "$src_tar" "$WIN_USER@localhost:C:/thurbox-tests/src.tar"
-  ssh_vm 'tar -xf C:/thurbox-tests/src.tar -C C:/thurbox-tests/src' \
+  ssh_vm 'powershell -NoProfile -Command "Remove-Item -Recurse -Force C:\talos-tests -ErrorAction SilentlyContinue; New-Item -ItemType Directory -Force -Path C:\talos-tests\src | Out-Null"' >/dev/null
+  scp_vm "$archive" "$WIN_USER@localhost:C:/talos-tests/nextest-archive.tar.zst"
+  scp_vm "$src_tar" "$WIN_USER@localhost:C:/talos-tests/src.tar"
+  ssh_vm 'tar -xf C:/talos-tests/src.tar -C C:/talos-tests/src' \
     || die "failed to extract sources in the VM"
 
   log "running the full suite in the VM (cargo-nextest from archive)"
@@ -604,7 +604,7 @@ cmd_test_suite() {
   #     CI job and the native `windows` CI job instead.
   # The single quotes are intentional: `$env:` must reach PowerShell unexpanded.
   # shellcheck disable=SC2016
-  ssh_vm '$env:INSTA_WORKSPACE_ROOT="C:/thurbox-tests/src"; cargo-nextest nextest run --archive-file C:/thurbox-tests/nextest-archive.tar.zst --workspace-remap C:/thurbox-tests/src -E "not binary(architecture_rules)"'
+  ssh_vm '$env:INSTA_WORKSPACE_ROOT="C:/talos-tests/src"; cargo-nextest nextest run --archive-file C:/talos-tests/nextest-archive.tar.zst --workspace-remap C:/talos-tests/src -E "not binary(architecture_rules)"'
 }
 
 cmd_web()  { printf 'Browser viewer: http://localhost:%s\n' "$WEB_PORT"; }

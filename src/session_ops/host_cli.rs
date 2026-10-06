@@ -1,9 +1,9 @@
-//! Running `thurbox-cli` on a shareable host — and putting one there when the
+//! Running `talos-cli` on a shareable host — and putting one there when the
 //! host has none.
 //!
 //! A shareable host's own database is the record of the sessions on it
-//! (`docs/ARCHITECTURE.md` ADR-24), so every write a remote thurbox wants to
-//! make there is a `thurbox-cli` command run *on the host*, and every read is
+//! (`docs/ARCHITECTURE.md` ADR-24), so every write a remote talos wants to
+//! make there is a `talos-cli` command run *on the host*, and every read is
 //! `session list --json` read back. This module is the one place that knows
 //! how to find that CLI, decide whether it speaks this binary's JSON, install
 //! a matching one when it does not, and run it in whichever shell the host
@@ -20,8 +20,8 @@ use serde_json::Value;
 
 use crate::session::HostDef;
 
-/// Where a provisioned CLI lands, under the host's thurbox data directory —
-/// deliberately *not* on PATH: it is thurbox's, and an install the user makes
+/// Where a provisioned CLI lands, under the host's talos data directory —
+/// deliberately *not* on PATH: it is talos's, and an install the user makes
 /// later (`install.sh`) wins as soon as its major matches.
 pub const HOST_BIN_DIR: &str = "bin";
 
@@ -38,7 +38,7 @@ pub const PROBE_RETRY: Duration = Duration::from_secs(60);
 /// platform, a remote shell that will not take a payload that size — fails
 /// identically every time it is asked, and on the flat [`PROBE_RETRY`] that
 /// cost a release-archive download, an ssh connect and a 10 MB stream once a
-/// minute for as long as thurbox ran. Backing off to this bounds a permanent
+/// minute for as long as talos ran. Backing off to this bounds a permanent
 /// failure at a few attempts an hour, while a transient one (a host rebooting,
 /// a laptop off the network) is still picked up within the minute because its
 /// first success resets the count.
@@ -68,7 +68,7 @@ struct Verdict {
     failures: u32,
 }
 
-/// What a host's `thurbox-cli version --json` said about itself.
+/// What a host's `talos-cli version --json` said about itself.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CliInfo {
     /// How to invoke it on the host: a bare name found on PATH, or the absolute
@@ -100,7 +100,7 @@ fn verdicts() -> &'static Mutex<HashMap<String, Verdict>> {
     VERDICTS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
-/// Whether `host` has — or can be given — a `thurbox-cli` this binary can
+/// Whether `host` has — or can be given — a `talos-cli` this binary can
 /// delegate to. Cached per host: a `Yes` for the process lifetime (the host's
 /// CLI does not change under us), a `No` for `retry_after` its consecutive
 /// failure count — [`PROBE_RETRY`] the first time, doubling towards
@@ -199,12 +199,12 @@ pub fn sharing_off_note(host: &HostDef, reason: &str) -> String {
     format!("sharing off for host '{}': {reason}", host.name)
 }
 
-/// Put **this** thurbox's CLI where a peer's probe looks — `<data dir>/bin/
-/// thurbox-cli`, as a symlink to the running binary's `thurbox-cli` — so a
-/// machine that runs thurbox at all is shareable without being provisioned.
+/// Put **this** talos's CLI where a peer's probe looks — `<data dir>/bin/
+/// talos-cli`, as a symlink to the running binary's `talos-cli` — so a
+/// machine that runs talos at all is shareable without being provisioned.
 ///
 /// The case that needs it is a development build: a checkout's
-/// `target/debug/thurbox-cli` is on nobody's PATH, so a peer probing this
+/// `target/debug/talos-cli` is on nobody's PATH, so a peer probing this
 /// machine found only a release install (a different major) and had to
 /// provision, which a dev peer can only do onto its own platform. A release
 /// build gains nothing it did not have (its CLI is already on PATH) but the
@@ -234,7 +234,7 @@ pub fn advertise_running_cli() {
 /// relation between those two paths.
 #[cfg(unix)]
 fn advertise_cli_in(dir: &std::path::Path, target: &std::path::Path) {
-    let link = dir.join("thurbox-cli");
+    let link = dir.join("talos-cli");
     // Healed before anything is read, because no guard below can see past a
     // loop: `resolve_cli_binary` looks for a sibling that `exists()`, and a
     // self-link does not, so `target` is then the bare name and the
@@ -244,7 +244,7 @@ fn advertise_cli_in(dir: &std::path::Path, target: &std::path::Path) {
     heal_self_link(&link);
     // The running CLI *is* the path being advertised. That is the ordinary
     // shape on a provisioned host: `resolve_cli_binary` answers with a sibling
-    // of the running exe, and there the exe is `<data dir>/bin/thurbox`, so the
+    // of the running exe, and there the exe is `<data dir>/bin/talos`, so the
     // sibling is this very link. The advertisement is already true — a real
     // binary sits at it — and writing one anyway removed that binary and
     // pointed the path at itself. This has to return *before* the removal
@@ -259,7 +259,7 @@ fn advertise_cli_in(dir: &std::path::Path, target: &std::path::Path) {
         return;
     }
     if let Err(e) = link_cli(dir, &link, target) {
-        tracing::debug!("could not advertise thurbox-cli at {}: {e}", link.display());
+        tracing::debug!("could not advertise talos-cli at {}: {e}", link.display());
     }
 }
 
@@ -268,7 +268,7 @@ fn advertise_cli_in(dir: &std::path::Path, target: &std::path::Path) {
 /// Spelling equality is not enough, and the two sides here are drawn from
 /// different places: `resolve_cli_binary` answers from `current_exe`, which the
 /// kernel hands back fully resolved, while the advertised directory is built
-/// from `THURBOX_DATA_DIR` or `$HOME` and may be relative or reached through a
+/// from `TALOS_DATA_DIR` or `$HOME` and may be relative or reached through a
 /// symlinked home. One file spelled two ways reads as two files, and relinking
 /// one to the other is exactly the loop (issue #1193).
 ///
@@ -312,7 +312,7 @@ fn heal_self_link(link: &std::path::Path) {
     }
     if let Err(e) = std::fs::remove_file(link) {
         tracing::debug!(
-            "could not remove the self-referential thurbox-cli at {}: {e}",
+            "could not remove the self-referential talos-cli at {}: {e}",
             link.display()
         );
     }
@@ -359,7 +359,7 @@ fn establish(host: &HostDef) -> Usable {
         // exactly as a host with no CLI at all does.
         Err(e) if e.broken_cli => {
             tracing::info!(
-                "host '{}' has a broken thurbox-cli ({e}); provisioning a replacement",
+                "host '{}' has a broken talos-cli ({e}); provisioning a replacement",
                 host.name
             );
             None
@@ -371,7 +371,7 @@ fn establish(host: &HostDef) -> Usable {
     if let Some(cli) = &found {
         if let Err(mismatch) = compatible(cli) {
             tracing::info!(
-                "host '{}' has thurbox-cli {} at {}, but {mismatch}; provisioning a matching one",
+                "host '{}' has talos-cli {} at {}, but {mismatch}; provisioning a matching one",
                 host.name,
                 cli.version,
                 cli.path
@@ -386,7 +386,7 @@ fn establish(host: &HostDef) -> Usable {
         Ok(cli) => match compatible(&cli) {
             Ok(()) => Usable::Yes(cli),
             Err(mismatch) => Usable::No(format!(
-                "provisioned thurbox-cli at {} {mismatch}",
+                "provisioned talos-cli at {} {mismatch}",
                 cli.path
             )),
         },
@@ -401,13 +401,13 @@ pub fn compatible(cli: &CliInfo) -> Result<(), String> {
     let (ours_major, theirs_major) = (major_of(ours), major_of(&cli.version));
     if ours_major != theirs_major {
         return Err(format!(
-            "is major {theirs_major} where this thurbox is major {ours_major}"
+            "is major {theirs_major} where this talos is major {ours_major}"
         ));
     }
     match cli.schema_version {
         Some(schema) if schema == crate::storage::SCHEMA_VERSION => Ok(()),
         Some(schema) => Err(format!(
-            "uses database schema v{schema} where this thurbox uses v{}",
+            "uses database schema v{schema} where this talos uses v{}",
             crate::storage::SCHEMA_VERSION
         )),
         None => Err("predates session sharing (reports no schema version)".to_string()),
@@ -423,11 +423,11 @@ fn major_of(version: &str) -> u64 {
         .unwrap_or(0)
 }
 
-/// The shell script that looks for a `thurbox-cli` on the host and, finding
+/// The shell script that looks for a `talos-cli` on the host and, finding
 /// one, prints `@cli <path>`, then `@status <n>` — what that binary exited
 /// with — then its `version --json`; `@none` when there is none. The
 /// provisioned copy of **this flavour** is looked at first — a dev build's
-/// lives under `thurbox-dev`, a release's under `thurbox` — so a dev laptop
+/// lives under `talos-dev`, a release's under `talos` — so a dev laptop
 /// finds its own copy again on the next start rather than the release CLI on
 /// PATH (a different major) and a fresh provisioning. Then PATH, then the
 /// installer's default, which a non-interactive ssh shell rarely has on PATH.
@@ -441,8 +441,8 @@ fn major_of(version: &str) -> u64 {
 pub(crate) fn probe_script_posix() -> String {
     let flavour = crate::paths::app_dir_name();
     format!(
-        "for c in \"$HOME/.local/share/{flavour}/{HOST_BIN_DIR}/thurbox-cli\" thurbox-cli \
-         \"$HOME/.local/bin/thurbox-cli\" /usr/local/bin/thurbox-cli; do \
+        "for c in \"$HOME/.local/share/{flavour}/{HOST_BIN_DIR}/talos-cli\" talos-cli \
+         \"$HOME/.local/bin/talos-cli\" /usr/local/bin/talos-cli; do \
          p=$(command -v \"$c\" 2>/dev/null) && [ -n \"$p\" ] && \
          {{ echo \"@cli $p\"; {run}; exit 0; }}; done; echo @none",
         run = probe_run_posix("\"$p\"")
@@ -465,8 +465,8 @@ fn probe_run_posix(cli: &str) -> String {
 pub(crate) fn probe_script_windows() -> String {
     let flavour = crate::paths::app_dir_name();
     format!(
-        "$c = @(\"$env:LOCALAPPDATA\\{flavour}\\{HOST_BIN_DIR}\\thurbox-cli.exe\", 'thurbox-cli', \
-         \"$env:LOCALAPPDATA\\Programs\\thurbox\\thurbox-cli.exe\"); \
+        "$c = @(\"$env:LOCALAPPDATA\\{flavour}\\{HOST_BIN_DIR}\\talos-cli.exe\", 'talos-cli', \
+         \"$env:LOCALAPPDATA\\Programs\\talos\\talos-cli.exe\"); \
          foreach ($p in $c) {{ $g = Get-Command $p -ErrorAction SilentlyContinue; \
          if ($g) {{ Write-Output \"@cli $($g.Source)\"; {run}; exit 0 }} }}; \
          Write-Output '@none'",
@@ -494,13 +494,13 @@ fn probe_run_windows(cli: &str) -> String {
 ///
 /// The two are not degrees of the same failure. A host that is down is helped
 /// by waiting, and [`usable`] backs it off. A host that answered with a
-/// `thurbox-cli` that does not run is helped by nothing but replacing that
+/// `talos-cli` that does not run is helped by nothing but replacing that
 /// binary, and waiting is how it stays broken: the cached `No` skips the
 /// mirror, and the mirror is the only caller that reaches [`provision`].
 #[derive(Debug, Clone)]
 pub struct ProbeFailure {
     pub message: String,
-    /// The host ran the probe and the `thurbox-cli` it found there is broken.
+    /// The host ran the probe and the `talos-cli` it found there is broken.
     pub broken_cli: bool,
 }
 
@@ -515,7 +515,7 @@ impl ProbeFailure {
         }
     }
 
-    /// A `thurbox-cli` was found on the host and it does not work.
+    /// A `talos-cli` was found on the host and it does not work.
     fn broken(message: impl Into<String>) -> Self {
         Self {
             message: message.into(),
@@ -530,7 +530,7 @@ impl std::fmt::Display for ProbeFailure {
     }
 }
 
-/// Ask the host whether it has a `thurbox-cli`, and what version.
+/// Ask the host whether it has a `talos-cli`, and what version.
 pub fn probe(host: &HostDef) -> Result<Option<CliInfo>, ProbeFailure> {
     let script = if host.is_windows() {
         probe_script_windows()
@@ -538,7 +538,7 @@ pub fn probe(host: &HostDef) -> Result<Option<CliInfo>, ProbeFailure> {
         probe_script_posix()
     };
     let stdout =
-        run_script(host, &script, "thurbox-cli probe").map_err(ProbeFailure::unreadable)?;
+        run_script(host, &script, "talos-cli probe").map_err(ProbeFailure::unreadable)?;
     parse_probe(&stdout)
 }
 
@@ -557,7 +557,7 @@ fn probe_at(host: &HostDef, path: &str) -> Result<Option<CliInfo>, ProbeFailure>
         )
     };
     let stdout =
-        run_script(host, &script, "thurbox-cli probe").map_err(ProbeFailure::unreadable)?;
+        run_script(host, &script, "talos-cli probe").map_err(ProbeFailure::unreadable)?;
     parse_probe(&stdout)
 }
 
@@ -637,25 +637,25 @@ pub(crate) fn parse_probe(stdout: &str) -> Result<Option<CliInfo>, ProbeFailure>
     }
     if let Some(status) = status.filter(|status| *status != 0) {
         return Err(ProbeFailure::broken(format!(
-            "thurbox-cli at {path} {} instead of reporting a version",
+            "talos-cli at {path} {} instead of reporting a version",
             describe_status(status)
         )));
     }
     let body: String = rest.join("\n");
     if body.is_empty() {
         return Err(ProbeFailure::broken(format!(
-            "thurbox-cli at {path} ran and printed nothing"
+            "talos-cli at {path} ran and printed nothing"
         )));
     }
     let json: Value = serde_json::from_str(&body).map_err(|e| {
         ProbeFailure::broken(format!(
-            "thurbox-cli at {path} printed no JSON version ({e})"
+            "talos-cli at {path} printed no JSON version ({e})"
         ))
     })?;
     let version = json
         .get("version")
         .and_then(Value::as_str)
-        .ok_or_else(|| ProbeFailure::broken(format!("thurbox-cli at {path} reported no version")))?
+        .ok_or_else(|| ProbeFailure::broken(format!("talos-cli at {path} reported no version")))?
         .to_string();
     Ok(Some(CliInfo {
         path: path.to_string(),
@@ -679,7 +679,7 @@ pub(crate) fn parse_probe(stdout: &str) -> Result<Option<CliInfo>, ProbeFailure>
     }))
 }
 
-/// Run `thurbox-cli <args> --json` on `host` and return the parsed answer.
+/// Run `talos-cli <args> --json` on `host` and return the parsed answer.
 ///
 /// A non-zero exit is passed on verbatim, since it names what went wrong
 /// *there*, which is what the caller needs to show: the host's stderr when it
@@ -700,7 +700,7 @@ pub enum Reach {
     /// occurred", distinct from the remote command's status, which it passes
     /// through). Nothing ran on the host, so nothing there acted on it.
     Unreached,
-    /// `thurbox-cli` ran on the host and answered with an error of its own,
+    /// `talos-cli` ran on the host and answered with an error of its own,
     /// as the structured document every remote invocation asks for.
     Answered,
     /// Something in between failed and the layer cannot be told: no shell on
@@ -753,13 +753,13 @@ pub fn run_classified(host: &HostDef, cli: &CliInfo, args: &[&str]) -> Result<Va
     } else {
         cli_script_posix(&cli.path, args)
     };
-    let stdout = run_script_classified(host, &script, "thurbox-cli")?;
+    let stdout = run_script_classified(host, &script, "talos-cli")?;
     serde_json::from_str(&stdout).map_err(|e| {
         // It ran and said something; that something is not what this build
         // knows how to read. The host may well have done the thing.
         RunFailure::new(
             format!(
-                "thurbox-cli on '{}' printed no JSON for `{}` ({e}): {}",
+                "talos-cli on '{}' printed no JSON for `{}` ({e}): {}",
                 host.name,
                 args.join(" "),
                 stdout.trim()
@@ -806,13 +806,13 @@ fn run_script(host: &HostDef, script: &str, action: &str) -> Result<String, Stri
 ///   or it could not be executed — so nothing left this machine: `Unreached`.
 /// - `ssh` exited **255**, which is its documented code for "an error
 ///   occurred" *in ssh*. It passes a remote command's own status through
-///   untouched (a remote `exit 7` exits 7), and `thurbox-cli` only ever exits
+///   untouched (a remote `exit 7` exits 7), and `talos-cli` only ever exits
 ///   1, 2 or 3 ([`crate::cli::EXIT_ERROR`] and friends), so 255 cannot be the
 ///   host CLI answering: `Unreached`.
 /// - the host CLI answered on stdout with the structured `{"error": …}` every
 ///   remote invocation asks for: `Answered`.
 /// - anything else — a shell that could not find the binary (127), a host
-///   running something that is not thurbox, stderr from a layer nobody here
+///   running something that is not talos, stderr from a layer nobody here
 ///   owns: `Undetermined`.
 ///
 /// `wsl.exe` has no 255 convention of its own, so a WSL host is never
@@ -895,9 +895,9 @@ const SSH_ERROR_EXIT: i32 = 255;
 ///
 /// 1. only `ssh` owns 255, and `wsl.exe` has no such convention, so a WSL host
 ///    is never called `Unreached` on a status alone;
-/// 2. the `{"error": …}` document is positive proof `thurbox-cli` ran;
+/// 2. the `{"error": …}` document is positive proof `talos-cli` ran;
 /// 3. failing that, an exit code that is one of the CLI's *own*
-///    ([`CLI_EXIT_CODES`]) still says something thurbox-shaped ran and refused
+///    ([`CLI_EXIT_CODES`]) still says something talos-shaped ran and refused
 ///    — which matters because a host on an older build reported its failures
 ///    on stderr rather than as that document, and reading such a refusal as
 ///    "nothing answered" is what would let it be overridden.
@@ -916,8 +916,8 @@ fn classify_failure(is_wsl: bool, code: Option<i32>, answered: bool) -> Reach {
     Reach::Undetermined
 }
 
-/// Every code `thurbox-cli` exits with of its own accord. A status outside
-/// this set did not come from the host's thurbox.
+/// Every code `talos-cli` exits with of its own accord. A status outside
+/// this set did not come from the host's talos.
 ///
 /// Spelled out rather than imported: `session_ops` may not reference `cli`
 /// (`tests/architecture_rules.rs`). These are `cli::EXIT_ERROR`,
@@ -929,7 +929,7 @@ pub(crate) const CLI_EXIT_CODES: [i32; 3] = [1, 2, 3];
 /// Pull the message out of a failed host CLI's stdout.
 ///
 /// Every remote invocation passes `--json` (see [`cli_script_posix`]), so a
-/// failure is `{"error": …, "suggestion": …}`. A host running an older thurbox
+/// failure is `{"error": …, "suggestion": …}`. A host running an older talos
 /// wrote nothing to stdout on failure and a host running something else
 /// entirely could write anything, so both fall back to the caller's generic
 /// message rather than surfacing a stray line as if it were a diagnosis.
@@ -962,10 +962,10 @@ fn host_platform(host: &HostDef) -> Result<(String, String), String> {
     }
 }
 
-/// The host's thurbox data directory for **this flavour** — `thurbox` for a
+/// The host's talos data directory for **this flavour** — `talos` for a
 /// release build, which is where a full install on the host looks, so the
 /// database a provisioned CLI creates is the one a later `install.sh` finds;
-/// `thurbox-dev` for a dev build, so it never touches the host's release copy.
+/// `talos-dev` for a dev build, so it never touches the host's release copy.
 pub fn host_data_dir(host: &HostDef) -> Result<String, String> {
     let home = crate::git::remote_home(host).map_err(|e| format!("{e:#}"))?;
     let flavour = crate::paths::app_dir_name();
@@ -976,25 +976,25 @@ pub fn host_data_dir(host: &HostDef) -> Result<String, String> {
     })
 }
 
-/// Put a `thurbox-cli` of this binary's version on the host, under
+/// Put a `talos-cli` of this binary's version on the host, under
 /// `<data dir>/bin/`, ask it what it is, and return that.
 ///
 /// A release build fetches the release archive for the host's platform,
 /// verified against the release checksums, and extracts it on the host. A dev
-/// build has no release: it ships its own sibling `thurbox-cli` when the host
+/// build has no release: it ships its own sibling `talos-cli` when the host
 /// is the same platform, and refuses otherwise — the refusal is what
 /// `Sharing: off` shows, and the legacy path takes over.
 ///
 /// The installed binary is asked for its version before this returns, because
 /// a success nobody checked is what let a broken host hide: the archive is
 /// checksummed on this machine, nothing checksums what lands on the host, and
-/// a `thurbox-cli` that was 54% of itself was installed, logged as
+/// a `talos-cli` that was 54% of itself was installed, logged as
 /// provisioned and left to segfault under every later probe.
 pub fn provision(host: &HostDef) -> Result<CliInfo, String> {
     let dest = install(host)?;
     let cli = verify_provisioned(host, &dest)?;
     tracing::info!(
-        "provisioned thurbox-cli {} on '{}' at {dest}",
+        "provisioned talos-cli {} on '{}' at {dest}",
         cli.version,
         host.name
     );
@@ -1007,8 +1007,8 @@ pub fn provision(host: &HostDef) -> Result<CliInfo, String> {
 /// `fetch_archive` verifies the download against the release checksums on
 /// **this** machine; nothing verified what landed on the host, and nothing
 /// asked the installed file whether it ran. Measured: a 6,815,232-byte
-/// `thurbox-cli` — 54% of itself, its ELF header still declaring section
-/// headers at 12,627,792 — installed, logged as `provisioned thurbox-cli
+/// `talos-cli` — 54% of itself, its ELF header still declaring section
+/// headers at 12,627,792 — installed, logged as `provisioned talos-cli
 /// <version>`, and segfaulting on every later probe.
 ///
 /// Checking here rather than after the copy is deliberate: the measured file
@@ -1021,14 +1021,14 @@ fn verify_provisioned(host: &HostDef, dest: &str) -> Result<CliInfo, String> {
     match probe_at(host, dest) {
         Ok(Some(cli)) => Ok(cli),
         Ok(None) => Err(format!(
-            "the provisioned thurbox-cli at {dest} is not there"
+            "the provisioned talos-cli at {dest} is not there"
         )),
         // A broken-CLI message already names the binary it is about. Anything
         // else is the host failing to answer at all, and says nothing about
         // `dest`, so it is not worth reading as though it did.
         Err(e) if e.broken_cli => Err(format!("the provisioned {e}")),
         Err(e) => Err(format!(
-            "could not ask the provisioned thurbox-cli at {dest} for its version: {e}"
+            "could not ask the provisioned talos-cli at {dest} for its version: {e}"
         )),
     }
 }
@@ -1044,9 +1044,9 @@ fn install(host: &HostDef) -> Result<String, String> {
     let target = crate::agent::self_update::target_triple(&os, &arch)?;
     let bin_dir = format!("{}/{HOST_BIN_DIR}", host_data_dir(host)?);
     let cli_name = if host.is_windows() {
-        "thurbox-cli.exe"
+        "talos-cli.exe"
     } else {
-        "thurbox-cli"
+        "talos-cli"
     };
     let dest = format!("{bin_dir}/{cli_name}");
 
@@ -1055,7 +1055,7 @@ fn install(host: &HostDef) -> Result<String, String> {
         if ours != target {
             return Err(format!(
                 "development build: no release archive to provision a {target} host with \
-                 (this machine is {ours}); install thurbox on the host"
+                 (this machine is {ours}); install talos on the host"
             ));
         }
         let local = crate::paths::resolve_cli_binary();
@@ -1082,12 +1082,12 @@ fn install(host: &HostDef) -> Result<String, String> {
         windows_extract_script(&remote_archive, &bin_dir)
     } else {
         format!(
-            "cd {d} && tar -xzf {a} && rm -f {a} && chmod +x thurbox-cli",
+            "cd {d} && tar -xzf {a} && rm -f {a} && chmod +x talos-cli",
             d = crate::shell::posix_quote(&bin_dir),
             a = crate::shell::posix_quote(&archive.name)
         )
     };
-    run_script(host, &extract, "thurbox-cli extraction")?;
+    run_script(host, &extract, "talos-cli extraction")?;
     Ok(dest)
 }
 
@@ -1096,7 +1096,7 @@ fn install(host: &HostDef) -> Result<String, String> {
 ///
 /// Not `Expand-Archive -Force` straight into `bin_dir`: that deletes each file
 /// it overwrites, and Windows will not delete an executable a process runs
-/// from — which the host's `thurbox-cli.exe` is whenever an agent hook there is
+/// from — which the host's `talos-cli.exe` is whenever an agent hook there is
 /// mid-call. Worse, the refusal is a non-terminating error, so the script still
 /// exited 0 and the old binary stayed. Windows does let a running image be
 /// renamed, so the zip is unpacked beside `bin_dir` and each installed file is
@@ -1122,7 +1122,7 @@ try {{
             try {{
                 Move-Item -LiteralPath $target -Destination $backup -Force
             }} catch {{
-                $using = @(Get-Process -Name 'thurbox', 'thurbox-cli' -ErrorAction SilentlyContinue |
+                $using = @(Get-Process -Name 'talos', 'talos-cli' -ErrorAction SilentlyContinue |
                     Where-Object {{ $_.Path -and (@($target, $backup) -contains $_.Path) }} |
                     ForEach-Object {{ "$($_.ProcessName) (PID $($_.Id))" }})
                 $who = if ($using) {{ $using -join ', ' }} else {{ 'another program' }}
@@ -1154,7 +1154,7 @@ fn ship(host: &HostDef, bytes: &[u8], dest: &str) -> Result<(), String> {
     } else {
         crate::git::copy_bytes_to_remote(host, bytes, dest)
     };
-    shipped.map_err(|e| format!("could not copy thurbox-cli to '{}': {e:#}", host.name))
+    shipped.map_err(|e| format!("could not copy talos-cli to '{}': {e:#}", host.name))
 }
 
 /// Test doubles: a forced verdict and a scripted runner, so the pipelines can
@@ -1297,10 +1297,10 @@ pub(crate) mod fake {
     /// A usable CLI as a test would see it.
     pub fn cli() -> super::CliInfo {
         super::CliInfo {
-            path: "/home/me/.local/share/thurbox/bin/thurbox-cli".into(),
+            path: "/home/me/.local/share/talos/bin/talos-cli".into(),
             version: crate::agent::version_check::current_version().into(),
-            tmux_socket: Some("thurbox".into()),
-            data_dir: Some("/home/me/.local/share/thurbox".into()),
+            tmux_socket: Some("talos".into()),
+            data_dir: Some("/home/me/.local/share/talos".into()),
             schema_version: Some(crate::storage::SCHEMA_VERSION),
             multiplexer_choice: false,
         }
@@ -1311,20 +1311,20 @@ pub(crate) mod fake {
 mod tests {
     use super::*;
 
-    /// Provisioning a Windows host whose `thurbox-cli.exe` is running — an
+    /// Provisioning a Windows host whose `talos-cli.exe` is running — an
     /// agent hook mid-call, say — replaces it rather than failing on the file
     /// Windows will not delete. Run for real: the script goes to this machine's
     /// own PowerShell, against a copy of `PING.EXE` kept running under the
     /// installed name.
     #[cfg(windows)]
     #[test]
-    fn provisioning_a_windows_host_replaces_a_running_thurbox_cli() {
+    fn provisioning_a_windows_host_replaces_a_running_talos_cli() {
         let dir = tempfile::tempdir().unwrap();
         let bin = dir.path().join("bin");
         let src = dir.path().join("src");
         std::fs::create_dir_all(&bin).unwrap();
         std::fs::create_dir_all(&src).unwrap();
-        for name in ["thurbox.exe", "thurbox-cli.exe"] {
+        for name in ["talos.exe", "talos-cli.exe"] {
             std::fs::write(src.join(name), "new").unwrap();
         }
         let archive = bin.join("release.zip");
@@ -1341,7 +1341,7 @@ mod tests {
         ));
         assert!(zipped.status.success(), "{zipped:?}");
 
-        let installed = bin.join("thurbox-cli.exe");
+        let installed = bin.join("talos-cli.exe");
         let system_root = std::env::var("SystemRoot").unwrap();
         std::fs::copy(
             std::path::Path::new(&system_root).join(r"System32\PING.EXE"),
@@ -1385,7 +1385,7 @@ mod tests {
     #[test]
     fn a_failed_remote_call_is_classified_by_layer_not_by_message() {
         // ssh's own code, and only ssh's: it passes a remote command's status
-        // through untouched, and thurbox-cli only ever exits 1, 2 or 3.
+        // through untouched, and talos-cli only ever exits 1, 2 or 3.
         assert_eq!(
             classify_failure(false, Some(SSH_ERROR_EXIT), false),
             Reach::Unreached
@@ -1403,13 +1403,13 @@ mod tests {
         );
         // The structured `{"error": …}` document is positive proof the CLI ran.
         assert_eq!(classify_failure(false, Some(1), true), Reach::Answered);
-        // An exit code of the CLI's own still says something thurbox-shaped
+        // An exit code of the CLI's own still says something talos-shaped
         // refused, even on a build too old to write the structured document.
         for code in [Some(1), Some(2), Some(3)] {
             assert_eq!(
                 classify_failure(false, code, false),
                 Reach::Answered,
-                "exit {code:?} is one thurbox-cli gives of its own accord"
+                "exit {code:?} is one talos-cli gives of its own accord"
             );
         }
         // A shell that could not find the binary (127), a host running
@@ -1425,7 +1425,7 @@ mod tests {
 
     fn cli(version: &str, schema: Option<u32>) -> CliInfo {
         CliInfo {
-            path: "thurbox-cli".into(),
+            path: "talos-cli".into(),
             version: version.into(),
             tmux_socket: None,
             data_dir: None,
@@ -1437,7 +1437,7 @@ mod tests {
     #[test]
     fn a_posix_invocation_quotes_every_argument_and_forces_json() {
         let script = cli_script_posix(
-            "/home/me/.local/share/thurbox/bin/thurbox-cli",
+            "/home/me/.local/share/talos/bin/talos-cli",
             &[
                 "session",
                 "create",
@@ -1449,7 +1449,7 @@ mod tests {
         );
         assert_eq!(
             script,
-            "/home/me/.local/share/thurbox/bin/thurbox-cli session create --name 'my session' \
+            "/home/me/.local/share/talos/bin/talos-cli session create --name 'my session' \
              --repo-path '/srv/it'\\''s' --json"
         );
     }
@@ -1457,12 +1457,12 @@ mod tests {
     #[test]
     fn a_windows_invocation_is_single_quoted_and_hands_back_the_exit_code() {
         let script = cli_script_windows(
-            "C:/Users/me/AppData/Local/thurbox/bin/thurbox-cli.exe",
+            "C:/Users/me/AppData/Local/talos/bin/talos-cli.exe",
             &["session", "list", "--parent", "$x'y"],
         );
         assert_eq!(
             script,
-            "& 'C:/Users/me/AppData/Local/thurbox/bin/thurbox-cli.exe' 'session' 'list' \
+            "& 'C:/Users/me/AppData/Local/talos/bin/talos-cli.exe' 'session' 'list' \
              '--parent' '$x''y' --json; exit $LASTEXITCODE"
         );
     }
@@ -1470,19 +1470,19 @@ mod tests {
     #[test]
     fn the_probe_protocol_round_trips() {
         let found = parse_probe(
-            "@cli /usr/local/bin/thurbox-cli\n@status 0\n{\"version\":\"1.4.0\",\
-             \"tmux_socket\":\"thurbox\",\"data_dir\":\"/home/me/.local/share/thurbox\",\
+            "@cli /usr/local/bin/talos-cli\n@status 0\n{\"version\":\"1.4.0\",\
+             \"tmux_socket\":\"talos\",\"data_dir\":\"/home/me/.local/share/talos\",\
              \"schema_version\":40}\n",
         )
         .unwrap()
         .unwrap();
-        assert_eq!(found.path, "/usr/local/bin/thurbox-cli");
+        assert_eq!(found.path, "/usr/local/bin/talos-cli");
         assert_eq!(found.version, "1.4.0");
-        assert_eq!(found.tmux_socket.as_deref(), Some("thurbox"));
+        assert_eq!(found.tmux_socket.as_deref(), Some("talos"));
         assert_eq!(found.schema_version, Some(40));
         assert!(!found.multiplexer_choice);
         let capable = parse_probe(
-            "@cli thurbox-cli\n@status 0\n{\"version\":\"1.4.0\",\
+            "@cli talos-cli\n@status 0\n{\"version\":\"1.4.0\",\
              \"schema_version\":40,\"multiplexer_choice\":true}\n",
         )
         .unwrap()
@@ -1496,7 +1496,7 @@ mod tests {
             assert!(!e.broken_cli, "{}", e.message);
         }
         // An old CLI prints only its version.
-        let old = parse_probe("@cli thurbox-cli\n@status 0\n{\"version\":\"1.1.0\"}")
+        let old = parse_probe("@cli talos-cli\n@status 0\n{\"version\":\"1.1.0\"}")
             .unwrap()
             .unwrap();
         assert_eq!(old.schema_version, None);
@@ -1508,10 +1508,10 @@ mod tests {
     /// a binary.
     #[test]
     fn a_broken_host_cli_is_named_by_what_it_did() {
-        let died = parse_probe("@cli /x/thurbox-cli\n@status 139\n").unwrap_err();
+        let died = parse_probe("@cli /x/talos-cli\n@status 139\n").unwrap_err();
         assert_eq!(
             died.message,
-            "thurbox-cli at /x/thurbox-cli died on signal 11 (SIGSEGV) \
+            "talos-cli at /x/talos-cli died on signal 11 (SIGSEGV) \
              instead of reporting a version"
         );
         assert!(died.broken_cli);
@@ -1521,19 +1521,19 @@ mod tests {
         // unsigned one would say `exited 3221225477` and mean nothing.
         for status in ["-1073741819", "3221225477"] {
             let crashed =
-                parse_probe(&format!("@cli C:/x/thurbox-cli.exe\n@status {status}\n")).unwrap_err();
+                parse_probe(&format!("@cli C:/x/talos-cli.exe\n@status {status}\n")).unwrap_err();
             assert!(
                 crashed.message.contains("crashed (0xC0000005)"),
                 "{crashed}"
             );
             assert!(crashed.broken_cli);
         }
-        let silent = parse_probe("@cli /x/thurbox-cli\n@status 0\n").unwrap_err();
+        let silent = parse_probe("@cli /x/talos-cli\n@status 0\n").unwrap_err();
         assert!(
             silent.message.contains("ran and printed nothing"),
             "{silent}"
         );
-        let gibberish = parse_probe("@cli /x/thurbox-cli\n@status 0\nnot json\n").unwrap_err();
+        let gibberish = parse_probe("@cli /x/talos-cli\n@status 0\nnot json\n").unwrap_err();
         assert!(
             gibberish.message.contains("printed no JSON version"),
             "{gibberish}"
@@ -1587,17 +1587,17 @@ mod tests {
             .parent()
             .unwrap()
             .join(HOST_BIN_DIR)
-            .join("thurbox-cli");
+            .join("talos-cli");
         let target = crate::paths::resolve_cli_binary();
         if target.is_absolute() && target.exists() {
             assert_eq!(std::fs::read_link(&link).unwrap(), target);
             // A stale link is replaced, a true one left alone.
             std::fs::remove_file(&link).unwrap();
-            std::os::unix::fs::symlink("/nowhere/thurbox-cli", &link).unwrap();
+            std::os::unix::fs::symlink("/nowhere/talos-cli", &link).unwrap();
             advertise_running_cli();
             assert_eq!(std::fs::read_link(&link).unwrap(), target);
         } else {
-            // A test binary with no `thurbox-cli` beside it advertises nothing.
+            // A test binary with no `talos-cli` beside it advertises nothing.
             assert!(std::fs::symlink_metadata(&link).is_err());
         }
     }
@@ -1606,16 +1606,16 @@ mod tests {
     fn the_probe_scripts_look_in_this_flavours_provisioned_directory_first() {
         let flavour = crate::paths::app_dir_name();
         let posix = probe_script_posix();
-        let own = format!(".local/share/{flavour}/bin/thurbox-cli");
+        let own = format!(".local/share/{flavour}/bin/talos-cli");
         assert!(posix.contains(&own), "{posix}");
         assert!(
-            posix.find(&own) < posix.find(" thurbox-cli "),
+            posix.find(&own) < posix.find(" talos-cli "),
             "the flavour's own copy is tried before PATH"
         );
         assert!(posix.contains("version --json"));
         let windows = probe_script_windows();
         assert!(
-            windows.contains(&format!("\\{flavour}\\bin\\thurbox-cli.exe")),
+            windows.contains(&format!("\\{flavour}\\bin\\talos-cli.exe")),
             "{windows}"
         );
         assert!(windows.contains("version --json"));
@@ -1656,8 +1656,8 @@ mod tests {
     }
 
     #[test]
-    fn output_that_is_not_a_thurbox_error_is_left_to_the_generic_message() {
-        // An older host wrote nothing; something that is not thurbox at all
+    fn output_that_is_not_a_talos_error_is_left_to_the_generic_message() {
+        // An older host wrote nothing; something that is not talos at all
         // could write anything. Neither is a diagnosis worth surfacing as one.
         assert_eq!(reported_error(b""), None);
         assert_eq!(reported_error(b"command not found"), None);
@@ -1674,7 +1674,7 @@ mod tests {
 
     /// On a provisioned host the running CLI *is* the path being advertised —
     /// `resolve_cli_binary` answers with a sibling of the running exe, and
-    /// there that exe is `<data dir>/bin/thurbox`. Advertising over it removed
+    /// there that exe is `<data dir>/bin/talos`. Advertising over it removed
     /// the binary the provisioner had just extracted and left an `ELOOP` in its
     /// place (issue #1193).
     #[cfg(unix)]
@@ -1682,7 +1682,7 @@ mod tests {
     fn the_cli_is_never_advertised_as_a_link_to_its_own_path() {
         let root = tempfile::TempDir::new().unwrap();
         let bin = provisioned_bin_dir(root.path());
-        let cli = bin.join("thurbox-cli");
+        let cli = bin.join("talos-cli");
         std::fs::write(&cli, b"#!/bin/sh\nexit 0\n").unwrap();
 
         advertise_cli_in(&bin, &cli);
@@ -1696,7 +1696,7 @@ mod tests {
         assert_eq!(std::fs::read(&cli).unwrap(), b"#!/bin/sh\nexit 0\n");
     }
 
-    /// A machine already carrying the loop is only ever fixed by thurbox
+    /// A machine already carrying the loop is only ever fixed by talos
     /// noticing — no migration reaches a WSL distro — and every exit the
     /// function had preserved it instead.
     #[cfg(unix)]
@@ -1704,12 +1704,12 @@ mod tests {
     fn an_existing_self_referential_link_is_removed_rather_than_kept() {
         let root = tempfile::TempDir::new().unwrap();
         let bin = provisioned_bin_dir(root.path());
-        let link = bin.join("thurbox-cli");
+        let link = bin.join("talos-cli");
         std::os::unix::fs::symlink(&link, &link).unwrap();
         // What `resolve_cli_binary` answers once the loop is there: it looks
         // for a sibling that `exists()`, and a loop does not, so it falls back
         // to the bare name — which is why no guard below the heal can see it.
-        let target = std::path::PathBuf::from("thurbox-cli");
+        let target = std::path::PathBuf::from("talos-cli");
 
         advertise_cli_in(&bin, &target);
 
@@ -1721,7 +1721,7 @@ mod tests {
     }
 
     /// The case the function exists for, unchanged: a checkout's
-    /// `target/debug/thurbox-cli` is on nobody's PATH, so a peer probing this
+    /// `target/debug/talos-cli` is on nobody's PATH, so a peer probing this
     /// machine needs the advertisement to find it.
     #[cfg(unix)]
     #[test]
@@ -1730,12 +1730,12 @@ mod tests {
         let bin = provisioned_bin_dir(root.path());
         let debug = root.path().join("target/debug");
         std::fs::create_dir_all(&debug).unwrap();
-        let target = debug.join("thurbox-cli");
+        let target = debug.join("talos-cli");
         std::fs::write(&target, b"#!/bin/sh\n").unwrap();
 
         advertise_cli_in(&bin, &target);
 
-        assert_eq!(std::fs::read_link(bin.join("thurbox-cli")).unwrap(), target);
+        assert_eq!(std::fs::read_link(bin.join("talos-cli")).unwrap(), target);
     }
 
     /// And a stale advertisement is still replaced — the reason the link is
@@ -1745,9 +1745,9 @@ mod tests {
     fn a_stale_advertisement_is_replaced() {
         let root = tempfile::TempDir::new().unwrap();
         let bin = provisioned_bin_dir(root.path());
-        let link = bin.join("thurbox-cli");
-        std::os::unix::fs::symlink(root.path().join("gone/thurbox-cli"), &link).unwrap();
-        let target = root.path().join("thurbox-cli");
+        let link = bin.join("talos-cli");
+        std::os::unix::fs::symlink(root.path().join("gone/talos-cli"), &link).unwrap();
+        let target = root.path().join("talos-cli");
         std::fs::write(&target, b"#!/bin/sh\n").unwrap();
 
         advertise_cli_in(&bin, &target);
@@ -1762,9 +1762,9 @@ mod tests {
     fn a_real_file_at_the_advertised_path_is_never_removed() {
         let root = tempfile::TempDir::new().unwrap();
         let bin = provisioned_bin_dir(root.path());
-        let installed = bin.join("thurbox-cli");
+        let installed = bin.join("talos-cli");
         std::fs::write(&installed, b"#!/bin/sh\nexit 0\n").unwrap();
-        let target = root.path().join("checkout/thurbox-cli");
+        let target = root.path().join("checkout/talos-cli");
         std::fs::create_dir_all(target.parent().unwrap()).unwrap();
         std::fs::write(&target, b"#!/bin/sh\n").unwrap();
 
@@ -1794,32 +1794,32 @@ mod tests {
         let (bin, aliased) = aliased_bin_dirs(root.path());
         // A true advertisement already there, which the function is entitled
         // to replace — so only the target comparison can stop it.
-        let elsewhere = root.path().join("thurbox-cli");
+        let elsewhere = root.path().join("talos-cli");
         std::fs::write(&elsewhere, b"#!/bin/sh\n").unwrap();
-        std::os::unix::fs::symlink(&elsewhere, aliased.join("thurbox-cli")).unwrap();
+        std::os::unix::fs::symlink(&elsewhere, aliased.join("talos-cli")).unwrap();
 
-        advertise_cli_in(&aliased, &bin.join("thurbox-cli"));
+        advertise_cli_in(&aliased, &bin.join("talos-cli"));
 
         assert_eq!(
-            std::fs::read_link(bin.join("thurbox-cli")).unwrap(),
+            std::fs::read_link(bin.join("talos-cli")).unwrap(),
             elsewhere,
             "the running CLI and the advertised path are one file under two \
              names; relinking one to the other is the loop"
         );
     }
 
-    /// A `thurbox-cli` that dies the moment it is asked anything — the shape a
+    /// A `talos-cli` that dies the moment it is asked anything — the shape a
     /// truncated delivery takes. Measured on a host as a 6,815,232-byte
     /// executable whose ELF header declared its section headers at 12,627,792:
     /// 54% of itself, and a segfault on every invocation.
     #[cfg(unix)]
     const SEGFAULTS: &str = "#!/bin/sh\nkill -SEGV $$\n";
 
-    /// A `thurbox-cli` this binary would accept: same major, same schema.
+    /// A `talos-cli` this binary would accept: same major, same schema.
     #[cfg(unix)]
     fn working_cli() -> String {
         format!(
-            "#!/bin/sh\necho '{{\"version\":\"{}\",\"tmux_socket\":\"thurbox\",\
+            "#!/bin/sh\necho '{{\"version\":\"{}\",\"tmux_socket\":\"talos\",\
              \"schema_version\":{}}}'\n",
             crate::agent::version_check::current_version(),
             crate::storage::SCHEMA_VERSION
@@ -1836,7 +1836,7 @@ mod tests {
             .join(crate::paths::app_dir_name())
             .join(HOST_BIN_DIR);
         std::fs::create_dir_all(&dir).unwrap();
-        let cli = dir.join("thurbox-cli");
+        let cli = dir.join("talos-cli");
         std::fs::write(&cli, body).unwrap();
         std::fs::set_permissions(&cli, std::fs::Permissions::from_mode(0o755)).unwrap();
         cli.to_string_lossy().into_owned()
@@ -1863,7 +1863,7 @@ mod tests {
     }
 
     /// `provision` never asked the thing it had just installed whether it
-    /// worked: it fetched, shipped, extracted, logged `provisioned thurbox-cli
+    /// worked: it fetched, shipped, extracted, logged `provisioned talos-cli
     /// <version>` and returned `Ok`. `fetch_archive` checksums the download on
     /// *this* machine, and nothing checksummed what landed on the host — so a
     /// binary that segfaults was reported as a success, which is what let it
@@ -2001,10 +2001,10 @@ mod tests {
     fn an_aliased_self_referential_link_is_still_removed() {
         let root = tempfile::TempDir::new().unwrap();
         let (bin, aliased) = aliased_bin_dirs(root.path());
-        let link = bin.join("thurbox-cli");
+        let link = bin.join("talos-cli");
         std::os::unix::fs::symlink(&link, &link).unwrap();
 
-        advertise_cli_in(&aliased, &std::path::PathBuf::from("thurbox-cli"));
+        advertise_cli_in(&aliased, &std::path::PathBuf::from("talos-cli"));
 
         assert!(std::fs::symlink_metadata(&link).is_err());
     }

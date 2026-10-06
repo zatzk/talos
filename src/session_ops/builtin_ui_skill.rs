@@ -1,6 +1,6 @@
-//! The built-in **ui-skill** extension: installs one agent skill, `thurbox-ui`,
+//! The built-in **ui-skill** extension: installs one agent skill, `talos-ui`,
 //! into each coding CLI's *personal* skill directory, so an agent in **any**
-//! session knows how to change thurbox's own interface.
+//! session knows how to change talos's own interface.
 //!
 //! It exists because the interface is Lua in a config directory of the user's,
 //! which an agent working in an unrelated repository has no reason to know
@@ -12,7 +12,7 @@
 //! for the same reason: a person who does not already know the interface is
 //! editable will not go looking for the extension that says so. The generic
 //! half is [`super::builtin`]; this module is the spec. Opt out with
-//! `thurbox-cli extension deactivate ui-skill`.
+//! `talos-cli extension deactivate ui-skill`.
 //!
 //! The payload is one `SKILL.md`, delivered by the manifest's
 //! `[[external_files]]` to each CLI's skill dir behind a `requires_dir` guard,
@@ -36,7 +36,7 @@ pub(crate) const README: &str = include_str!("../../extensions/ui-skill/README.m
 /// rebuilding it every time the user alternates between them.
 pub(crate) static UI_SKILL: Builtin = Builtin {
     name: UI_SKILL_EXTENSION_NAME,
-    blurb: "the thurbox-ui agent skill",
+    blurb: "the talos-ui agent skill",
     assets: &[
         ("extension.toml", MANIFEST),
         ("SKILL.md", SKILL),
@@ -55,7 +55,7 @@ fn ui_skill_notices(report: &InstallReport) -> Vec<String> {
         return Vec::new();
     }
     vec![format!(
-        "ui-skill: installed the thurbox-ui skill for {} agent CLI(s)",
+        "ui-skill: installed the talos-ui skill for {} agent CLI(s)",
         report.external_files_written.len()
     )]
 }
@@ -80,7 +80,7 @@ mod tests {
             .iter()
             .find_map(|l| l.strip_prefix("name: "))
             .expect("frontmatter declares a name");
-        assert_eq!(name, "thurbox-ui");
+        assert_eq!(name, "talos-ui");
         let desc = front
             .iter()
             .find_map(|l| l.strip_prefix("description: "))

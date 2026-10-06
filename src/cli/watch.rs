@@ -1,6 +1,6 @@
-//! `thurbox-cli watch` — session state as a stream, so nothing has to poll.
+//! `talos-cli watch` — session state as a stream, so nothing has to poll.
 //!
-//! Every consumer of thurbox outside its own process has had one way to learn
+//! Every consumer of talos outside its own process has had one way to learn
 //! that something changed: ask again, on a timer. That is a poll loop in every
 //! integration, each with its own interval, each wrong in one direction or the
 //! other — too slow to react, or spending a query a second to react to nothing.

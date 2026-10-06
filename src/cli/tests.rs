@@ -6,7 +6,7 @@ use super::*;
 use clap::Parser;
 
 /// The parsed subcommand. [`Cli::command`] is an `Option` because a bare
-/// `thurbox-cli` prints the home view rather than a usage dump (AXI principle
+/// `talos-cli` prints the home view rather than a usage dump (AXI principle
 /// 8); every test in this file passes one, so unwrapping is the assertion.
 fn subcommand(cli: Cli) -> Command {
     cli.command.expect("these tests always parse a subcommand")
@@ -53,7 +53,7 @@ fn parse_extra_repos_splits_base_on_last_at() {
 
 #[test]
 fn pretty_flag_is_global() {
-    let cli = Cli::try_parse_from(["thurbox-cli", "session", "list", "--pretty"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "session", "list", "--pretty"]).unwrap();
     assert!(cli.pretty);
     assert!(matches!(
         subcommand(cli),
@@ -69,20 +69,20 @@ fn pretty_flag_is_global() {
 
 #[test]
 fn json_and_text_flags_are_global() {
-    let cli = Cli::try_parse_from(["thurbox-cli", "task", "list", "--json"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "task", "list", "--json"]).unwrap();
     assert!(cli.json);
     assert!(!cli.text);
-    let cli = Cli::try_parse_from(["thurbox-cli", "--text", "task", "list"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "--text", "task", "list"]).unwrap();
     assert!(cli.text);
     assert!(!cli.json);
 }
 
 #[test]
 fn parse_session_create_requires_name_and_repo() {
-    assert!(Cli::try_parse_from(["thurbox-cli", "session", "create"]).is_err());
+    assert!(Cli::try_parse_from(["talos-cli", "session", "create"]).is_err());
 
     let cli = Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "session",
         "create",
         "--name",
@@ -117,7 +117,7 @@ fn parse_session_create_requires_name_and_repo() {
 #[test]
 fn parse_session_create_accepts_parent() {
     let cli = Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "session",
         "create",
         "--name",
@@ -149,7 +149,7 @@ fn parse_session_send_disambiguates_global_text_flag() {
     // disambiguate; this test fails-to-compile-or-panics if either side
     // regresses back to the colliding id.
     let cli = Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "session",
         "send",
         "0f4dec1e-9d4b-4c4f-9d05-3a3a3a3a3a3a",
@@ -174,7 +174,7 @@ fn parse_session_send_disambiguates_global_text_flag() {
 
     // The original collision-triggering invocation: global `--text` flag set.
     let cli = Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "--text",
         "session",
         "send",
@@ -195,7 +195,7 @@ fn parse_session_send_disambiguates_global_text_flag() {
 #[test]
 fn parse_session_send_no_enter_is_opt_in() {
     let cli = Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "session",
         "send",
         "0f4dec1e-9d4b-4c4f-9d05-3a3a3a3a3a3a",
@@ -218,7 +218,7 @@ fn parse_session_send_takes_text_starting_with_a_dash() {
     // `--` ends option parsing, which is how a caller sends text clap would
     // otherwise read as flags. The text must survive whole.
     let cli = Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "session",
         "send",
         "--no-enter",
@@ -240,7 +240,7 @@ fn parse_session_send_takes_text_starting_with_a_dash() {
 #[test]
 fn parse_session_key_takes_uuid_and_key() {
     let cli = Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "session",
         "key",
         "0f4dec1e-9d4b-4c4f-9d05-3a3a3a3a3a3a",
@@ -258,7 +258,7 @@ fn parse_session_key_takes_uuid_and_key() {
 
     // Both positionals are required.
     assert!(Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "session",
         "key",
         "0f4dec1e-9d4b-4c4f-9d05-3a3a3a3a3a3a"
@@ -269,7 +269,7 @@ fn parse_session_key_takes_uuid_and_key() {
 #[test]
 fn parse_session_focus_takes_uuid() {
     let cli = Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "session",
         "focus",
         "0f4dec1e-9d4b-4c4f-9d05-3a3a3a3a3a3a",
@@ -283,13 +283,13 @@ fn parse_session_focus_takes_uuid() {
     };
     assert_eq!(uuid, "0f4dec1e-9d4b-4c4f-9d05-3a3a3a3a3a3a");
 
-    assert!(Cli::try_parse_from(["thurbox-cli", "session", "focus"]).is_err());
+    assert!(Cli::try_parse_from(["talos-cli", "session", "focus"]).is_err());
 }
 
 #[test]
 fn parse_session_signal_accepts_state_and_rejects_garbage() {
     let cli =
-        Cli::try_parse_from(["thurbox-cli", "session", "signal", "--state", "blocked"]).unwrap();
+        Cli::try_parse_from(["talos-cli", "session", "signal", "--state", "blocked"]).unwrap();
     let Command::Session {
         action: sessions::Action::Signal { state, session },
     } = subcommand(cli)
@@ -301,14 +301,14 @@ fn parse_session_signal_accepts_state_and_rejects_garbage() {
 
     // The value_parser allow-list rejects unknown states.
     assert!(
-        Cli::try_parse_from(["thurbox-cli", "session", "signal", "--state", "exploded",]).is_err()
+        Cli::try_parse_from(["talos-cli", "session", "signal", "--state", "exploded",]).is_err()
     );
 }
 
 #[test]
 fn parse_session_list_accepts_parent_filter() {
     let cli = Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "session",
         "list",
         "--parent",
@@ -334,14 +334,14 @@ fn parse_session_list_accepts_parent_filter() {
 
 #[test]
 fn parse_editor_set_and_get() {
-    let cli = Cli::try_parse_from(["thurbox-cli", "editor", "get"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "editor", "get"]).unwrap();
     assert!(matches!(
         subcommand(cli),
         Command::Editor {
             action: editor::Action::Get
         }
     ));
-    let cli = Cli::try_parse_from(["thurbox-cli", "editor", "set", "code --wait"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "editor", "set", "code --wait"]).unwrap();
     let Command::Editor {
         action: editor::Action::Set { command },
     } = subcommand(cli)
@@ -354,11 +354,11 @@ fn parse_editor_set_and_get() {
 #[test]
 fn parse_automation_create_requires_args() {
     assert!(
-        Cli::try_parse_from(["thurbox-cli", "automation", "create"]).is_err(),
+        Cli::try_parse_from(["talos-cli", "automation", "create"]).is_err(),
         "missing required args should fail"
     );
     let cli = Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "automation",
         "create",
         "--name",
@@ -383,7 +383,7 @@ fn parse_automation_create_requires_args() {
 
 #[test]
 fn automation_alias_auto_parses() {
-    let cli = Cli::try_parse_from(["thurbox-cli", "auto", "list"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "auto", "list"]).unwrap();
     assert!(matches!(
         subcommand(cli),
         Command::Automation {
@@ -394,7 +394,7 @@ fn automation_alias_auto_parses() {
 
 #[test]
 fn automation_tick_parses() {
-    let cli = Cli::try_parse_from(["thurbox-cli", "automation", "tick"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "automation", "tick"]).unwrap();
     assert!(matches!(
         subcommand(cli),
         Command::Automation {
@@ -406,10 +406,10 @@ fn automation_tick_parses() {
 #[test]
 fn parse_task_create_requires_title() {
     assert!(
-        Cli::try_parse_from(["thurbox-cli", "task", "create"]).is_err(),
+        Cli::try_parse_from(["talos-cli", "task", "create"]).is_err(),
         "missing --title should fail"
     );
-    let cli = Cli::try_parse_from(["thurbox-cli", "task", "create", "--title", "Fix bug"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "task", "create", "--title", "Fix bug"]).unwrap();
     let Command::Task {
         action:
             tasks::Action::Create {
@@ -430,7 +430,7 @@ fn parse_task_create_requires_title() {
 #[test]
 fn parse_task_create_accepts_description() {
     let cli = Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "task",
         "create",
         "--title",
@@ -451,7 +451,7 @@ fn parse_task_create_accepts_description() {
 #[test]
 fn parse_task_edit_accepts_description() {
     let cli = Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "task",
         "edit",
         "3",
@@ -473,7 +473,7 @@ fn parse_task_edit_accepts_description() {
 
 #[test]
 fn task_alias_todo_parses() {
-    let cli = Cli::try_parse_from(["thurbox-cli", "todo", "list"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "todo", "list"]).unwrap();
     assert!(matches!(
         subcommand(cli),
         Command::Task {
@@ -485,7 +485,7 @@ fn task_alias_todo_parses() {
 #[test]
 fn parse_extension_install() {
     let cli = Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "extension",
         "install",
         "flow",
@@ -513,7 +513,7 @@ fn parse_extension_install() {
 #[test]
 fn parse_extension_uninstall() {
     let cli =
-        Cli::try_parse_from(["thurbox-cli", "extension", "uninstall", "flow", "--purge"]).unwrap();
+        Cli::try_parse_from(["talos-cli", "extension", "uninstall", "flow", "--purge"]).unwrap();
     let Command::Extension {
         action: extensions::Action::Uninstall { name, purge },
     } = subcommand(cli)
@@ -526,7 +526,7 @@ fn parse_extension_uninstall() {
 
 #[test]
 fn parse_extension_activate() {
-    let cli = Cli::try_parse_from(["thurbox-cli", "extension", "activate", "flow"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "extension", "activate", "flow"]).unwrap();
     let Command::Extension {
         action: extensions::Action::Activate { name },
     } = subcommand(cli)
@@ -539,7 +539,7 @@ fn parse_extension_activate() {
 #[test]
 fn parse_extension_deactivate_with_flags() {
     let cli = Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "extension",
         "deactivate",
         "flow",
@@ -560,7 +560,7 @@ fn parse_extension_deactivate_with_flags() {
 
 #[test]
 fn parse_extension_update() {
-    let cli = Cli::try_parse_from(["thurbox-cli", "extension", "update", "flow"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "extension", "update", "flow"]).unwrap();
     let Command::Extension {
         action: extensions::Action::Update { name, all, force },
     } = subcommand(cli)
@@ -572,7 +572,7 @@ fn parse_extension_update() {
     assert!(!force);
 
     let all_cli =
-        Cli::try_parse_from(["thurbox-cli", "ext", "update", "--all", "--force"]).unwrap();
+        Cli::try_parse_from(["talos-cli", "ext", "update", "--all", "--force"]).unwrap();
     let Command::Extension {
         action: extensions::Action::Update { name, all, force },
     } = subcommand(all_cli)
@@ -587,7 +587,7 @@ fn parse_extension_update() {
 #[test]
 fn parse_extension_update_no_name_means_all() {
     // No name and no --all is now valid: it updates every installed extension.
-    let cli = Cli::try_parse_from(["thurbox-cli", "extension", "update"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "extension", "update"]).unwrap();
     let Command::Extension {
         action: extensions::Action::Update { name, all, force },
     } = subcommand(cli)
@@ -602,7 +602,7 @@ fn parse_extension_update_no_name_means_all() {
 #[test]
 fn parse_extension_reinstall() {
     let cli =
-        Cli::try_parse_from(["thurbox-cli", "extension", "reinstall", "flow", "--purge"]).unwrap();
+        Cli::try_parse_from(["talos-cli", "extension", "reinstall", "flow", "--purge"]).unwrap();
     let Command::Extension {
         action: extensions::Action::Reinstall { name, purge },
     } = subcommand(cli)
@@ -615,7 +615,7 @@ fn parse_extension_reinstall() {
 
 #[test]
 fn parse_extension_available_and_search_alias() {
-    let cli = Cli::try_parse_from(["thurbox-cli", "extension", "available"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "extension", "available"]).unwrap();
     let Command::Extension {
         action: extensions::Action::Available { query },
     } = subcommand(cli)
@@ -624,7 +624,7 @@ fn parse_extension_available_and_search_alias() {
     };
     assert!(query.is_none());
 
-    let cli = Cli::try_parse_from(["thurbox-cli", "ext", "search", "deps"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "ext", "search", "deps"]).unwrap();
     let Command::Extension {
         action: extensions::Action::Available { query },
     } = subcommand(cli)
@@ -636,7 +636,7 @@ fn parse_extension_available_and_search_alias() {
 
 #[test]
 fn extension_alias_ext_parses() {
-    let cli = Cli::try_parse_from(["thurbox-cli", "ext", "list"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "ext", "list"]).unwrap();
     assert!(matches!(
         subcommand(cli),
         Command::Extension {
@@ -648,11 +648,11 @@ fn extension_alias_ext_parses() {
 #[test]
 fn parse_message_send_requires_to_kind_body() {
     assert!(
-        Cli::try_parse_from(["thurbox-cli", "message", "send", "--to", "flow"]).is_err(),
+        Cli::try_parse_from(["talos-cli", "message", "send", "--to", "flow"]).is_err(),
         "missing --kind/--body should fail"
     );
     let cli = Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "message",
         "send",
         "--to",
@@ -690,7 +690,7 @@ fn parse_message_send_requires_to_kind_body() {
 #[test]
 fn parse_message_inbox_claim() {
     let cli = Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "message",
         "inbox",
         "--for",
@@ -718,7 +718,7 @@ fn parse_message_inbox_claim() {
 #[test]
 fn message_alias_msg_parses() {
     let cli =
-        Cli::try_parse_from(["thurbox-cli", "msg", "prune", "--older-than-days", "30"]).unwrap();
+        Cli::try_parse_from(["talos-cli", "msg", "prune", "--older-than-days", "30"]).unwrap();
     let Command::Message {
         action: messages::Action::Prune {
             older_than_days, ..
@@ -732,13 +732,13 @@ fn message_alias_msg_parses() {
 
 #[test]
 fn parse_version_with_and_without_check() {
-    let cli = Cli::try_parse_from(["thurbox-cli", "version"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "version"]).unwrap();
     let Command::Version(args) = subcommand(cli) else {
         panic!("expected Version");
     };
     assert!(!args.check);
 
-    let cli = Cli::try_parse_from(["thurbox-cli", "version", "--check"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "version", "--check"]).unwrap();
     let Command::Version(args) = subcommand(cli) else {
         panic!("expected Version");
     };
@@ -747,13 +747,13 @@ fn parse_version_with_and_without_check() {
 
 #[test]
 fn parse_update_with_and_without_force() {
-    let cli = Cli::try_parse_from(["thurbox-cli", "update"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "update"]).unwrap();
     let Command::Update(args) = subcommand(cli) else {
         panic!("expected Update");
     };
     assert!(!args.force);
 
-    let cli = Cli::try_parse_from(["thurbox-cli", "update", "--force"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "update", "--force"]).unwrap();
     let Command::Update(args) = subcommand(cli) else {
         panic!("expected Update");
     };
@@ -762,13 +762,13 @@ fn parse_update_with_and_without_force() {
 
 #[test]
 fn parse_notify_with_and_without_test() {
-    let cli = Cli::try_parse_from(["thurbox-cli", "notify"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "notify"]).unwrap();
     let Command::Notify(args) = subcommand(cli) else {
         panic!("expected Notify");
     };
     assert!(!args.test);
 
-    let cli = Cli::try_parse_from(["thurbox-cli", "notify", "--test"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "notify", "--test"]).unwrap();
     let Command::Notify(args) = subcommand(cli) else {
         panic!("expected Notify");
     };
@@ -777,7 +777,7 @@ fn parse_notify_with_and_without_test() {
 
 #[test]
 fn task_run_parses() {
-    let cli = Cli::try_parse_from(["thurbox-cli", "task", "run", "7"]).unwrap();
+    let cli = Cli::try_parse_from(["talos-cli", "task", "run", "7"]).unwrap();
     assert!(matches!(
         subcommand(cli),
         Command::Task {
@@ -790,19 +790,19 @@ fn task_run_parses() {
 ///
 /// Two assertions because neither alone bites everywhere. The behavioural one
 /// is the contract but is **vacuous in a dev build**: clap's implicit `version`
-/// reads `CARGO_PKG_VERSION`, which equals `THURBOX_VERSION` exactly when no
+/// reads `CARGO_PKG_VERSION`, which equals `TALOS_VERSION` exactly when no
 /// release version was injected — which is every local and CI test run. So the
 /// source check is the one that actually catches a regression here, in the
 /// style of `kernel::updates`' single-installer guard.
 #[test]
 fn version_flag_reports_the_injected_version_not_the_dev_marker() {
-    let rendered = Cli::try_parse_from(["thurbox-cli", "--version"])
+    let rendered = Cli::try_parse_from(["talos-cli", "--version"])
         .unwrap_err()
         .to_string();
     let expected = crate::agent::version_check::current_version();
     assert_eq!(
         rendered.trim(),
-        format!("thurbox-cli {expected}"),
+        format!("talos-cli {expected}"),
         "--version must print the version the `version` subcommand reports"
     );
 
@@ -843,18 +843,18 @@ fn fields_all_clears_the_projection() {
 
 #[test]
 fn a_bare_invocation_parses_with_no_subcommand() {
-    // AXI principle 8: `thurbox-cli` on its own is the home view, so the parse
+    // AXI principle 8: `talos-cli` on its own is the home view, so the parse
     // must succeed rather than fail with a usage error.
-    let cli = Cli::parse_from(["thurbox-cli"]);
+    let cli = Cli::parse_from(["talos-cli"]);
     assert!(cli.command.is_none());
 }
 
 #[test]
 fn the_output_flags_are_global_and_parse_after_a_subcommand() {
-    let cli = Cli::parse_from(["thurbox-cli", "session", "list", "--toon", "--full"]);
+    let cli = Cli::parse_from(["talos-cli", "session", "list", "--toon", "--full"]);
     assert!(cli.toon);
     assert!(cli.full);
-    let cli = Cli::parse_from(["thurbox-cli", "session", "list", "--fields", "name,id"]);
+    let cli = Cli::parse_from(["talos-cli", "session", "list", "--fields", "name,id"]);
     assert_eq!(cli.fields.as_deref(), Some("name,id"));
 }
 
@@ -886,23 +886,23 @@ fn one_vocabulary_reads_and_one_destroys_across_every_noun() {
     // kept as an alias so nothing that worked stops working — this pins both
     // halves, since an alias that silently stopped resolving would be a
     // breaking change nobody would notice until a script failed.
-    let get = Cli::try_parse_from(["thurbox-cli", "session", "show", "some-ref"]);
+    let get = Cli::try_parse_from(["talos-cli", "session", "show", "some-ref"]);
     assert!(get.is_ok(), "session show is an alias for get");
 
     for (noun, verb) in [("task", "get"), ("automation", "get")] {
         assert!(
-            Cli::try_parse_from(["thurbox-cli", noun, verb, "1"]).is_ok(),
+            Cli::try_parse_from(["talos-cli", noun, verb, "1"]).is_ok(),
             "{noun} {verb} should resolve"
         );
     }
     for (noun, verb) in [("task", "delete"), ("automation", "delete")] {
         assert!(
-            Cli::try_parse_from(["thurbox-cli", noun, verb, "1"]).is_ok(),
+            Cli::try_parse_from(["talos-cli", noun, verb, "1"]).is_ok(),
             "{noun} {verb} should resolve"
         );
     }
     assert!(
-        Cli::try_parse_from(["thurbox-cli", "session", "remove", "some-ref"]).is_ok(),
+        Cli::try_parse_from(["talos-cli", "session", "remove", "some-ref"]).is_ok(),
         "session remove is an alias for delete"
     );
 }
@@ -913,7 +913,7 @@ fn a_command_session_and_an_agent_session_are_mutually_exclusive() {
     // in the registry". Accepting both would leave which one launched
     // ambiguous, and the answer would only show up at restart.
     let both = Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "session",
         "create",
         "--name",
@@ -929,7 +929,7 @@ fn a_command_session_and_an_agent_session_are_mutually_exclusive() {
 
     // And `--arg` is meaningless without something to pass it to.
     let orphan_arg = Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "session",
         "create",
         "--name",
@@ -947,9 +947,9 @@ fn command_arguments_may_start_with_a_dash() {
     // The whole reason to pass an argument is usually to pass a *switch*, and
     // `sh -c '<script>'` is how any orchestrator hands over a command line it
     // was given as a string. Without this, `--command` cannot launch nearly
-    // anything — clap reads the value as an unknown flag of thurbox's own.
+    // anything — clap reads the value as an unknown flag of talos's own.
     let cli = Cli::try_parse_from([
-        "thurbox-cli",
+        "talos-cli",
         "session",
         "create",
         "--name",
@@ -976,7 +976,7 @@ fn command_arguments_may_start_with_a_dash() {
 }
 
 /// The host-CLI classifier decides that a remote failure was *the host's own
-/// thurbox answering* partly from the exit code being one this binary uses.
+/// talos answering* partly from the exit code being one this binary uses.
 /// `session_ops` may not reference `cli` (`tests/architecture_rules.rs`), so it
 /// spells those codes out — and this is the pin that keeps the two copies from
 /// drifting into a classifier that reads a real refusal as "nothing answered".
@@ -987,7 +987,7 @@ fn host_cli_knows_every_exit_code_this_binary_uses() {
     for code in [EXIT_ERROR, EXIT_USAGE, EXIT_AMBIGUOUS] {
         assert!(
             CLI_EXIT_CODES.contains(&code),
-            "exit {code} is one thurbox-cli gives, and the remote classifier \
+            "exit {code} is one talos-cli gives, and the remote classifier \
              has to recognise it as the host answering"
         );
     }

@@ -12,7 +12,7 @@ pub struct ForceDeleteReport {
     pub killed_window: bool,
     pub removed_worktrees: Vec<String>,
     pub worktree_errors: Vec<String>,
-    /// Worktrees left on disk because thurbox did not create them. Reported so
+    /// Worktrees left on disk because talos did not create them. Reported so
     /// the caller can say what it deliberately did *not* delete — silence here
     /// would read as "nothing to clean up".
     pub kept_worktrees: Vec<String>,
@@ -139,7 +139,7 @@ pub fn delete_session_headless(
                 // would make it. Falling back is also the branch that still
                 // *does* something about the processes: the teardown is
                 // addressed by the window's own stamp, so on a host that is up
-                // (exit 127 — reached it, found no thurbox-cli there) it
+                // (exit 127 — reached it, found no talos-cli there) it
                 // reaches exactly this session's windows, and on one that is
                 // not it records the owed teardown for the sweep. Aborting
                 // reaches nothing and records nothing, which is how a session
@@ -473,7 +473,7 @@ enum Owed {
 /// not answer, or when nothing here drives the row's multiplexer — the two
 /// conditions that keep the row on the books ([`Owed`]).
 ///
-/// Delegated when the host runs a thurbox of its own, exactly as [`reap_remote`]
+/// Delegated when the host runs a talos of its own, exactly as [`reap_remote`]
 /// delegates: the host owns its own row and its own windows, and forcing the
 /// delete there is how both go at once. A host that does not know the id has
 /// nothing to delete but may still be holding the windows, so that answer falls
@@ -509,7 +509,7 @@ fn finish_remote_teardown(
         .map_err(|e| Owed::Unreached(format!("{e:#}")))?;
 
     for wt in &row.worktrees {
-        if !wt.created_by_thurbox {
+        if !wt.created_by_talos {
             continue;
         }
         if let Err(e) = crate::git::remove_worktree_on(Some(host), &wt.repo_path, &wt.worktree_path)
@@ -557,7 +557,7 @@ pub const UNDO_WINDOW: std::time::Duration = std::time::Duration::from_secs(10);
 /// A row whose reap *reports* that it did not come off is backed off rather
 /// than re-attempted on this cadence. Ownership is the sweep's only idempotence
 /// proxy, so a row whose windows are still standing is overdue again on the
-/// very next pass: one session on a host whose own `thurbox-cli` would not run
+/// very next pass: one session on a host whose own `talos-cli` would not run
 /// had its reap — and the remote round trip it makes — repeated every five
 /// seconds for the life of the process (issue #1193). The curve is the host
 /// probe's, the same one the ownership gate's own host backoff climbs. The
@@ -610,7 +610,7 @@ pub fn reap_overdue_soft_deletes(
     reaped
 }
 
-/// Every thurbox window on the server `backend_type` names. An empty index for
+/// Every talos window on the server `backend_type` names. An empty index for
 /// a host that is unconfigured or unreachable, which reads as "owns nothing" —
 /// the conservative answer a teardown gate wants.
 ///
@@ -680,7 +680,7 @@ fn listing_retry_after_ms(failures: u32) -> u64 {
 /// Kept in the database rather than in this process, because the sweep has two
 /// drivers and neither is alone: the interface dispatches `Command::Reap` onto
 /// a fresh thread every five seconds without waiting for the last, and the
-/// heartbeat starts `thurbox-cli automation tick` as a **new process** every
+/// heartbeat starts `talos-cli automation tick` as a **new process** every
 /// minute. A gate held in memory is overtaken by the first and forgotten
 /// wholesale by the second, and the host gets a probe per pass either way.
 ///
@@ -716,7 +716,7 @@ fn listing_succeeded(db: &Database, backend_type: &str) {
 /// reap is stuck on is usually the machine a listing is stuck on.
 ///
 /// Keyed per row rather than per host because a host can answer `list-windows`
-/// while its own `thurbox-cli` does not run: the listing then succeeds, the
+/// while its own `talos-cli` does not run: the listing then succeeds, the
 /// row owns its windows, and only the reap fails.
 fn reap_retry_after_ms(failures: u32) -> u64 {
     listing_retry_after_ms(failures)
@@ -900,7 +900,7 @@ pub fn owned_windows_in(
 
 /// Let go of a soft-deleted remote session's windows on the host they run on.
 ///
-/// A host that runs a thurbox of its own is asked to reap the row itself
+/// A host that runs a talos of its own is asked to reap the row itself
 /// (`session reap`): its database holds the same row, and only the host can
 /// mark it there. Otherwise the windows are killed from here, resolved by the
 /// stamp exactly as the local branch does.
@@ -1075,18 +1075,18 @@ fn reap_pane_process(pid: u32) {
 /// Best-effort worktree removal on `host` (local when `None`), recording
 /// success/failure into `report`. Removes the worktree *directory* only — the
 /// git branch is deliberately left behind (local and remote alike), matching
-/// force-delete's contract. A worktree thurbox did not create is skipped
+/// force-delete's contract. A worktree talos did not create is skipped
 /// outright and recorded in `report.kept_worktrees`.
 fn remove_worktree_into(
     host: Option<&crate::session::HostDef>,
     wt: &crate::sync::SharedWorktree,
     report: &mut ForceDeleteReport,
 ) {
-    // Only what thurbox checked out. `git worktree remove --force` deletes the
+    // Only what talos checked out. `git worktree remove --force` deletes the
     // directory along with any uncommitted work in it — fine for a worktree
-    // thurbox made for this session, never acceptable for one the user already
+    // talos made for this session, never acceptable for one the user already
     // had and merely opened.
-    if !wt.created_by_thurbox {
+    if !wt.created_by_talos {
         report
             .kept_worktrees
             .push(wt.worktree_path.display().to_string());
@@ -1153,7 +1153,7 @@ mod tests {
     }
 
     /// The reap's own half of the same problem: a host can answer
-    /// `list-windows` while its own `thurbox-cli` will not run, so the listing
+    /// `list-windows` while its own `talos-cli` will not run, so the listing
     /// never backs off and only the reap fails, every five seconds for the life
     /// of the process (issue #1193). The clock is carried forward rather than
     /// slept through.
@@ -1567,12 +1567,12 @@ mod tests {
         crate::session_ops::host_cli::fake::force_usable(
             crate::session_ops::host_cli::Usable::Yes(crate::session_ops::host_cli::fake::cli()),
         );
-        // Reached the host; nothing thurbox-shaped ran there (exit 127). Its
+        // Reached the host; nothing talos-shaped ran there (exit 127). Its
         // wording deliberately reads like a connection failure — the point is
         // that the wording no longer decides anything.
         crate::session_ops::host_cli::fake::install_runner(Box::new(|_, _| {
             Err(crate::session_ops::host_cli::fake::undetermined(
-                "bash: line 1: thurbox-cli: command not found (connection refused?)",
+                "bash: line 1: talos-cli: command not found (connection refused?)",
             ))
         }));
 
@@ -1609,7 +1609,7 @@ mod tests {
         );
         crate::session_ops::host_cli::fake::install_runner(Box::new(|_, _| {
             Err(crate::session_ops::host_cli::fake::answered(
-                "thurbox-cli on 'devbox' failed (exit 1): database is locked",
+                "talos-cli on 'devbox' failed (exit 1): database is locked",
             ))
         }));
 
@@ -1761,9 +1761,9 @@ mod tests {
     }
 
     #[test]
-    fn teardown_leaves_a_worktree_thurbox_did_not_create_on_disk() {
+    fn teardown_leaves_a_worktree_talos_did_not_create_on_disk() {
         // The whole point of opening an existing worktree is that the user (or
-        // their agent) made it outside thurbox. Force-deleting the session must
+        // their agent) made it outside talos. Force-deleting the session must
         // not run `git worktree remove --force` on it: that deletes the
         // directory and any uncommitted work in it. The path below does not
         // exist, so a removal *attempt* would surface as a worktree_error —
@@ -1781,7 +1781,7 @@ mod tests {
                 repo_path: "/nonexistent/repo".into(),
                 worktree_path: "/nonexistent/repo/.worktrees/mine".into(),
                 branch: "feat/x".into(),
-                created_by_thurbox: false,
+                created_by_talos: false,
             }],
             shell_backend_id: None,
             parent_session_id: None,
@@ -1795,7 +1795,7 @@ mod tests {
 
         assert!(
             report.removed_worktrees.is_empty() && report.worktree_errors.is_empty(),
-            "no removal attempted for a worktree thurbox did not create"
+            "no removal attempted for a worktree talos did not create"
         );
         assert_eq!(
             report.kept_worktrees,
@@ -1805,9 +1805,9 @@ mod tests {
     }
 
     #[test]
-    fn teardown_still_removes_a_worktree_thurbox_created() {
+    fn teardown_still_removes_a_worktree_talos_created() {
         // The counterpart to the test above: provenance must gate the removal,
-        // not disable it. A thurbox-created worktree at a path that is gone
+        // not disable it. A talos-created worktree at a path that is gone
         // still reaches `git worktree remove` and reports the failure.
         let session = SharedSession {
             id: SessionId::default(),
@@ -1822,7 +1822,7 @@ mod tests {
                 repo_path: "/nonexistent/repo".into(),
                 worktree_path: "/nonexistent/repo/wt".into(),
                 branch: "feat/x".into(),
-                created_by_thurbox: true,
+                created_by_talos: true,
             }],
             shell_backend_id: None,
             parent_session_id: None,
@@ -1859,7 +1859,7 @@ mod tests {
                 repo_path: "/nonexistent/repo".into(),
                 worktree_path: "/nonexistent/repo/wt".into(),
                 branch: "feat/x".into(),
-                created_by_thurbox: true,
+                created_by_talos: true,
             }],
             shell_backend_id: None,
             parent_session_id: None,

@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+#
+# Winget installer manifest for talos. CI bumps PackageVersion, InstallerUrl,
+# and InstallerSha256 on every release (packaging/winget/bump-manifests.py,
+# reading the release checksums.txt). The values below are a last-known-good
+# template.
+#
+# The Windows release artifact is a plain .zip of portable binaries
+# (talos.exe + talos-cli.exe + LICENSE), so this is a `zip` installer whose
+# nested files are `portable`: winget extracts the zip and registers PATH
+# aliases (`talos`, `talos-cli`) via its Portable install flow — no MSI, no
+# per-machine installer. Only Windows x86_64 is published; ARM64 runs it under
+# x64 emulation.
+PackageIdentifier: Thurbeen.talos
+PackageVersion: 0.79.46
+InstallerType: zip
+NestedInstallerType: portable
+NestedInstallerFiles:
+  - RelativeFilePath: talos.exe
+    PortableCommandAlias: talos
+  - RelativeFilePath: talos-cli.exe
+    PortableCommandAlias: talos-cli
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/zatzk/talos/releases/download/v0.79.46/talos-v0.79.46-x86_64-pc-windows-msvc.zip
+    InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000
+ManifestType: installer
+ManifestVersion: 1.6.0

@@ -1,15 +1,15 @@
-# Managed by thurbox `extension install` (the built-in "hooks" extension).
+# Managed by talos `extension install` (the built-in "hooks" extension).
 # Reinstalling or updating overwrites this file — do not edit; uninstalling
-# removes it. Reports Mistral Vibe's lifecycle state to thurbox via
-# `thurbox-cli session signal`. Identity comes from the inherited
-# $THURBOX_SESSION env var; every call is best-effort (`|| true`) so it can
-# never break a session running outside thurbox.
+# removes it. Reports Mistral Vibe's lifecycle state to talos via
+# `talos-cli session signal`. Identity comes from the inherited
+# $TALOS_SESSION env var; every call is best-effort (`|| true`) so it can
+# never break a session running outside talos.
 #
 # Verified against vibe 2.21.0 (`vibe.core.hooks.models.HookConfig`). Vibe's
 # hook schema is TOML with one `[[hooks]]` entry per hook, each requiring a
 # `name`, a `type` (one of `pre_tool` / `post_tool` / `post_agent`), and a
 # `command` (run via the shell with the invocation JSON on stdin; the parent
-# env is inherited, so $THURBOX_SESSION travels). If a future vibe renames the
+# env is inherited, so $TALOS_SESSION travels). If a future vibe renames the
 # types or fields, edit this file (no code change) — a wrong name just means
 # the state isn't reported (vibe logs a per-hook config issue and skips it;
 # the `|| true` keeps vibe itself safe).
@@ -23,11 +23,11 @@
 # pre_tool for the working signal, and carries no turn-end edge).
 
 [[hooks]]
-name = "thurbox-pre-tool"
+name = "talos-pre-tool"
 type = "pre_tool"
-command = "thurbox-cli session signal --state working >/dev/null 2>&1 || true"
+command = "talos-cli session signal --state working >/dev/null 2>&1 || true"
 
 [[hooks]]
-name = "thurbox-post-agent"
+name = "talos-post-agent"
 type = "post_agent"
-command = "thurbox-cli session signal --state done >/dev/null 2>&1 || true"
+command = "talos-cli session signal --state done >/dev/null 2>&1 || true"

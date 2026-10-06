@@ -1,7 +1,7 @@
-# hooks — agent lifecycle → thurbox session status
+# hooks — agent lifecycle → talos session status
 
 The **hooks** extension wires each coding agent's lifecycle hooks to
-`thurbox-cli session signal` so every session reports its state back to thurbox
+`talos-cli session signal` so every session reports its state back to talos
 and the sidebar shows, at a glance, which agents are **blocked**, **working**,
 or **done**:
 
@@ -17,29 +17,29 @@ whole list scans in one pass.
 
 ## It's on by default
 
-Unlike most extensions, **hooks ships built into thurbox and is auto-activated**
+Unlike most extensions, **hooks ships built into talos and is auto-activated**
 on first run — the default agent's hook is pre-configured with zero setup.
 (`ui-skill` is the other one built in this way.) Opt out at any time:
 
 ```bash
-thurbox-cli extension deactivate hooks   # remove the wiring; won't come back
-thurbox-cli extension activate hooks      # re-enable it
+talos-cli extension deactivate hooks   # remove the wiring; won't come back
+talos-cli extension activate hooks      # re-enable it
 ```
 
 ## How each agent is wired
 
-The hook command is always `thurbox-cli session signal --state <working|blocked|done>`,
-which identifies the calling session from the injected `$THURBOX_SESSION` (no ids
+The hook command is always `talos-cli session signal --state <working|blocked|done>`,
+which identifies the calling session from the injected `$TALOS_SESSION` (no ids
 passed by hand) and is suffixed `|| true` so it can never break the agent.
 
 Every command also **redirects its own output away** (`>/dev/null 2>&1`). A hook's
-stdout is a pipe, and down a pipe `thurbox-cli` answers in TOON — which the agent
+stdout is a pipe, and down a pipe `talos-cli` answers in TOON — which the agent
 then reads as something it was told. claude, codex, grok and antigravity fold a
 hook's plain-text stdout into the model's context, so the signal's receipt was
 being billed to you on every prompt and every tool call; codex goes further and
 **fails** a `Stop` hook whose stdout is not JSON (*"hook returned invalid stop hook
 JSON output"*), which is why its `Stop` command ends in `echo '{}'` — the no-op
-decision. If you wire your own agent (see *Wiring an agent thurbox doesn't know*
+decision. If you wire your own agent (see *Wiring an agent talos doesn't know*
 below), do the same.
 
 - **claude** — a managed settings file (under the extension home) is passed via
@@ -70,7 +70,7 @@ below), do the same.
   `~/.codex/hooks.json`. We **JSON-merge** our entries in (a `[[config_merges]]`,
   guarded by `requires_dir`) so your own hooks are preserved; uninstall prunes
   exactly ours back out. `SessionStart` also binds the reported Codex
-  conversation ID to the Thurbox row, so restart can address that conversation
+  conversation ID to the Talos row, so restart can address that conversation
   exactly. Events: `SessionStart` → idle,
   `UserPromptSubmit`/`PostToolUse` → working, `PermissionRequest` and
   `PreToolUse` matching `request_user_input` → blocked, `Stop` → done. **Both**
@@ -161,7 +161,7 @@ below), do the same.
   `PostToolUse` clears the block, for claude's reason. It has no
   `UserPromptSubmit`, so working is signaled at the first tool call rather than on
   prompt submit. **Caveat:** if agy sanitizes the hook environment,
-  `$THURBOX_SESSION` may not reach the hook, in which case the signal is a
+  `$TALOS_SESSION` may not reach the hook, in which case the signal is a
   fail-open no-op. If a future `agy` changes the hook schema, edit
   `antigravity-hooks.json` (no code change).
 - **pi** *(experimental)* — the pi.dev CLI auto-discovers TypeScript extensions
@@ -227,7 +227,7 @@ command = "fleet"        # runs claude under the hood
 hook_schema = "claude"   # ⇒ inherit claude's --settings hook wiring
 ```
 
-thurbox then applies the `claude` `[[agent_patches]]` to `fleet` as well, so it
+talos then applies the `claude` `[[agent_patches]]` to `fleet` as well, so it
 reports working/blocked/done exactly like `claude` (locally and on a remote/WSL
 host). `hook_schema` names the *family* to imitate; today `"claude"` is the
 useful value — it's the family wired via a per-agent arg patch. The
@@ -235,96 +235,96 @@ config-dir-wired families (codex/opencode/antigravity/vibe/copilot/grok/kimi)
 don't need it: a rebrand that runs the same CLI reads the same `~/.<agent>/…`
 hook file and already reports.
 
-**grok and kimi are wired without being built-in agents.** thurbox ships no
+**grok and kimi are wired without being built-in agents.** talos ships no
 `agents.toml` entry for either, but their payloads land in their own config dirs
 all the same — so a grok or kimi started from a `--command` shell, from your own
 `agents.toml` entry, or by an outside driver reports state like any built-in.
-Tell thurbox which agent the pane is really running so the row resolves that
+Tell talos which agent the pane is really running so the row resolves that
 coverage:
 
 ```bash
-thurbox-cli session create --name x --repo-path … --agent shell --reports-as grok
-thurbox-cli session reports-as <ref> kimi     # or --clear to take it back
+talos-cli session create --name x --repo-path … --agent shell --reports-as grok
+talos-cli session reports-as <ref> kimi     # or --clear to take it back
 ```
 
 ## Where the config lives
 
-The wiring is applied **only to agents thurbox launches** — it never edits your
+The wiring is applied **only to agents talos launches** — it never edits your
 own global agent config (e.g. your personal `~/.claude/settings.json`). For
 claude the managed hooks file is passed with `--settings`, which claude **merges
-on top of** your own settings: inside a thurbox session both your hooks and
-thurbox's fire, while a plain `claude` outside thurbox sees only your own. The
+on top of** your own settings: inside a talos session both your hooks and
+talos's fire, while a plain `claude` outside talos sees only your own. The
 other agents are wired by a reversible merge into — or a managed file dropped in
 — their own config dir.
 
 | Agent | On-disk location | How it's applied |
 |-------|------------------|------------------|
-| claude | `~/.config/thurbox/hooks/claude.json` | `--settings` flag on the `claude` agent (claude merges it) |
+| claude | `~/.config/talos/hooks/claude.json` | `--settings` flag on the `claude` agent (claude merges it) |
 | aider | — (no file) | `--notifications-command` flag on the `aider` agent |
-| opencode | `~/.config/opencode/plugin/thurbox-status.js` | managed plugin file (`requires_dir`) |
+| opencode | `~/.config/opencode/plugin/talos-status.js` | managed plugin file (`requires_dir`) |
 | codex | `~/.codex/hooks.json` | reversible JSON-merge of our entries |
 | vibe | `~/.vibe/hooks.toml` | managed file (refused if you already have one) |
-| copilot | `~/.copilot/hooks/thurbox-status.json` | managed standalone file (`requires_dir`) |
+| copilot | `~/.copilot/hooks/talos-status.json` | managed standalone file (`requires_dir`) |
 | antigravity | `~/.gemini/settings.json` | reversible JSON-merge of our entries |
-| pi | `~/.pi/agent/extensions/thurbox-status.ts` | managed extension file (`requires_dir`) |
-| grok | `~/.grok/hooks/thurbox-status.json` | managed standalone file (`requires_dir`) |
+| pi | `~/.pi/agent/extensions/talos-status.ts` | managed extension file (`requires_dir`) |
+| grok | `~/.grok/hooks/talos-status.json` | managed standalone file (`requires_dir`) |
 | kimi | `~/.kimi-code/config.toml` | reversible TOML-merge of our entries |
-| omp | `~/.omp/agent/extensions/thurbox-status.ts` | managed extension file (`requires_dir`) |
+| omp | `~/.omp/agent/extensions/talos-status.ts` | managed extension file (`requires_dir`) |
 
-The home dir is `~/.config/thurbox/hooks` for a release build and
-`~/.config/thurbox-dev/hooks` for a dev build, so the two stay isolated.
+The home dir is `~/.config/talos/hooks` for a release build and
+`~/.config/talos-dev/hooks` for a dev build, so the two stay isolated.
 
-**Inspect or customize.** To see exactly what thurbox installed, read the file
-for the agent above (e.g. `cat ~/.config/thurbox/hooks/claude.json`). The
+**Inspect or customize.** To see exactly what talos installed, read the file
+for the agent above (e.g. `cat ~/.config/talos/hooks/claude.json`). The
 injected `--settings` / `--notifications-command` flags themselves live in the
-`claude` / `aider` entries of `~/.config/thurbox/agents.toml`. You can hand-edit
+`claude` / `aider` entries of `~/.config/talos/agents.toml`. You can hand-edit
 a managed file, but self-heal rewrites it from the embedded payload on the next
 TUI start / heartbeat tick — so to keep a change, either deactivate the extension
-(`thurbox-cli extension deactivate hooks`) and wire the hook yourself, or edit
+(`talos-cli extension deactivate hooks`) and wire the hook yourself, or edit
 the payload source under `extensions/hooks/` and reinstall.
 
 ## Checking that it fires
 
-Every hook command ends in `|| true` on purpose — a missing `thurbox-cli`, a
-locked database, or a hook firing outside a thurbox session must never break the
+Every hook command ends in `|| true` on purpose — a missing `talos-cli`, a
+locked database, or a hook firing outside a talos session must never break the
 agent. The cost is that a signal which never lands looks exactly like an agent
 that simply has not signalled yet:
 
 ```bash
-thurbox-cli session doctor          # every active session
-thurbox-cli session doctor <uuid>   # just one
+talos-cli session doctor          # every active session
+talos-cli session doctor <uuid>   # just one
 ```
 
 It reports whether this extension is active, what the session's agent can report
 at all, whether its payload is really on disk where the agent reads it, whether
-a hook command could resolve `thurbox-cli` on `PATH`, what was last reported and
+a hook command could resolve `talos-cli` on `PATH`, what was last reported and
 how long ago, and whether the pane's foreground process agrees. It exits
 non-zero when a session's wiring is broken (an uncovered agent that is
 signalling anyway warns rather than fails), and only ever reads —
-`thurbox-cli extension reinstall hooks` is the repair.
+`talos-cli extension reinstall hooks` is the repair.
 
-## Reporting state for an agent thurbox did not launch
+## Reporting state for an agent talos did not launch
 
-These hooks are wired at **launch**, for an agent thurbox knows from
-`agents.toml`. A harness that owns the agent launch itself — asking thurbox for
+These hooks are wired at **launch**, for an agent talos knows from
+`agents.toml`. A harness that owns the agent launch itself — asking talos for
 a bare interactive shell and starting the agent inside that pane — gets none of
-them. It can still report state, because `THURBOX_SESSION` is set on the pane
+them. It can still report state, because `TALOS_SESSION` is set on the pane
 and inherited by every process in it:
 
 ```bash
-thurbox-cli session signal --state working >/dev/null 2>&1   # identity from $THURBOX_SESSION
-thurbox-cli session signal --state done >/dev/null 2>&1
+talos-cli session signal --state working >/dev/null 2>&1   # identity from $TALOS_SESSION
+talos-cli session signal --state done >/dev/null 2>&1
 ```
 
-Keep the redirect: a hook's stdout is a pipe, so without it `thurbox-cli` answers
+Keep the redirect: a hook's stdout is a pipe, so without it `talos-cli` answers
 in TOON straight into whatever your agent does with a hook's output.
 
-You can put that hook in a file thurbox also merges into — `~/.codex/hooks.json`,
-`~/.gemini/settings.json` — including under an event thurbox's own payload uses.
-Thurbox recognises its own entries by a `# managed by thurbox …` stamp in the
+You can put that hook in a file talos also merges into — `~/.codex/hooks.json`,
+`~/.gemini/settings.json` — including under an event talos's own payload uses.
+Talos recognises its own entries by a `# managed by talos …` stamp in the
 command, not by the `session signal` call, so yours is left alone however many
 times it re-merges. Two caveats: don't copy that stamp into your own command, and
-if you were already running thurbox before hooks 1.11, move your hook out of the
+if you were already running talos before hooks 1.11, move your hook out of the
 file once — the first install after upgrading sweeps unstamped entries out of the
 events it owns, because that is the only way to remove the broken commands older
 versions left there.
@@ -333,7 +333,7 @@ versions left there.
 carrying the `session signal` command, yours included.
 
 Point your own agent's lifecycle hooks at that and the session reports exactly
-like a built-in. Failing even that, thurbox reads the pane: a session that never
+like a built-in. Failing even that, talos reads the pane: a session that never
 signalled but whose foreground process is an agent your `agents.toml` knows
 reports `state: "running"` with `state_source: "process"` — coarser than a hook
 by design, but not silence.
@@ -362,15 +362,15 @@ This extension exercises two extension-manifest capabilities (see
   `format = "toml"` picks the TOML merge (`agent::toml_merge`, on `toml_edit`,
   so the user's comments and key order survive).
 
-  Note: on the **first** merge, thurbox rewrites `settings.json` with normalized
+  Note: on the **first** merge, talos rewrites `settings.json` with normalized
   formatting (alphabetized keys, 2-space indent). This is one-time and lossless —
   your values are untouched and the file is stable afterward.
 
 ## Remote (SSH/WSL) sessions
 
-`thurbox-cli` isn't installed on a remote host, so the shipped hook commands
+`talos-cli` isn't installed on a remote host, so the shipped hook commands
 are rewritten there to set a tmux **pane user option**
-(`tmux set-option -p @thurbox_state <s>`) that the local TUI picks up over its
+(`tmux set-option -p @talos_state <s>`) that the local TUI picks up over its
 control-mode connection. Delivery per agent, at spawn time:
 
 - **claude** — the `--settings` hooks file is copied to the host (rewritten)
@@ -394,7 +394,7 @@ changes to the same database columns, so status keeps flowing either way.
 
 Provisioning is **best-effort** (a down host or refused write degrades to a
 `Hooks: degraded` hint in the info panel — never a failed spawn) and
-**one-way**: thurbox never uninstalls from remote hosts (same policy as remote
+**one-way**: talos never uninstalls from remote hosts (same policy as remote
 worktrees). The files it leaves carry both prune markers, so removing them by
 hand — or a future remote prune — needs no schema knowledge. Windows hosts are
 not provisioned: these payloads run through `sh`, and claude's forward-slash

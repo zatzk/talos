@@ -4,7 +4,7 @@
 //! There are two, and they exist for the same reason: what they wire up has to
 //! be there before the user knows to ask for it. [`builtin_hooks`] gives every
 //! session its status dot with zero setup; [`builtin_ui_skill`] gives whichever
-//! coding CLI the user runs the knowledge of how to edit thurbox's own
+//! coding CLI the user runs the knowledge of how to edit talos's own
 //! interface, in every session rather than only the one they thought to attach
 //! the interface directory to.
 //!
@@ -14,7 +14,7 @@
 //! code paths a fetched extension takes, and a built-in is not a second
 //! installer with its own bugs.
 //!
-//! Opt out of either with `thurbox-cli extension deactivate <name>`, which
+//! Opt out of either with `talos-cli extension deactivate <name>`, which
 //! records a flag ([`Database::set_builtin_extension_optout`]) so startup
 //! self-heal won't resurrect it; `activate` (or `install`) clears it.
 //!
@@ -41,7 +41,7 @@ pub struct Builtin {
     /// a fetch error, which `assets_cover_every_manifest_payload` guards.
     pub assets: &'static [(&'static str, &'static str)],
     /// Install home, relative to *this build's* config dir — so a dev build
-    /// installs under `~/.config/thurbox-dev/…` and cannot touch the release
+    /// installs under `~/.config/talos-dev/…` and cannot touch the release
     /// tree. The manifest's own `home` is ignored.
     pub home_dir: &'static str,
     /// What to report after a successful ensure. Lives with each built-in

@@ -1,6 +1,6 @@
 -- A starting point. Rename it, change what it draws, keep what it shows you.
 --
--- This is what `thurbox-cli plugin new <name>` writes, and what the guide shows,
+-- This is what `talos-cli plugin new <name>` writes, and what the guide shows,
 -- so what you read is what you get. Everything below is the shape of a pane:
 -- declare what you are, return what to draw, handle what you declared.
 
@@ -41,7 +41,7 @@ return {
     -- place is silently lost. This is the trap that catches everyone once.
     local seen = state.seen or 0
 
-    local sessions = (thurbox and thurbox.sessions) or {}
+    local sessions = (talos and talos.sessions) or {}
     local line = ("%d session(s), rendered %d time(s)"):format(#sessions, seen)
     if require("lib.settings").enabled("example", "loud", false) then
       line = line:upper()

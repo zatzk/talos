@@ -1,7 +1,7 @@
 ---
 layout: docs.njk
-title: 'Features — Thurbox Docs'
-description: 'Thurbox features: a fully customizable Lua-plugin interface, persistent coding-agent sessions, agent definitions, git worktrees, remote SSH sessions, session lifecycle hooks, automations, and a headless CLI.'
+title: 'Features — Talos Docs'
+description: 'Talos features: a fully customizable Lua-plugin interface, persistent coding-agent sessions, agent definitions, git worktrees, remote SSH sessions, session lifecycle hooks, automations, and a headless CLI.'
 currentPage: 'features'
 breadcrumb: 'Features'
 ---
@@ -12,7 +12,7 @@ breadcrumb: 'Features'
             <a href="#customizable-interface" class="heading-anchor">#</a>
           </h2>
           <p>
-            There is no interface compiled into the binary. thurbox boots a kernel, reads a
+            There is no interface compiled into the binary. talos boots a kernel, reads a
             directory, and draws whatever Lua it finds there &mdash; so every pane, the session list
             included, is a file you can move, turn off, delete, rewrite, or install from someone
             else. You do not have to write any of it yourself:
@@ -72,17 +72,17 @@ breadcrumb: 'Features'
               <tr>
                 <td>Code review</td>
                 <td>installable</td>
-                <td><a href="https://github.com/Thurbeen/thurbox-code-review" target="_blank" rel="noopener">thurbox-code-review</a></td>
+                <td><a href="https://github.com/zatzk/talos-code-review" target="_blank" rel="noopener">talos-code-review</a></td>
               </tr>
               <tr>
                 <td>Info panel</td>
                 <td>installable</td>
-                <td><a href="https://github.com/Thurbeen/thurbox-info-panel" target="_blank" rel="noopener">thurbox-info-panel</a></td>
+                <td><a href="https://github.com/zatzk/talos-info-panel" target="_blank" rel="noopener">talos-info-panel</a></td>
               </tr>
               <tr>
                 <td>CPU / RAM gauges</td>
                 <td>installable</td>
-                <td><code>thurbox-cli plugin install top</code></td>
+                <td><code>talos-cli plugin install top</code></td>
               </tr>
               <tr>
                 <td>Panes anyone else wrote</td>
@@ -92,18 +92,18 @@ breadcrumb: 'Features'
               <tr>
                 <td><a href="#tasks">Tasks</a></td>
                 <td>CLI only</td>
-                <td><code>thurbox-cli task</code></td>
+                <td><code>talos-cli task</code></td>
               </tr>
               <tr>
                 <td><a href="#automations">Automations</a></td>
                 <td>CLI only</td>
-                <td><code>thurbox-cli automation</code></td>
+                <td><code>talos-cli automation</code></td>
               </tr>
             </tbody>
           </table>
           <p>
             <strong>Bundled</strong>
-            means it ships with thurbox and is yours to edit, move or delete &mdash; the
+            means it ships with talos and is yours to edit, move or delete &mdash; the
             arrangement included.
             <strong>Installable</strong>
             ones sit in
@@ -133,7 +133,7 @@ breadcrumb: 'Features'
             <div class="terminal-frame">
               <div class="terminal-body">
                 <video
-                  src="../assets/thurbox-session-creation.mp4"
+                  src="../assets/talos-session-creation.mp4"
                   autoplay
                   loop
                   muted
@@ -156,7 +156,7 @@ breadcrumb: 'Features'
             Oh My Pi, or your own), each with its own default config. Sessions persist across crashes,
             restarts,
             and even
-            multiple concurrent Thurbox instances &mdash; the multiplexer keeps them alive in the background.
+            multiple concurrent Talos instances &mdash; the multiplexer keeps them alive in the background.
             The defaults are tmux on POSIX and psmux on native Windows;
             <a href="installation.html#rmux">RMUX 0.10.0+</a> is an opt-in alternative
             tested locally on Linux.
@@ -214,7 +214,7 @@ breadcrumb: 'Features'
             </li>
             <li>
               Recover sessions externally at any time with
-              <code>tmux -L thurbox attach</code>
+              <code>tmux -L talos attach</code>
             </li>
           </ul>
 
@@ -223,8 +223,8 @@ breadcrumb: 'Features'
             <a href="#agent-definitions" class="heading-anchor">#</a>
           </h2>
           <p>
-            The set of available agents is data, not code. On first run Thurbox seeds
-            <code>~/.config/thurbox/agents.toml</code>
+            The set of available agents is data, not code. On first run Talos seeds
+            <code>~/.config/talos/agents.toml</code>
             with built-ins (claude, codex, antigravity, opencode, aider, copilot, vibe, pi, omp).
             Edit the file to tweak an agent or add a new one &mdash; no recompile required. See
             <a href="agents.html">Built-in agents</a>
@@ -263,8 +263,8 @@ breadcrumb: 'Features'
             <p>
               <strong>No pane, but they still fire.</strong>
               Scheduling does not live in the interface: a detached tmux heartbeat keeper runs due
-              automations whether or not thurbox is open. Author and inspect them with
-              <code>thurbox-cli automation</code>.
+              automations whether or not talos is open. Author and inspect them with
+              <code>talos-cli automation</code>.
             </p>
           </div>
           <h2 id="automations">
@@ -305,7 +305,7 @@ breadcrumb: 'Features'
               +
               <code>automation_runs</code>
               history) and scriptable headlessly via
-              <code>thurbox-cli automation create/list/edit/run/runs/tick</code>
+              <code>talos-cli automation create/list/edit/run/runs/tick</code>
               .
             </li>
           </ul>
@@ -313,7 +313,7 @@ breadcrumb: 'Features'
           <div class="info-box">
             <p>
               <strong>No pane.</strong>
-              Tasks work through <code>thurbox-cli task</code>. A pane over the same records is one
+              Tasks work through <code>talos-cli task</code>. A pane over the same records is one
               anybody can write &mdash; <code>examples/panes/tasks</code> is an example.
             </p>
           </div>
@@ -344,7 +344,7 @@ breadcrumb: 'Features'
             </li>
             <li>
               Persisted in SQLite and driven from
-              <code>thurbox-cli task</code>
+              <code>talos-cli task</code>
               (alias
               <code>todo</code>
               ):
@@ -352,7 +352,7 @@ breadcrumb: 'Features'
               .
             </li>
             <li>
-              <strong>Importable from a tracker, without thurbox knowing which one.</strong>
+              <strong>Importable from a tracker, without talos knowing which one.</strong>
               A task carries a
               <code>source</code>
               tag and an external id and url, and
@@ -364,7 +364,7 @@ breadcrumb: 'Features'
               automation running your own script keeps a tracker and this list in step. Only
               open-vs-done is authoritative on the way in, so a local
               <em>in progress</em>
-              is never clobbered. thurbox ships no provider integration: keeping the binary free of
+              is never clobbered. talos ships no provider integration: keeping the binary free of
               provider names is the point (ADR-20).
             </li>
           </ul>
@@ -380,7 +380,7 @@ breadcrumb: 'Features'
               <code>Ctrl+N</code>
               ), choose "Worktree" mode to select a base branch and name a new branch
             </li>
-            <li>Thurbox creates the worktree and launches the agent inside it</li>
+            <li>Talos creates the worktree and launches the agent inside it</li>
             <li>
               Worktrees the repo
               <em>already</em>
@@ -401,10 +401,10 @@ breadcrumb: 'Features'
               <code>origin/main</code>
             </li>
             <li>
-              On rebase conflicts, Thurbox automatically sends a resolution prompt to the agent
+              On rebase conflicts, Talos automatically sends a resolution prompt to the agent
             </li>
             <li>
-              Closing a session removes the worktrees Thurbox created. One it merely opened is
+              Closing a session removes the worktrees Talos created. One it merely opened is
               left exactly where it was, since removing it would take any uncommitted work in it
               along too
             </li>
@@ -414,7 +414,7 @@ breadcrumb: 'Features'
           <h3>Worktree storage</h3>
           <p>
             Worktrees are created at
-            <code>&lt;repo&gt;/.git/thurbox-worktrees/&lt;sanitized-branch&gt;</code>
+            <code>&lt;repo&gt;/.git/talos-worktrees/&lt;sanitized-branch&gt;</code>
             , where
             <code>/</code>
             in branch names is replaced by
@@ -430,10 +430,10 @@ breadcrumb: 'Features'
             (each gets its own isolated worktree on the session's branch) or
             <code>--add-dir PATH</code>
             (attached as-is, no branch). Because agent CLIs differ wildly in how they accept extra
-            directories, Thurbox launches a multi-repo session in a per-session
+            directories, Talos launches a multi-repo session in a per-session
             <strong>symlink workspace</strong>
             (
-            <code>~/.local/share/thurbox/workspaces/&lt;id&gt;/</code>
+            <code>~/.local/share/talos/workspaces/&lt;id&gt;/</code>
             , one symlink per repo) and starts the agent there, so every agent sees each repo as a
             subdirectory &mdash; fully agent-neutral. Single-repo sessions are unchanged.
           </p>
@@ -449,7 +449,7 @@ breadcrumb: 'Features'
           <ul>
             <li>
               Declare hosts in
-              <code>~/.config/thurbox/hosts.toml</code>
+              <code>~/.config/talos/hosts.toml</code>
               (seeded commented-out, so a fresh install has none); each entry registers a selectable
               backend named
               <code>ssh:&lt;name&gt;</code>
@@ -462,11 +462,11 @@ breadcrumb: 'Features'
               glyph in the session list
             </li>
             <li>
-              Thurbox shells out to your system
+              Talos shells out to your system
               <code>ssh</code>
               , so authentication, keys, and connection multiplexing come from
               <code>~/.ssh/config</code>
-              &mdash; thurbox never handles credentials
+              &mdash; talos never handles credentials
             </li>
             <li>
               Remote sessions get the same persistence, multi-instance sharing, and
@@ -479,7 +479,7 @@ breadcrumb: 'Features'
               <strong>git</strong>
             </li>
           </ul>
-          <pre data-title="~/.config/thurbox/hosts.toml"><code class="language-toml">[[hosts]]
+          <pre data-title="~/.config/talos/hosts.toml"><code class="language-toml">[[hosts]]
 name = "devbox"            # backend "ssh:devbox"; what --host expects
 destination = "me@devbox"  # ssh target or a ~/.ssh/config alias
 ssh_opts = ["-o", "ControlMaster=auto", "-o", "ControlPersist=10m"]
@@ -487,7 +487,7 @@ ssh_opts = ["-o", "ControlMaster=auto", "-o", "ControlPersist=10m"]
 # worktrees_dir      — optional absolute remote worktrees dir</code></pre>
           <p>
             Spawn remotely from the CLI with
-            <code>thurbox-cli session create --host devbox …</code>
+            <code>talos-cli session create --host devbox …</code>
             .
           </p>
 
@@ -528,7 +528,7 @@ ssh_opts = ["-o", "ControlMaster=auto", "-o", "ControlPersist=10m"]
             <div class="terminal-frame">
               <div class="terminal-body">
                 <video
-                  src="../assets/thurbox-fork.mp4"
+                  src="../assets/talos-fork.mp4"
                   autoplay
                   loop
                   muted
@@ -573,7 +573,7 @@ ssh_opts = ["-o", "ControlMaster=auto", "-o", "ControlPersist=10m"]
             . A
             <code>Ctrl+F</code>
             fork records its source as the parent automatically; headless,
-            <code>thurbox-cli session create --parent &lt;uuid&gt;</code>
+            <code>talos-cli session create --parent &lt;uuid&gt;</code>
             sets it explicitly, and
             <code>session list --parent &lt;uuid&gt;</code>
             lists a lead's direct children.
@@ -605,20 +605,20 @@ ssh_opts = ["-o", "ControlMaster=auto", "-o", "ControlPersist=10m"]
             <a href="#session-hooks" class="heading-anchor">#</a>
           </h2>
           <p>
-            Run your own command at the moments thurbox creates, deletes, restarts or restores a
+            Run your own command at the moments talos creates, deletes, restarts or restores a
             session &mdash; copy an
             <code>.env</code>
             into a fresh worktree, warm the dependencies before the agent boots, post to a
             channel when a session lands, refuse a session on a branch nobody should touch, clean
             a scratch directory when one is deleted. Hooks are declared as data in
-            <a href="configuration.html#hooks-toml"><code>~/.config/thurbox/hooks.toml</code></a>
+            <a href="configuration.html#hooks-toml"><code>~/.config/talos/hooks.toml</code></a>
             , one
             <code>[[hooks]]</code>
             entry per event and command, seeded commented-out.
           </p>
           <pre data-title="hooks.toml"><code class="language-toml">[[hooks]]
 event = "session.post_create"
-command = 'npm ci --prefer-offline'   # runs in the new worktree's repository; $THURBOX_CWD is the worktree
+command = 'npm ci --prefer-offline'   # runs in the new worktree's repository; $TALOS_CWD is the worktree
 timeout_secs = 300</code></pre>
           <ul>
             <li>
@@ -663,7 +663,7 @@ timeout_secs = 300</code></pre>
               ,
               <code>Ctrl+R</code>
               , undo,
-              <code>thurbox-cli</code>
+              <code>talos-cli</code>
               , a
               <code>spawn</code>
               automation and an extension's sessions all end in the same four pipelines, so a
@@ -671,26 +671,26 @@ timeout_secs = 300</code></pre>
             </li>
             <li>
               <strong>The session's facts, two ways.</strong>
-              <code>THURBOX_*</code>
+              <code>TALOS_*</code>
               environment variables for a one-liner (
-              <code>THURBOX_HOOK_EVENT</code>
+              <code>TALOS_HOOK_EVENT</code>
               ,
-              <code>THURBOX_SESSION</code>
+              <code>TALOS_SESSION</code>
               ,
-              <code>THURBOX_SESSION_NAME</code>
+              <code>TALOS_SESSION_NAME</code>
               ,
-              <code>THURBOX_AGENT</code>
+              <code>TALOS_AGENT</code>
               ,
-              <code>THURBOX_REPO</code>
+              <code>TALOS_REPO</code>
               ,
-              <code>THURBOX_CWD</code>
+              <code>TALOS_CWD</code>
               ,
-              <code>THURBOX_BRANCH</code>
+              <code>TALOS_BRANCH</code>
               ,
-              <code>THURBOX_HOST</code>
+              <code>TALOS_HOST</code>
               , &hellip;) and one JSON object on stdin for anything structured. A
-              <code>thurbox-cli</code>
-              call inside a hook hits the same database as the thurbox that fired it.
+              <code>talos-cli</code>
+              call inside a hook hits the same database as the talos that fired it.
             </li>
             <li>
               Runs in the session's primary repository with
@@ -698,7 +698,7 @@ timeout_secs = 300</code></pre>
               (output is captured, only its tail reported), and
               <strong>locally</strong>
               even for a remote session &mdash;
-              <code>THURBOX_HOST</code>
+              <code>TALOS_HOST</code>
               says where the session actually is.
             </li>
           </ul>
@@ -707,7 +707,7 @@ timeout_secs = 300</code></pre>
             <a href="agent-hooks.html">agent hooks</a>
             extension, which installs status hooks
             <em>into</em>
-            the agent CLIs so they can report to thurbox. Full reference:
+            the agent CLIs so they can report to talos. Full reference:
             <a href="configuration.html#hooks-toml">configuration &rarr; hooks.toml</a>
             .
           </p>
@@ -733,7 +733,7 @@ timeout_secs = 300</code></pre>
             <li>
               <strong>Push, not poll.</strong>
               A worker pushes a clean payload with
-              <code>thurbox-cli message send</code>
+              <code>talos-cli message send</code>
               , and the body is handed straight to the recipient agent's own inbox &mdash; Claude
               Code's inbox socket, or
               <code>codex queue</code>
@@ -750,10 +750,10 @@ timeout_secs = 300</code></pre>
             </li>
             <li>
               <strong>Self-knowable identity.</strong>
-              Thurbox injects a stable
-              <code>THURBOX_SESSION</code>
+              Talos injects a stable
+              <code>TALOS_SESSION</code>
               (and, for task-spawned sessions,
-              <code>THURBOX_TASK</code>
+              <code>TALOS_TASK</code>
               ) into each agent, so a CLI call
               <em>inside</em>
               a session proves its own identity: an agent sends and reads its own mail passing no
@@ -888,7 +888,7 @@ timeout_secs = 300</code></pre>
             <div class="terminal-frame">
               <div class="terminal-body">
                 <video
-                  src="../assets/thurbox-theme.mp4"
+                  src="../assets/talos-theme.mp4"
                   autoplay
                   loop
                   muted
@@ -915,7 +915,7 @@ timeout_secs = 300</code></pre>
             <strong>needs-you</strong>
             state &mdash; the agent rang the terminal bell or emitted an OSC 9 / OSC 777
             notification (usually because it is waiting on an answer or has finished a task)
-            &mdash; Thurbox fires an OS desktop notification, so you can react without watching
+            &mdash; Talos fires an OS desktop notification, so you can react without watching
             the TUI. The notification body is the agent's last OSC message, or
             <code>Waiting for input</code>
             otherwise.
@@ -928,7 +928,7 @@ timeout_secs = 300</code></pre>
               : clicking the banner switches the TUI to that session on its next tick.
               <strong>macOS</strong>
               shows the banner but ignores clicks (the modern notification API requires a signed
-              app bundle, which Thurbox is not).
+              app bundle, which Talos is not).
             </li>
             <li>
               It fires
@@ -998,7 +998,7 @@ timeout_secs = 300</code></pre>
           </h2>
           <p>
             Behaviour that reaches outside the interface is switched in
-            <code>~/.config/thurbox/settings.toml</code>
+            <code>~/.config/talos/settings.toml</code>
             under
             <code>[features]</code>
             (seeded commented-out, so the defaults apply when absent). Every flag defaults to
@@ -1034,7 +1034,7 @@ auto_update = true    # download+verify+replace the binaries on startup (never a
             <code>automations = false</code>
             is the flag with teeth beyond the interface: it also stops due schedules from firing and
             stops the tmux heartbeat being armed at startup (explicit
-            <code>thurbox-cli automation</code>
+            <code>talos-cli automation</code>
             commands still work).
           </p>
           <div class="info-box">
@@ -1075,28 +1075,28 @@ auto_update = true    # download+verify+replace the binaries on startup (never a
           </h2>
           <p>
             Sessions run inside a dedicated tmux server (
-            <code>tmux -L thurbox</code>
+            <code>tmux -L talos</code>
             ) and survive crashes, restarts, and multiple concurrent instances.
           </p>
 
           <h3>How it works</h3>
           <ul>
             <li>
-              Sessions spawn as tmux windows. The tmux pane keeps running regardless of Thurbox's
+              Sessions spawn as tmux windows. The tmux pane keeps running regardless of Talos's
               lifecycle.
             </li>
             <li>
               On shutdown (
               <code>Ctrl+Q</code>
-              ), session metadata is saved to SQLite. Thurbox detaches without killing sessions.
+              ), session metadata is saved to SQLite. Talos detaches without killing sessions.
             </li>
             <li>
-              On restart, Thurbox discovers existing sessions from tmux, matches them to persisted
+              On restart, Talos discovers existing sessions from tmux, matches them to persisted
               metadata, and adopts them with terminal content intact.
             </li>
             <li>
               External recovery is always possible via
-              <code>tmux -L thurbox attach</code>
+              <code>tmux -L talos attach</code>
               .
             </li>
           </ul>
@@ -1133,10 +1133,10 @@ auto_update = true    # download+verify+replace the binaries on startup (never a
           </h2>
           <p>
             The
-            <code>thurbox-cli</code>
+            <code>talos-cli</code>
             binary drives the same sessions, automations, and editor settings without the TUI
             &mdash; ideal for scripting. It shares the TUI's SQLite database and
-            <code>tmux -L thurbox</code>
+            <code>tmux -L talos</code>
             server, so changes made by either show up live in the other. Output is
             <strong>human-readable in a terminal</strong>
             and <strong>TOON</strong> &mdash; a compact, agent-oriented encoding &mdash; when stdout
@@ -1151,25 +1151,25 @@ auto_update = true    # download+verify+replace the binaries on startup (never a
             (human even when piped). Run it with no subcommand and it prints live state &mdash; every
             session with the state its hooks last reported &mdash; rather than a usage dump.
           </p>
-          <pre data-wrap><code class="language-bash">thurbox-cli session list
-thurbox-cli session create --name reviewer --repo-path /path/to/repo --agent codex
-thurbox-cli session send &lt;uuid&gt; "run the test suite"
-thurbox-cli session send &lt;uuid&gt; "steer it here" --no-enter   # typed, not submitted
-thurbox-cli session key &lt;uuid&gt; enter                         # ...and now submit it
-thurbox-cli session key &lt;uuid&gt; escape                        # interrupt the turn
-thurbox-cli session capture &lt;uuid&gt; --lines 500
-thurbox-cli session capture &lt;uuid&gt; --ansi --json
-thurbox-cli session get reviewer                             # a name works anywhere an id does
-thurbox-cli session create --name build --repo-path . \
+          <pre data-wrap><code class="language-bash">talos-cli session list
+talos-cli session create --name reviewer --repo-path /path/to/repo --agent codex
+talos-cli session send &lt;uuid&gt; "run the test suite"
+talos-cli session send &lt;uuid&gt; "steer it here" --no-enter   # typed, not submitted
+talos-cli session key &lt;uuid&gt; enter                         # ...and now submit it
+talos-cli session key &lt;uuid&gt; escape                        # interrupt the turn
+talos-cli session capture &lt;uuid&gt; --lines 500
+talos-cli session capture &lt;uuid&gt; --ansi --json
+talos-cli session get reviewer                             # a name works anywhere an id does
+talos-cli session create --name build --repo-path . \
     --command npm --arg run --arg watch --env NODE_ENV=dev   # any command is a session
-thurbox-cli session stop reviewer                            # park it: pane gone, work kept
-thurbox-cli session start reviewer                           # and put it back
-thurbox-cli session exec reviewer -- git status --porcelain  # run in its dir, not in its pane
-thurbox-cli session meta set reviewer fm.task_id T-1043      # your own key/value space
-thurbox-cli agent launch-args claude                         # what to run so its hooks report
-thurbox-cli watch --json --initial                           # one event per line, no polling
-thurbox-cli message send --to lead --kind questions --task 5 --body "scope?"
-thurbox-cli message inbox --for lead --claim</code></pre>
+talos-cli session stop reviewer                            # park it: pane gone, work kept
+talos-cli session start reviewer                           # and put it back
+talos-cli session exec reviewer -- git status --porcelain  # run in its dir, not in its pane
+talos-cli session meta set reviewer fm.task_id T-1043      # your own key/value space
+talos-cli agent launch-args claude                         # what to run so its hooks report
+talos-cli watch --json --initial                           # one event per line, no polling
+talos-cli message send --to lead --kind questions --task 5 --body "scope?"
+talos-cli message inbox --for lead --claim</code></pre>
           <p>
             <strong>Every session verb takes a name, a UUID, or a unique id prefix.</strong>
             They resolve in that order, and a reference matching
@@ -1226,7 +1226,7 @@ thurbox-cli message inbox --for lead --claim</code></pre>
               <code>ctrl+c</code>
               and
               <code>C-c</code>
-              are the same key, and a name thurbox does not know is refused rather than
+              are the same key, and a name talos does not know is refused rather than
               typed into the pane),
               <code>capture</code>
               ,
@@ -1259,7 +1259,7 @@ thurbox-cli message inbox --for lead --claim</code></pre>
               work on a
               <code>--host</code>
               session too: they delegate to that host's own
-              <code>thurbox-cli</code>
+              <code>talos-cli</code>
               . A refusal is left only where delegation is genuinely impossible
               &mdash; no
               <code>hosts.toml</code>
@@ -1289,7 +1289,7 @@ thurbox-cli message inbox --for lead --claim</code></pre>
               answers "a session of this name already exists" &mdash;
               <code>allow</code>
               is the default because a database mirroring a shareable host
-              carries that host's rows beside its own, so Thurbox cannot make
+              carries that host's rows beside its own, so Talos cannot make
               names unique; uniqueness is something a caller asks for. The
               question is asked of the backend the creation lands on, so a
               namesake on another host is never adopted or torn down, and
@@ -1306,10 +1306,10 @@ thurbox-cli message inbox --for lead --claim</code></pre>
               it lives on, and under the session's own environment (whatever
               <code>session create --env</code>
               recorded, plus the
-              <code>THURBOX_*</code>
+              <code>TALOS_*</code>
               identity its pane carries &mdash; the
               <em>caller's</em>
-              <code>THURBOX_*</code>
+              <code>TALOS_*</code>
               is scrubbed, so a driver inside one session cannot lend the child
               that session's identity). Deliberately
               <em>not</em>
@@ -1327,7 +1327,7 @@ thurbox-cli message inbox --for lead --claim</code></pre>
               <code>args</code>
               and
               <code>env</code>
-              thurbox would launch a registered agent with. Status hooks are
+              talos would launch a registered agent with. Status hooks are
               <em>arguments</em>
               &mdash; the hooks extension installs them by appending to the
               agent's
@@ -1374,7 +1374,7 @@ thurbox-cli message inbox --for lead --claim</code></pre>
               <code>present</code>
               with
               <code>--initial</code>
-              ), so nothing driving Thurbox has to poll. It works with no TUI
+              ), so nothing driving Talos has to poll. It works with no TUI
               running, because everything worth waking on is already in the
               database. Each writer appends its own event in the same
               transaction as the change, so two transitions in the same instant
@@ -1423,7 +1423,7 @@ thurbox-cli message inbox --for lead --claim</code></pre>
               <code>status</code>
               /
               <code>stop</code>
-              for what Thurbox runs that is
+              for what Talos runs that is
               <em>not</em>
               a session: the automation heartbeat keeper, a detached window
               created implicitly by anything that arms an automation, which no
@@ -1457,7 +1457,7 @@ thurbox-cli message inbox --for lead --claim</code></pre>
               when it cannot be determined, never guessed. A session created with
               <code>--host</code>
               is captured through that host's own
-              <code>thurbox-cli</code>
+              <code>talos-cli</code>
               rather than refused.
             </li>
             <li>
@@ -1520,7 +1520,7 @@ thurbox-cli message inbox --for lead --claim</code></pre>
               <code>--verify</code>
               , and a remote session answers
               <code>unavailable</code>
-              . A pane whose foreground is an agent thurbox did not launch
+              . A pane whose foreground is an agent talos did not launch
               reports
               <code>state: "running"</code>
               with
@@ -1534,7 +1534,7 @@ thurbox-cli message inbox --for lead --claim</code></pre>
               what this agent's hooks can report, whether its payload is really
               on disk where the agent reads it, whether a hook command could
               resolve
-              <code>thurbox-cli</code>
+              <code>talos-cli</code>
               on
               <code>PATH</code>
               at all, what was last reported and when, and whether the pane
@@ -1542,7 +1542,7 @@ thurbox-cli message inbox --for lead --claim</code></pre>
               <code>|| true</code>
               , so a signal that never lands is otherwise indistinguishable from
               an agent that has not signalled. Exits non-zero when no state can
-              reach thurbox from a session.
+              reach talos from a session.
             </li>
             <li>
               <strong>automation</strong>

@@ -1,13 +1,13 @@
-// Managed by thurbox `extension install` (the built-in "hooks" extension).
+// Managed by talos `extension install` (the built-in "hooks" extension).
 // Reinstalling or updating overwrites this file — do not edit; uninstalling
-// removes it. Reports opencode's lifecycle state to thurbox via
-// `thurbox-cli session signal`. Identity comes from the inherited
-// $THURBOX_SESSION env var; every call is best-effort so it can never break a
-// session running outside thurbox.
-export const ThurboxStatus = async ({ $ }) => {
+// removes it. Reports opencode's lifecycle state to talos via
+// `talos-cli session signal`. Identity comes from the inherited
+// $TALOS_SESSION env var; every call is best-effort so it can never break a
+// session running outside talos.
+export const TalosStatus = async ({ $ }) => {
   const signal = async (state) => {
     try {
-      await $`thurbox-cli session signal --state ${state}`.quiet().nothrow();
+      await $`talos-cli session signal --state ${state}`.quiet().nothrow();
     } catch (_) {
       // best-effort: never surface hook errors into the agent
     }

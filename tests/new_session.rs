@@ -16,19 +16,19 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::Terminal;
 
-use thurbox::agent::preflight::Presence;
-use thurbox::git::ExistingWorktree;
-use thurbox::kernel::command::{BookmarkEdit, Command, InFlight, Phase};
-use thurbox::kernel::host::{Click, KeyPress, LuaHost, Published, RenderContext};
-use thurbox::kernel::node::Identity;
-use thurbox::kernel::paint::Hit;
-use thurbox::kernel::registry::Registry;
-use thurbox::kernel::repos::{
+use talos::agent::preflight::Presence;
+use talos::git::ExistingWorktree;
+use talos::kernel::command::{BookmarkEdit, Command, InFlight, Phase};
+use talos::kernel::host::{Click, KeyPress, LuaHost, Published, RenderContext};
+use talos::kernel::node::Identity;
+use talos::kernel::paint::Hit;
+use talos::kernel::registry::Registry;
+use talos::kernel::repos::{
     BookmarkRow, Branches, BrowseEntry, Listing, RepoStore, Wants, Worktrees,
 };
-use thurbox::kernel::snapshot::{AgentRow, HostRow, SessionRow, Snapshot};
-use thurbox::kernel::theme::Themes;
-use thurbox::session::SessionState;
+use talos::kernel::snapshot::{AgentRow, HostRow, SessionRow, Snapshot};
+use talos::kernel::theme::Themes;
+use talos::session::SessionState;
 
 const PLUGIN: &str = "new_session";
 
@@ -64,7 +64,7 @@ fn snapshot() -> Snapshot {
 }
 
 /// Where an installed interface lives, as `offered` reports it.
-const INTERFACE_DIR: &str = "/home/me/.config/thurbox/ui";
+const INTERFACE_DIR: &str = "/home/me/.config/talos/ui";
 
 fn bookmark(path: &str, is_git: Option<bool>) -> BookmarkRow {
     BookmarkRow {
@@ -82,7 +82,7 @@ fn bookmark(path: &str, is_git: Option<bool>) -> BookmarkRow {
 /// under a name of its own rather than reading it from memory.
 fn offered() -> BookmarkRow {
     BookmarkRow {
-        label: Some("Thurbox interface — edit your panes".into()),
+        label: Some("Talos interface — edit your panes".into()),
         offered: true,
         ..bookmark(INTERFACE_DIR, Some(false))
     }
@@ -96,8 +96,8 @@ fn source_session() -> SessionRow {
         name: "fix-osc52".into(),
         agent: "aider".into(),
         status: SessionState::Idle,
-        cwd: Some("/src/thurbox".into()),
-        repo: Some("thurbox".into()),
+        cwd: Some("/src/talos".into()),
+        repo: Some("talos".into()),
         repos: Vec::new(),
         member_dirs: Vec::new(),
         branch: Some("feat/fix-osc52".into()),
@@ -146,8 +146,8 @@ fn folder_rows() -> Vec<BookmarkRow> {
             offered: false,
         },
         BookmarkRow {
-            path: "/src/thurbox".into(),
-            name: "thurbox".into(),
+            path: "/src/talos".into(),
+            name: "talos".into(),
             parent: Some("/src".into()),
             is_parent: false,
             is_git: Some(true),
@@ -171,7 +171,7 @@ impl Default for World {
         Self {
             snapshot: snapshot(),
             repos: store_with(vec![
-                bookmark("/src/thurbox", Some(true)),
+                bookmark("/src/talos", Some(true)),
                 bookmark("/src/notes", Some(false)),
             ]),
             wants: Wants {
@@ -194,9 +194,9 @@ fn publish_hovered(host: &LuaHost, world: &World, hovered: Option<&Identity>) {
     let mut registry = Registry::default();
     let (bindings, settings) = host.declarations();
     registry.declare(bindings, settings);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
+    let diffs = talos::kernel::diff::DiffStore::new();
     host.publish(&Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot: &world.snapshot,
         attach_errors: &Default::default(),
         inflight: &world.inflight,
@@ -264,12 +264,12 @@ fn painted(
     let mut terminal = Terminal::new(TestBackend::new(width, rows)).expect("terminal");
     terminal
         .draw(|frame| {
-            thurbox::kernel::paint::render_recording(
+            talos::kernel::paint::render_recording(
                 frame,
                 Rect::new(0, 0, width, rows),
                 &rendered.node,
-                &thurbox::kernel::terminal::Terminals::with_registry(std::sync::Arc::new(
-                    thurbox::backend::wiring::configured().0,
+                &talos::kernel::terminal::Terminals::with_registry(std::sync::Arc::new(
+                    talos::backend::wiring::configured().0,
                 )),
                 &mut hits,
             );
@@ -450,7 +450,7 @@ fn opening_without_hosts_shows_available_multiplexers_first() {
     let screen = drawn(&host, &world);
     assert!(screen.contains("Multiplexer"), "{screen}");
     assert!(
-        screen.contains(thurbox::agent::preflight::local_multiplexer()),
+        screen.contains(talos::agent::preflight::local_multiplexer()),
         "{screen}"
     );
 }
@@ -569,7 +569,7 @@ fn ui_state_tracks_branch_and_agent_selection() {
     let mut world = World::default();
     world.repos.set_branches_for_test(
         "",
-        "/src/thurbox",
+        "/src/talos",
         Branches::Ready(vec!["origin/main".into(), "main".into()]),
     );
     let state = || host.ui_states()["plugins/70_new_session.lua"].clone();
@@ -577,7 +577,7 @@ fn ui_state_tracks_branch_and_agent_selection() {
     press(&host, &world, "space");
     press(&host, &world, "alt+w");
     press(&host, &world, "enter");
-    world.wants.branches = Some((String::new(), "/src/thurbox".into()));
+    world.wants.branches = Some((String::new(), "/src/talos".into()));
     publish(&host, &world);
     press(&host, &world, "down");
     assert_eq!(state()["step"], "branch");
@@ -614,7 +614,7 @@ fn a_second_open_does_not_discard_what_was_chosen() {
     press(&host, &world, "ctrl+n");
     let screen = drawn(&host, &world);
     assert!(
-        screen.contains("[x] /src/thurbox"),
+        screen.contains("[x] /src/talos"),
         "a stray ctrl+n must not reset the flow: {screen}"
     );
 }
@@ -628,7 +628,7 @@ fn remembered_repositories_are_listed_with_their_kind() {
     open(&host, &world);
     let screen = drawn(&host, &world);
     assert!(screen.contains("Repos (2)"), "{screen}");
-    assert!(screen.contains("[ ] /src/thurbox"), "{screen}");
+    assert!(screen.contains("[ ] /src/talos"), "{screen}");
     // A known non-repository reads as a plain directory.
     assert!(screen.contains("/src/notes"), "{screen}");
     assert!(screen.contains("(dir)"), "{screen}");
@@ -640,7 +640,7 @@ fn space_selects_and_alt_w_gives_it_a_worktree() {
     let world = World::default();
     open(&host, &world);
     press(&host, &world, "space");
-    assert!(drawn(&host, &world).contains("[x] /src/thurbox"));
+    assert!(drawn(&host, &world).contains("[x] /src/talos"));
     press(&host, &world, "alt+w");
     let screen = drawn(&host, &world);
     assert!(screen.contains("[wt]"), "{screen}");
@@ -672,14 +672,14 @@ fn a_folder_of_repositories_renders_as_a_group_that_folds() {
     let screen = drawn(&host, &world);
     assert!(screen.contains("▾ /src"), "an open group: {screen}");
     assert!(screen.contains("(parent)"), "{screen}");
-    assert!(screen.contains("/src/thurbox"), "{screen}");
+    assert!(screen.contains("/src/talos"), "{screen}");
 
     // Space on the header folds it, and its children go with it.
     press(&host, &world, "space");
     let folded = drawn(&host, &world);
     assert!(folded.contains("▸ /src"), "a folded group: {folded}");
     assert!(
-        !folded.contains("/src/thurbox"),
+        !folded.contains("/src/talos"),
         "a folded group hides its members: {folded}"
     );
 }
@@ -693,7 +693,7 @@ fn search_filters_and_counts_what_it_matched() {
     let screen = drawn(&host, &world);
     assert!(screen.contains("Search (1/2)"), "{screen}");
     assert!(screen.contains("/src/notes"), "{screen}");
-    assert!(!screen.contains("thurbox"), "{screen}");
+    assert!(!screen.contains("talos"), "{screen}");
 }
 
 /// The repository rows as drawn, top to bottom, without their checkboxes.
@@ -753,10 +753,10 @@ fn a_search_ranks_folder_members_without_their_header() {
     let host = host();
     let world = world_with(folder_rows());
     open(&host, &world);
-    type_text(&host, &world, "thurbox");
+    type_text(&host, &world, "talos");
     let screen = drawn(&host, &world);
     assert!(!screen.contains("(parent)"), "{screen}");
-    assert!(screen.contains("/src/thurbox"), "{screen}");
+    assert!(screen.contains("/src/talos"), "{screen}");
 }
 
 #[test]
@@ -1051,7 +1051,7 @@ fn path_field(host: &LuaHost, world: &World) -> String {
 fn the_path_field_starts_at_the_directory_every_repository_shares() {
     let world = world_with(vec![
         bookmark("/home/me/code/work/api", Some(true)),
-        bookmark("/home/me/code/perso/thurbox", Some(true)),
+        bookmark("/home/me/code/perso/talos", Some(true)),
     ]);
     assert_eq!(path_field(&host(), &world), "/home/me/code/");
 }
@@ -1068,7 +1068,7 @@ fn the_shared_directory_is_found_by_whole_components() {
 
 #[test]
 fn a_single_repository_starts_the_field_at_its_parent() {
-    let world = world_with(vec![bookmark("/srv/code/thurbox", Some(true))]);
+    let world = world_with(vec![bookmark("/srv/code/talos", Some(true))]);
     assert_eq!(path_field(&host(), &world), "/srv/code/");
 }
 
@@ -1304,7 +1304,7 @@ fn world_listing_src() -> World {
         "/src",
         Listing::Ready(vec![
             BrowseEntry {
-                name: "thurbox".into(),
+                name: "talos".into(),
                 is_git: true,
             },
             BrowseEntry {
@@ -1661,7 +1661,7 @@ fn alt_d_forgets_a_remembered_repository() {
         host.drain_commands(),
         vec![Command::Bookmark {
             host: String::new(),
-            path: "/src/thurbox".into(),
+            path: "/src/talos".into(),
             edit: BookmarkEdit::Remove,
         }]
     );
@@ -1679,7 +1679,7 @@ fn delete_forgets_too_once_there_is_nothing_ahead_of_the_caret() {
         host.drain_commands(),
         vec![Command::Bookmark {
             host: String::new(),
-            path: "/src/thurbox".into(),
+            path: "/src/talos".into(),
             edit: BookmarkEdit::Remove,
         }]
     );
@@ -1712,7 +1712,7 @@ fn a_plain_selection_names_the_session_then_the_agent() {
     let host = host();
     let world = World::default();
     open(&host, &world);
-    press(&host, &world, "space"); // /src/thurbox, no worktree
+    press(&host, &world, "space"); // /src/talos, no worktree
     press(&host, &world, "enter");
     let screen = drawn(&host, &world);
     assert!(
@@ -1732,13 +1732,13 @@ fn a_plain_selection_names_the_session_then_the_agent() {
         host.drain_commands(),
         vec![Command::Create {
             name: "read the code".into(),
-            repo: "/src/thurbox".into(),
+            repo: "/src/talos".into(),
             branch: None,
             base: None,
             worktree_path: None,
             agent: Some("claude".into()),
             host: None,
-            multiplexer: Some(thurbox::agent::preflight::local_multiplexer().into()),
+            multiplexer: Some(talos::agent::preflight::local_multiplexer().into()),
             extras: Vec::new(),
         }]
     );
@@ -1758,7 +1758,7 @@ fn an_untouched_name_takes_the_repository_it_just_picked() {
     press(&host, &world, "enter");
     let screen = drawn(&host, &world);
     assert!(
-        screen.contains("thurbox"),
+        screen.contains("talos"),
         "the suggestion is visible while the field is empty: {screen}"
     );
 
@@ -1772,14 +1772,14 @@ fn an_untouched_name_takes_the_repository_it_just_picked() {
         host.drain_commands(),
         vec![Command::Create {
             // Named after the repository rather than left unnamed.
-            name: "thurbox".into(),
-            repo: "/src/thurbox".into(),
+            name: "talos".into(),
+            repo: "/src/talos".into(),
             branch: None,
             base: None,
             worktree_path: None,
             agent: Some("claude".into()),
             host: None,
-            multiplexer: Some(thurbox::agent::preflight::local_multiplexer().into()),
+            multiplexer: Some(talos::agent::preflight::local_multiplexer().into()),
             extras: Vec::new(),
         }]
     );
@@ -1815,9 +1815,9 @@ fn an_existing_worktree_is_offered_under_its_repo_and_opens_with_no_questions() 
     let mut world = World::default();
     world.repos.set_worktrees_for_test(
         "",
-        "/src/thurbox",
+        "/src/talos",
         Worktrees::Ready(vec![ExistingWorktree {
-            path: "/src/thurbox/.worktrees/dynamic-tooltips".into(),
+            path: "/src/talos/.worktrees/dynamic-tooltips".into(),
             branch: "feat/dynamic-tooltips-15307729713678226529".into(),
         }]),
     );
@@ -1826,9 +1826,9 @@ fn an_existing_worktree_is_offered_under_its_repo_and_opens_with_no_questions() 
     // The flow asks about whichever repo the cursor is on.
     assert_eq!(
         host.shared_string("want_worktrees").as_deref(),
-        Some("\0/src/thurbox")
+        Some("\0/src/talos")
     );
-    world.wants.worktrees = Some((String::new(), "/src/thurbox".into()));
+    world.wants.worktrees = Some((String::new(), "/src/talos".into()));
 
     let screen = drawn(&host, &world);
     assert!(
@@ -1846,14 +1846,14 @@ fn an_existing_worktree_is_offered_under_its_repo_and_opens_with_no_questions() 
         vec![Command::Create {
             // Empty: the kernel names it after the worktree directory.
             name: String::new(),
-            repo: "/src/thurbox".into(),
+            repo: "/src/talos".into(),
             branch: Some("feat/dynamic-tooltips-15307729713678226529".into()),
             // Nothing is branched off anything.
             base: None,
-            worktree_path: Some("/src/thurbox/.worktrees/dynamic-tooltips".into()),
+            worktree_path: Some("/src/talos/.worktrees/dynamic-tooltips".into()),
             agent: Some("claude".into()),
             host: None,
-            multiplexer: Some(thurbox::agent::preflight::local_multiplexer().into()),
+            multiplexer: Some(talos::agent::preflight::local_multiplexer().into()),
             extras: Vec::new(),
         }]
     );
@@ -1866,8 +1866,8 @@ fn a_repo_with_no_existing_worktrees_is_unchanged() {
     let mut world = World::default();
     world
         .repos
-        .set_worktrees_for_test("", "/src/thurbox", Worktrees::Ready(Vec::new()));
-    world.wants.worktrees = Some((String::new(), "/src/thurbox".into()));
+        .set_worktrees_for_test("", "/src/talos", Worktrees::Ready(Vec::new()));
+    world.wants.worktrees = Some((String::new(), "/src/talos".into()));
     open(&host, &world);
     press(&host, &world, "enter");
     let screen = drawn(&host, &world);
@@ -1883,7 +1883,7 @@ fn a_worktree_selection_asks_for_a_base_branch_and_a_branch_name() {
     let mut world = World::default();
     world.repos.set_branches_for_test(
         "",
-        "/src/thurbox",
+        "/src/talos",
         Branches::Ready(vec!["origin/main".into(), "main".into(), "feat/x".into()]),
     );
     open(&host, &world);
@@ -1895,9 +1895,9 @@ fn a_worktree_selection_asks_for_a_base_branch_and_a_branch_name() {
     // published under the same key.
     assert_eq!(
         host.shared_string("want_branches").as_deref(),
-        Some("\0/src/thurbox")
+        Some("\0/src/talos")
     );
-    world.wants.branches = Some((String::new(), "/src/thurbox".into()));
+    world.wants.branches = Some((String::new(), "/src/talos".into()));
     let screen = drawn(&host, &world);
     assert!(screen.contains("Base Branch"), "{screen}");
     assert!(
@@ -1921,13 +1921,13 @@ fn a_worktree_selection_asks_for_a_base_branch_and_a_branch_name() {
         host.drain_commands(),
         vec![Command::Create {
             name: "Fix OSC 52".into(),
-            repo: "/src/thurbox".into(),
+            repo: "/src/talos".into(),
             branch: Some("fix-osc-52".into()),
             base: Some("origin/main".into()),
             worktree_path: None,
             agent: Some("claude".into()),
             host: None,
-            multiplexer: Some(thurbox::agent::preflight::local_multiplexer().into()),
+            multiplexer: Some(talos::agent::preflight::local_multiplexer().into()),
             extras: Vec::new(),
         }]
     );
@@ -1937,16 +1937,16 @@ fn a_worktree_selection_asks_for_a_base_branch_and_a_branch_name() {
 fn a_second_repository_travels_as_an_extra_member_with_its_own_mode() {
     let host = host();
     let mut world = world_with(vec![
-        bookmark("/src/thurbox", Some(true)),
+        bookmark("/src/talos", Some(true)),
         bookmark("/src/website", Some(true)),
         bookmark("/src/notes", Some(false)),
     ]);
     world
         .repos
-        .set_branches_for_test("", "/src/thurbox", Branches::Ready(vec!["main".into()]));
-    world.wants.branches = Some((String::new(), "/src/thurbox".into()));
+        .set_branches_for_test("", "/src/talos", Branches::Ready(vec!["main".into()]));
+    world.wants.branches = Some((String::new(), "/src/talos".into()));
     open(&host, &world);
-    // thurbox: worktree. website: worktree. notes: attached as it is.
+    // talos: worktree. website: worktree. notes: attached as it is.
     press(&host, &world, "alt+w");
     press(&host, &world, "down");
     press(&host, &world, "alt+w");
@@ -1963,7 +1963,7 @@ fn a_second_repository_travels_as_an_extra_member_with_its_own_mode() {
     let Some(Command::Create { repo, extras, .. }) = issued.first() else {
         panic!("expected a create, got {issued:?}");
     };
-    assert_eq!(repo, "/src/thurbox", "the first worktree repo is primary");
+    assert_eq!(repo, "/src/talos", "the first worktree repo is primary");
     assert_eq!(
         extras
             .iter()
@@ -1989,7 +1989,7 @@ fn a_host_is_carried_into_the_create_and_scopes_the_memory() {
     // The memory that matters here is the HOST's, not the local machine's.
     world
         .repos
-        .set_bookmarks_for_test("ssh:devbox", vec![bookmark("/srv/thurbox", Some(true))]);
+        .set_bookmarks_for_test("ssh:devbox", vec![bookmark("/srv/talos", Some(true))]);
     open(&host, &world);
     press(&host, &world, "j"); // local → devbox
     press(&host, &world, "enter");
@@ -2088,12 +2088,12 @@ fn the_empty_session_list_names_the_chord_that_creates_one() {
     let mut terminal = Terminal::new(TestBackend::new(30, 10)).expect("terminal");
     terminal
         .draw(|frame| {
-            thurbox::kernel::paint::render_recording(
+            talos::kernel::paint::render_recording(
                 frame,
                 Rect::new(0, 0, 30, 10),
                 &rendered.node,
-                &thurbox::kernel::terminal::Terminals::with_registry(std::sync::Arc::new(
-                    thurbox::backend::wiring::configured().0,
+                &talos::kernel::terminal::Terminals::with_registry(std::sync::Arc::new(
+                    talos::backend::wiring::configured().0,
                 )),
                 &mut Vec::new(),
             );
@@ -2130,7 +2130,7 @@ fn what_the_flow_asks_for_is_what_the_loop_reads() {
     }];
     world
         .repos
-        .set_bookmarks_for_test("ssh:devbox", vec![bookmark("/srv/thurbox", Some(true))]);
+        .set_bookmarks_for_test("ssh:devbox", vec![bookmark("/srv/talos", Some(true))]);
     open(&host, &world);
     press(&host, &world, "j");
     press(&host, &world, "enter");
@@ -2402,14 +2402,14 @@ fn an_existing_worktree_row_offers_to_open_it() {
     let mut world = World::default();
     world.repos.set_worktrees_for_test(
         "",
-        "/src/thurbox",
+        "/src/talos",
         Worktrees::Ready(vec![ExistingWorktree {
-            path: "/src/thurbox/.worktrees/dynamic-tooltips".into(),
+            path: "/src/talos/.worktrees/dynamic-tooltips".into(),
             branch: "feat/dynamic-tooltips".into(),
         }]),
     );
     open(&h, &world);
-    world.wants.worktrees = Some((String::new(), "/src/thurbox".into()));
+    world.wants.worktrees = Some((String::new(), "/src/talos".into()));
     assert!(drawn(&h, &world).contains("[ Next ]"), "on the repo row");
     press(&h, &world, "down");
     let screen = drawn(&h, &world);
@@ -2428,14 +2428,14 @@ fn an_existing_worktree_row_offers_to_open_it_directly_with_one_agent() {
     world.snapshot.agents.truncate(1);
     world.repos.set_worktrees_for_test(
         "",
-        "/src/thurbox",
+        "/src/talos",
         Worktrees::Ready(vec![ExistingWorktree {
-            path: "/src/thurbox/.worktrees/dynamic-tooltips".into(),
+            path: "/src/talos/.worktrees/dynamic-tooltips".into(),
             branch: "feat/dynamic-tooltips".into(),
         }]),
     );
     open(&h, &world);
-    world.wants.worktrees = Some((String::new(), "/src/thurbox".into()));
+    world.wants.worktrees = Some((String::new(), "/src/talos".into()));
     press(&h, &world, "down");
     let screen = drawn(&h, &world);
     assert!(screen.contains("[ Open ]"), "{screen}");
@@ -2447,12 +2447,12 @@ fn the_branch_step_offers_nothing_to_select_while_it_is_still_fetching() {
     let mut world = World::default();
     world
         .repos
-        .set_branches_for_test("", "/src/thurbox", Branches::Pending);
+        .set_branches_for_test("", "/src/talos", Branches::Pending);
     open(&h, &world);
     press(&h, &world, "space");
     press(&h, &world, "alt+w");
     press(&h, &world, "enter");
-    world.wants.branches = Some((String::new(), "/src/thurbox".into()));
+    world.wants.branches = Some((String::new(), "/src/talos".into()));
     let screen = drawn(&h, &world);
     assert!(
         !screen.contains("[ Select ]"),
@@ -2461,7 +2461,7 @@ fn the_branch_step_offers_nothing_to_select_while_it_is_still_fetching() {
 
     world.repos.set_branches_for_test(
         "",
-        "/src/thurbox",
+        "/src/talos",
         Branches::Ready(vec!["origin/main".into(), "main".into()]),
     );
     let screen = drawn(&h, &world);
@@ -2515,14 +2515,14 @@ fn the_branch_name_is_not_the_last_question_when_an_agent_is_still_to_come() {
     let mut world = World::default();
     world.repos.set_branches_for_test(
         "",
-        "/src/thurbox",
+        "/src/talos",
         Branches::Ready(vec!["origin/main".into()]),
     );
     open(&h, &world);
     press(&h, &world, "space");
     press(&h, &world, "alt+w");
     press(&h, &world, "enter");
-    world.wants.branches = Some((String::new(), "/src/thurbox".into()));
+    world.wants.branches = Some((String::new(), "/src/talos".into()));
     press(&h, &world, "enter");
     let screen = drawn(&h, &world);
     assert!(
@@ -2571,7 +2571,7 @@ fn a_host_with_nothing_ticked_offers_nothing_to_advance_to() {
     // A row on screen is a choice even unticked: `enter` takes the cursor row.
     world
         .repos
-        .set_bookmarks_for_test("ssh:devbox", vec![bookmark("/srv/thurbox", Some(true))]);
+        .set_bookmarks_for_test("ssh:devbox", vec![bookmark("/srv/talos", Some(true))]);
     let listed = drawn(&h, &world);
     assert!(listed.contains("[ Next ]"), "{listed}");
 }
@@ -2626,7 +2626,7 @@ fn ticked_rows_win_over_the_cursor_row() {
     let host = host();
     let world = World::default();
     open(&host, &world);
-    press(&host, &world, "space"); // ticks /src/thurbox
+    press(&host, &world, "space"); // ticks /src/talos
     press(&host, &world, "down"); // cursor on /src/notes, unticked
     press(&host, &world, "enter");
     type_text(&host, &world, "n");
@@ -2636,7 +2636,7 @@ fn ticked_rows_win_over_the_cursor_row() {
     let Some(Command::Create { repo, extras, .. }) = issued.first() else {
         panic!("expected a create, got {issued:?}");
     };
-    assert_eq!(repo, "/src/thurbox");
+    assert_eq!(repo, "/src/talos");
     assert!(extras.is_empty(), "the cursor row is not added: {extras:?}");
 }
 
@@ -2683,7 +2683,7 @@ fn a_name_the_repository_can_answer_for_keeps_its_pill() {
     press(&h, &world, "space");
     press(&h, &world, "enter");
     let screen = drawn(&h, &world);
-    assert!(screen.contains("thurbox"), "the suggestion shows: {screen}");
+    assert!(screen.contains("talos"), "the suggestion shows: {screen}");
     assert!(screen.contains("[ Next ]"), "{screen}");
 }
 
@@ -2695,14 +2695,14 @@ fn a_branch_name_that_prefilled_to_nothing_offers_no_pill() {
     let mut world = World::default();
     world.repos.set_branches_for_test(
         "",
-        "/src/thurbox",
+        "/src/talos",
         Branches::Ready(vec!["origin/main".into()]),
     );
     open(&h, &world);
     press(&h, &world, "space");
     press(&h, &world, "alt+w");
     press(&h, &world, "enter");
-    world.wants.branches = Some((String::new(), "/src/thurbox".into()));
+    world.wants.branches = Some((String::new(), "/src/talos".into()));
     press(&h, &world, "enter");
     type_text(&h, &world, "!!!");
     press(&h, &world, "enter");
@@ -2743,12 +2743,12 @@ fn sessions_screen(host: &LuaHost, world: &World, width: u16, height: u16) -> St
     let mut terminal = Terminal::new(TestBackend::new(width, height)).expect("terminal");
     terminal
         .draw(|frame| {
-            thurbox::kernel::paint::render_recording(
+            talos::kernel::paint::render_recording(
                 frame,
                 Rect::new(0, 0, width, height),
                 &rendered.node,
-                &thurbox::kernel::terminal::Terminals::with_registry(std::sync::Arc::new(
-                    thurbox::backend::wiring::configured().0,
+                &talos::kernel::terminal::Terminals::with_registry(std::sync::Arc::new(
+                    talos::backend::wiring::configured().0,
                 )),
                 &mut Vec::new(),
             );
@@ -2767,7 +2767,7 @@ fn sessions_screen(host: &LuaHost, world: &World, width: u16, height: u16) -> St
 
 /// A snapshot whose multiplexer is not installed.
 fn without_a_multiplexer(world: &mut World) {
-    world.snapshot.mux = thurbox::kernel::snapshot::MuxRow {
+    world.snapshot.mux = talos::kernel::snapshot::MuxRow {
         binary: "tmux".into(),
         configured: None,
         available: vec!["tmux".into()],
@@ -2871,7 +2871,7 @@ fn a_remote_agent_is_never_reported_as_missing_by_local_presence() {
     world.snapshot.agents[1].presence = Presence::Missing;
     world
         .repos
-        .set_bookmarks_for_test("ssh:devbox", vec![bookmark("/srv/thurbox", Some(true))]);
+        .set_bookmarks_for_test("ssh:devbox", vec![bookmark("/srv/talos", Some(true))]);
     open(&host, &world);
     press(&host, &world, "j"); // local → devbox
     press(&host, &world, "enter");
@@ -2905,7 +2905,7 @@ fn the_empty_session_list_says_the_multiplexer_is_missing() {
         "the first-run screen says nothing about the missing multiplexer: {screen}"
     );
     assert!(
-        screen.contains("thurbox-cli doctor"),
+        screen.contains("talos-cli doctor"),
         "the note names nowhere to get the whole answer: {screen}"
     );
 
@@ -3095,7 +3095,7 @@ fn a_hovered_repository_row_is_banded_and_keeps_its_colours() {
             .all(|(a, b)| a.fg == b.fg),
         "a band repaints no foreground"
     );
-    let (_, first) = locate(&resting, "thurbox");
+    let (_, first) = locate(&resting, "talos");
     assert!(
         (0..resting.area.width).all(|x| resting[(x, first)] == lit[(x, first)]),
         "the row under the cursor is untouched"
@@ -3203,7 +3203,7 @@ fn a_bookmark_named_like_a_reserved_target_is_still_selected_by_a_click() {
     // — including one spelled like the flow's own field or folder targets.
     let world = World {
         repos: store_with(vec![
-            bookmark("/src/thurbox", Some(true)),
+            bookmark("/src/talos", Some(true)),
             bookmark("browse:notes", Some(false)),
             bookmark("field:input", Some(false)),
         ]),

@@ -11,7 +11,7 @@
 > **ADR-P13 below is the current shape**, and the one to read first if you are
 > changing the loop.
 
-How thurbox stays responsive and light, and how to measure it. The focus areas
+How talos stays responsive and light, and how to measure it. The focus areas
 are **input latency**, **runtime CPU / render cost**, **startup time**, and
 **memory / binary size**. Decisions below follow the mini-ADR format
 (**Choice**, **Why**, **Rejected alternatives**), matching
@@ -78,7 +78,7 @@ follow each draw — and is gated on `HyperlinkTable::is_empty()` **and** an emp
 scanned-URL list **before** it computes layout or extracts screen rows, so a
 session showing no link of either kind pays a single emptiness check per frame.
 The plain-text leg adds no scan of its own: it is handed the list
-`refresh_links` already keeps for `thurbox.links`, and only validates each
+`refresh_links` already keeps for `talos.links`, and only validates each
 position against the cells the frame drew — the URL's own cells plus the one
 past its end. It carries its own cap (`SCANNED_LINK_LIMIT`, 128) for the reason
 the run scan does, but on the output rather than the input: every accepted
@@ -219,8 +219,8 @@ won't pay off.
 **Choice**: The gating automated perf tests are the counter assertions
 (ADR-P2). Heavier measurement is **opt-in and local**:
 
-- **Time-to-first-frame**: launch with `THURBOX_PERF_LOG=1`; `run_loop` logs one
-  `startup …` line to `~/.local/share/thurbox/thurbox.log` with a **phase
+- **Time-to-first-frame**: launch with `TALOS_PERF_LOG=1`; `run_loop` logs one
+  `startup …` line to `~/.local/share/talos/talos.log` with a **phase
   breakdown** that sums to roughly `first_frame_ms` —
   `config_init_ms` (config-file loads + local backend ready), `db_open_ms`,
   `theme_activate_ms` (persisted-theme lookup + custom-theme publish),
@@ -250,12 +250,12 @@ won't pay off.
   Off by default — never affects normal runs or the smoke test; the timing reads
   are gated on the flag so there is zero overhead otherwise.
 - **Binary size**: the non-gating `binary-size` CI job
-  (`.github/workflows/ci.yml`) builds `--release` and records `thurbox` /
-  `thurbox-cli` sizes to the job summary + an artifact. It is intentionally
+  (`.github/workflows/ci.yml`) builds `--release` and records `talos` /
+  `talos-cli` sizes to the job summary + an artifact. It is intentionally
   **not** in `all-checks.needs`, so it never blocks a merge; it just makes
   growth visible. The release profile is already tuned (`opt-level = 3`,
   `lto = true`, `codegen-units = 1`, `strip = true`).
-- **Local profiling**: `cargo flamegraph --bin thurbox` (build with the
+- **Local profiling**: `cargo flamegraph --bin talos` (build with the
   `release-with-debug` profile for symbols) for CPU; `cargo bloat --release
   --crates` for size attribution. Neither is a dependency — run them ad hoc.
 - **What a frame costs, and what the binary costs under load**: `just bench`
@@ -300,7 +300,7 @@ explicitly: the deferred `seen_at` marks are applied **write-through** into the
 cache (otherwise a just-acknowledged `done` session would re-derive to `Done`
 next tick), and the restart path's `clear_hook_state` calls
 `App::invalidate_hook_state_cache` (forces a reload). External
-`thurbox-cli session signal` writes come from another connection and *do* bump
+`talos-cli session signal` writes come from another connection and *do* bump
 `data_version`, so they're picked up on the next tick as before.
 
 Alongside this, `Database::initialize` (`src/storage/schema.rs`) sets the
@@ -406,7 +406,7 @@ uses for git stats and worktree creation.
 `App::code_reviews`, `build_review_open`, and all four gate tests) went with
 `src/app`; the reasoning survives because the successor is the same shape. The
 kernel's `DiffStore` computes on a worker and publishes into the snapshot, which a
-plugin reads as `thurbox.diffs[<session>]` — `pending` / `failed` / `ready`, with
+plugin reads as `talos.diffs[<session>]` — `pending` / `failed` / `ready`, with
 `files`, `body`, `truncated`, `raw_bytes` and `untracked_omitted`. Five things
 about it are worth stating because each was wrong once:
 
@@ -558,7 +558,7 @@ only** and never CI-asserted (the counters remain the sole regression gate):
   No new dependencies: the histogram is ~40 lines with power-of-two µs buckets
   (250 µs → 1 s + overflow), good enough to answer "is a frame 1 ms or 30 ms".
 - **Gating**: the hot-loop `Instant` reads run only while
-  `App::perf_timing_active()` — `THURBOX_PERF_LOG` set (cached at
+  `App::perf_timing_active()` — `TALOS_PERF_LOG` set (cached at
   construction) or the perf HUD open — so a normal run pays a single cached
   bool check per loop iteration, keeping ADR-P5's zero-overhead promise.
 - **Slow ops**: `App::time_op(name, f)` wraps rare, user-triggered synchronous
@@ -566,7 +566,7 @@ only** and never CI-asserted (the counters remain the sole regression gate):
   as `input_dispatch`). Always measured (call sites are not the hot path):
   ≥ 5 ms lands in the ring, ≥ 100 ms also logs a `slow op` warning — so an
   interactive stall is attributable even when nobody was watching.
-- **Steady-state reporting**: under `THURBOX_PERF_LOG`, every 1000 ticks
+- **Steady-state reporting**: under `TALOS_PERF_LOG`, every 1000 ticks
   (~10 s) `App::tick_perf_window` logs one `perf_window` line — counter
   **deltas** for the window (`PerfCounters::delta`), frame/tick p50/p95/max,
   and the window's slow ops — then resets the per-window timing state. The
@@ -577,8 +577,8 @@ only** and never CI-asserted (the counters remain the sole regression gate):
 - **External inspection**: while timing is active the TUI also publishes a
   JSON snapshot (counters + percentiles + slow ops + the startup phases) into
   the SQLite `metadata` table (`perf_snapshot` key, ~every 5–10 s), read by
-  **`thurbox-cli perf`** (`--json` for machine output). Publishing is gated on
-  timing being active because each write bumps *other* thurbox connections'
+  **`talos-cli perf`** (`--json` for machine output). Publishing is gated on
+  timing being active because each write bumps *other* talos connections'
   `data_version` (a full shared-state reload on their next poll) — an idle,
   default-config instance must never churn that row.
 
@@ -593,14 +593,14 @@ only** and never CI-asserted (the counters remain the sole regression gate):
   rather than printing a silent zero.
 - **Three histograms, not two.** `frame` (the `terminal.draw` call) and `tick`
   (one iteration's non-blocking work) are joined by **`republish`** — the
-  per-frame rebuild of every `thurbox.*` table. They are recorded so they
+  per-frame rebuild of every `talos.*` table. They are recorded so they
   *decompose* rather than nest: `tick` is taken before the paint, so an
   iteration is roughly tick + republish + frame + the input wait. Telling the
   table rebuild apart from the painting is the difference between "frames are
   expensive" and knowing why, and it is the number ADR-P14 should be read
   against.
 - **Gating** is `App::perf_timing_active` — `perf_log` (cached from
-  `THURBOX_PERF_LOG` at construction) or the HUD being open — checked once per
+  `TALOS_PERF_LOG` at construction) or the HUD being open — checked once per
   iteration, so a default run pays one bool.
 - **Slow ops** wrap `interface_reload` (the whole reload: rebuild, sources,
   declarations) and `input_dispatch` (a keypress, which runs plugin Lua and so
@@ -612,7 +612,7 @@ only** and never CI-asserted (the counters remain the sole regression gate):
 - **The subscriber had to be restored.** v2's TUI shipped without one at all,
   so every `tracing` call in the process — the panic hook's included — was
   dropped rather than written. `main` now installs the daily rolling
-  `thurbox.log` appender v1 had, which is what makes the lines below exist.
+  `talos.log` appender v1 had, which is what makes the lines below exist.
 
 **Why**: the counters gate regressions in CI but were invisible in a live
 build, and they deliberately count rather than time — so a user-perceived
@@ -943,7 +943,7 @@ but the CPU it returns is bounded by `MIN_FRAME_INTERVAL`.
 
 **Context**: ADR-P15 left v2 at 2.4x v1's CPU and 2.5x its cost per frame, with
 the gap identified as the Lua boundary — running each pane, converting the table
-it returns, and rebuilding every `thurbox.*` group, all once per painted frame.
+it returns, and rebuilding every `talos.*` group, all once per painted frame.
 Instrumenting the tree diff showed why that was avoidable: under load the session
 list produced a **byte-identical tree on 200 of 200 renders**, and the agent pane
 repainted because its *surface* moved rather than its tree. The loop was proving
@@ -962,10 +962,10 @@ the work wasted only after paying for it.
   clock itself, since a group gated on the clock would rebuild on every frame
   under a working agent and be worth nothing. The pointer is the same shape:
   `App::hover` moves `data_epoch` when the identity under the pointer changes,
-  once per affordance crossed and never per cell, because `thurbox.hover` is
+  once per affordance crossed and never per cell, because `talos.hover` is
   published and a pure pane that lights what it is under would otherwise be
   served the tree it built before the pointer arrived.
-- **Gated publish**: each `thurbox.*` group names the versions it is built from
+- **Gated publish**: each `talos.*` group names the versions it is built from
   and is rebuilt only when one moves. The outer table is still assembled fresh
   every frame, so a gating mistake can produce a stale *group* but never a torn
   table. Keys are compared exactly (`[u64; 4]`), not hashed — a collision here
@@ -1005,7 +1005,7 @@ review:**
   state version 40 times a second and invalidated every cached tree. With it,
   the saving was 0%; without it, 27%. Every signal here compares before it
   stores, for exactly this reason.
-- **`thurbox.commands` is read too, and accepting one had no signal.** The
+- **`talos.commands` is read too, and accepting one had no signal.** The
   in-flight list is published every frame, but only its *completion* side moved
   the data epoch (`poll_command_bus`); submitting a command moved nothing. The
   session list drops the row a `delete` names as soon as it is accepted, and
@@ -1022,7 +1022,7 @@ review:**
 - *Opt-out caching* (`animated = true` to escape) — a performance change must
   not be able to break a third-party pane that was never touched, and the
   failure would be a pane that stops updating rather than an error.
-- *Read-tracking* (proxy `thurbox.*`, key on fields actually read) — the most
+- *Read-tracking* (proxy `talos.*`, key on fields actually read) — the most
   precise answer and needs no annotation, but it does not solve side effects
   either and is a far larger change. Opt-in purity composes with adding it later.
 - *Per-pane dependency sets* — the measured waste is frames where *nothing*
@@ -1080,9 +1080,9 @@ CPU.
 **Context**: with ADR-P16 landed, a frame costs ~2.6ms and the interface still
 took ~19% of a core to show one agent printing 30 lines a second. Measuring the
 whole process tree against the same workload run bare (agent in a tmux pane, no
-thurbox) put bare at **1.20%** — agent 0.56, tmux 0.64. Two of those components
-are unavoidable for thurbox: the same agent, plus its own inner tmux (~0.9%),
-which is what makes a session survive a restart. So thurbox starts at roughly
+talos) put bare at **1.20%** — agent 0.56, tmux 0.64. Two of those components
+are unavoidable for talos: the same agent, plus its own inner tmux (~0.9%),
+which is what makes a session survive a restart. So talos starts at roughly
 bare's *entire* cost before it paints anything, and parity is not a reachable
 target; the question is only how much of the rest is waste.
 
@@ -1112,7 +1112,7 @@ Swept across the interval, one agent at 30 lines/s, 200x50:
 
 Most of the saving arrives by 30fps and the curve flattens after; below it the
 scroll begins to look stepped. The terminal's own cost falls with it, because
-thurbox hands it fewer updates.
+talos hands it fewer updates.
 
 **Also**: the surface paint stopped clearing its whole rect first. `swap_buffers`
 resets the frame buffer before every draw, so there is nothing stale to erase
@@ -1164,7 +1164,7 @@ frame.
 
 ## ADR-P14: Publish once per input batch, and gate every screen read on a stamp
 
-**Choice**: `App::republish` — the call that rebuilds every `thurbox.*` table Lua can
+**Choice**: `App::republish` — the call that rebuilds every `talos.*` table Lua can
 read — runs **once per event batch** rather than once per event, and the three reads
 inside it that touch a screen or the filesystem are gated on something that says
 whether the answer could have changed.
@@ -1193,7 +1193,7 @@ the same ones ADR-P13 already treats as per-frame costs.
 
 **Rejected**:
 
-- *Publishing lazily, on the first `thurbox.*` read from Lua* — the publish builds one
+- *Publishing lazily, on the first `talos.*` read from Lua* — the publish builds one
   table; making it per-field would put a Rust callback on every field read, which is
   the cost this avoids, spread thinner.
 - *Not publishing before input at all* — a handler would read the previous frame's
@@ -1402,7 +1402,7 @@ control so the machine's mood is not part of the claim:
 thirds of the frame budget to a seventh. It is reduced rather than removed, and
 the residual is the honest arithmetic of the choice: four paced rescans a second
 still move the epoch four times, against thirty. Removing it entirely would mean
-either not publishing link positions at all — `thurbox.links` has no bundled
+either not publishing link positions at all — `talos.links` has no bundled
 reader, but an out-of-tree pane may — or a per-group invalidation the tree cache
 cannot express, since its key is the whole `Epoch`. Neither is worth it for the
 seventh; both are written down here so the next person does not rediscover them.
@@ -1444,7 +1444,7 @@ and all three closed float probes, which draw nothing at all.
 
 The harness could not see it, because `sh` runs no status hook and nothing ever
 reported `working`. `perf-run.sh -w N` now signals N sessions the way a hook does
-(`THURBOX_SESSION` plus `session signal`), which made it measurable — and it was
+(`TALOS_SESSION` plus `session signal`), which made it measurable — and it was
 the largest single cost left:
 
 | 19 sessions, 3 printing, 255x62 | CPU | pane trees from cache |
@@ -1457,7 +1457,7 @@ the session list really does depend on the clock. What was wrong is that every
 other pane paid for it.
 
 **How everyone else does it.** Worth reading before choosing, because the answer
-is unanimous and thurbox had neither half of it:
+is unanimous and talos had neither half of it:
 
 - **Textual** — a spinner widget calls `self.set_interval(1 / 60, self.refresh)`
   on *itself*, and `refresh` marks that widget dirty. Rich's `Spinner` derives
@@ -1475,7 +1475,7 @@ is unanimous and thurbox had neither half of it:
 
 One principle behind all four: **the clock invalidates only its reader**. Three
 of them get that coupling for free, because the thing that reads the clock is
-also the thing that asks to be redrawn. thurbox's panes do not ask — the kernel
+also the thing that asks to be redrawn. talos's panes do not ask — the kernel
 calls them — so the coupling had to be recovered some other way.
 
 **Choice**: recover it by *observation*. `ctx.elapsed` is served through the
@@ -1508,7 +1508,7 @@ before the prior art was read:
   freezes any third-party spinner whose author never read the release note. A
   wrong-direction failure with no error anywhere is the class of bug this
   document exists to record.
-- Defaulting to "does" is safe and recovers only the panes thurbox ships.
+- Defaulting to "does" is safe and recovers only the panes talos ships.
 - Taking the spinner out of the tree and painting it as a decoration needs no
   declaration, but reworks the session list and only moves the cost.
 
@@ -1533,7 +1533,7 @@ not at the top of a render that usually draws nothing moving.
 ## ADR-P22: Background housekeeping is invisible to the interface (2026-09-04)
 
 **Context**: the deleted-session sweep is dispatched on the command bus every
-`REAP_INTERVAL` (5s) for as long as thurbox runs (ADR-26). The bus records every
+`REAP_INTERVAL` (5s) for as long as talos runs (ADR-26). The bus records every
 command it accepts, and three things read that record: `status_rows` reserves a
 message-band row while anything is in flight, the band captions it with the
 command's kind, and `advance_animation` counts it as something moving. So the
@@ -1547,7 +1547,7 @@ interface nobody was touching.
 the bus keeps **no in-flight record** of one. Not a filter at each reader — a
 single `dispatch` branch, so the sweep is absent from `inflight()`,
 `has_inflight()`, `first_running()`, `is_busy()` and therefore from
-`thurbox.commands`, the band, the arrangement and the animation clock at once.
+`talos.commands`, the band, the arrangement and the animation clock at once.
 The work still runs on its own worker thread, unchanged; a failure is reported
 through `tracing` rather than the band, which is where the rest of the sweep
 already speaks.
@@ -1555,7 +1555,7 @@ already speaks.
 **Rejected**:
 
 - *Excluding it in `status_rows`* — the cheapest edit and the wrong one: the
-  same row still reaches plugins through `thurbox.commands` and still animates
+  same row still reaches plugins through `talos.commands` and still animates
   the clock, so the flicker would come back through whichever reader was not
   patched. There are four.
 - *Slowing `REAP_INTERVAL`* — makes the flash rarer, not absent, and the cadence
@@ -1587,7 +1587,7 @@ way to answer it was to delete panes until the number moved.
 into one `kernel::perf::PluginTable`, and `kernel::perf::plugin_report` turns it
 into the one ranked `PluginReport` that all three surfaces read — the HUD's
 `panes` table under the counters, the `plugins` array of the published snapshot,
-and `thurbox-cli perf --plugins` (text, or `--json` for a script). Per plugin:
+and `talos-cli perf --plugins` (text, or `--json` for a script). Per plugin:
 Lua renders and pure-cache reuses, render time (p50/p95/max and the exact sum),
 share of painted-frame time, time in each handler (`on_key`, `on_action`,
 `on_click`/`on_context`/`on_outside`, `on_scroll`, `on_event`, `decorate`), `run` asks plus
@@ -1767,7 +1767,7 @@ where a reader of the test will meet it.
 ## ADR-P25: The polled git cost is per session, and it is not the frame's (2026-09-17)
 
 **Context**: every ADR above this one is about a frame. This one is about the
-processes an idle thurbox starts. `GitStats` re-stats each session's worktree on
+processes an idle talos starts. `GitStats` re-stats each session's worktree on
 a fixed 5 s TTL, off the render path, which is correct and was never the
 problem; the problem is the multiplier. Issue #1167 measured `git` running **298
 times in 30 seconds** on an instance holding 16 sessions — no agent responsible,
@@ -1884,7 +1884,7 @@ at a time re-matches cached text instead of re-reading grids. Only the hits that
 survive ranking (50 per session, 200 in all) get their snippet built. A new query
 dispatches at once; output alone re-runs the same query at most once a second
 (`RESCAN_INTERVAL`), so a streaming agent does not keep a core busy for as long as
-the strip is open. The answer is published as `thurbox.search`, gated on the data
+the strip is open. The answer is published as `talos.search`, gated on the data
 epoch like every other worker result, and dropped — cache and all — the moment
 nothing asks.
 
@@ -1943,7 +1943,7 @@ the loop, which is most of it.
   depends on the VM's string-hash seed and how the table was built, so the
   strip re-stating an unchanged query field "moved" it on most frames — in 2.32.0
   too. Entries are now held in a canonical order (`api.rs::from_lua`).
-- **`thurbox.search` was rebuilt ~8 times a second**, gated on the data epoch
+- **`talos.search` was rebuilt ~8 times a second**, gated on the data epoch
   every worker moves. It is now gated on the answer's own serial, so it and the
   strip's memo move only when the answer does.
 - **A history was read under one hold of its parser's lock**: 1.8ms per session
@@ -2002,7 +2002,7 @@ one where only another worker's result landed, calls into `lib.fuzzy`, or if an
 open strip leaves the session list re-rendering; `kernel::search`'s tests pin a
 hold at `CHUNK_ROWS` rows plus the screen, a consistent read of a terminal
 printing between holds, and a rescan reading only what was printed.
-`THURBOX_BENCH_CHECK=1 cargo bench --bench search_cost` exits non-zero past 1ms
+`TALOS_BENCH_CHECK=1 cargo bench --bench search_cost` exits non-zero past 1ms
 held, 50ms per keystroke or 50ms per rescan — by hand, never in CI (ADR-P5).
 
 ---
@@ -2014,7 +2014,7 @@ its screen and history. The interface parses it again into a `vt100` grid of
 32 bytes a cell, sized to the whole terminal, with `scrollback_lines` rows of
 history, for every attached session whether or not it was ever shown. The
 multiplexer benchmark read that as about 1 MiB a session attached, where
-headless thurbox, which is tmux, holds all 50 in 9 MiB. It is more than that:
+headless talos, which is tmux, holds all 50 in 9 MiB. It is more than that:
 the benchmark's sessions had barely scrolled. Measured on the interface
 process alone, 50 sessions attached at 200x50, once every session had printed
 6,000 lines:
@@ -2041,7 +2041,7 @@ change):
 | the content search (ADR-P26) | every row of history | reads the pane back from tmux on its worker (below) |
 | `hyperlink_paints`, the link scan, selection, mouse | the visible grid | only painted surfaces, which ask for their grid first |
 | `visible_text` (the Copy command) | the visible grid | a pane with no grid answers "nothing to copy" rather than two blank rows |
-| `thurbox-cli session capture`, `doctor` | history | never the interface: `tmux capture-pane` |
+| `talos-cli session capture`, `doctor` | history | never the interface: `tmux capture-pane` |
 | the session list, queue and plugin panes | the snapshot | never the parser |
 
 **Weighed**:
@@ -2208,7 +2208,7 @@ That is the floor this architecture has on that machine, and it is above Herdr's
 2.2 ms there. None of it is waiting any more; it is three kinds of work, each
 structural:
 
-- **The frame (~1.4 ms).** thurbox is a second terminal emulator: the echo is
+- **The frame (~1.4 ms).** talos is a second terminal emulator: the echo is
   re-rendered from its vt100 grid into a ratatui buffer and diffed over the whole
   screen. Copying the kept frame in and out could be halved by swapping it into
   ratatui's own buffer rather than copying (~0.2 ms, by bypassing
@@ -2253,7 +2253,7 @@ more than three of tmux.
 
 ## Measuring: the bench and the load harness (2026-08-29)
 
-Two instruments, because "a frame costs 2ms" and "thurbox costs 8% of a core"
+Two instruments, because "a frame costs 2ms" and "talos costs 8% of a core"
 are different claims and neither implies the other. Both live outside the PR
 gate, per ADR-P5.
 
@@ -2266,8 +2266,8 @@ the second most expensive pane in the interface, which it is not — it occupies
 slot, so `draw_slots` never reaches it.
 
 It reports whole frames (settled, snapshot moved, animation tick), then the
-parts, then per placed pane, then what the caches did. `THURBOX_BENCH_SESSIONS`,
-`THURBOX_BENCH_WIDTH` and `THURBOX_BENCH_HEIGHT` sweep it — a height sweep is
+parts, then per placed pane, then what the caches did. `TALOS_BENCH_SESSIONS`,
+`TALOS_BENCH_WIDTH` and `TALOS_BENCH_HEIGHT` sweep it — a height sweep is
 what separates "the session list costs 435us" from "a visible row costs 9us".
 
 **`scripts/dev/perf-run.sh`** — the whole binary under a reproducible load: real
@@ -2292,12 +2292,12 @@ scripts/dev/perf-run.sh --bin-dir DIR          # another build's binaries, e.g. 
 Two traps it now handles, both of which report a plausible number rather than
 failing:
 
-- **It must measure its own process.** `pgrep -x thurbox` finds the developer's
-  own running thurbox first, and every configuration then reports that instance:
+- **It must measure its own process.** `pgrep -x talos` finds the developer's
+  own running talos first, and every configuration then reports that instance:
   idle or loaded, one session or twenty, all ~17% of a core. The run is
   identified by its private `XDG_DATA_HOME` in `/proc/<pid>/environ` instead.
-  (`pgrep -f "$BIN_DIR/thurbox"` has the matching problem from the other end —
-  it also matches `thurbox-cli`.)
+  (`pgrep -f "$BIN_DIR/talos"` has the matching problem from the other end —
+  it also matches `talos-cli`.)
 - **The TUI starts before the sessions exist.** The v1→v2 consent gate fires for
   a profile with session history and no acknowledgment, and waits for a keypress;
   seeding first left the binary sitting on the gate for the whole run, reporting
@@ -2306,9 +2306,9 @@ failing:
 A reading from either is only comparable with another at the same terminal size
 and session count, so both pin theirs.
 
-A third instrument answers a different question — how thurbox compares with
+A third instrument answers a different question — how talos compares with
 the alternatives, not with itself: `just bench-multiplexers` runs raw tmux,
-Herdr and thurbox through the same scenarios with the same stand-in agent.
+Herdr and talos through the same scenarios with the same stand-in agent.
 Its results and method are in [BENCHMARK-MULTIPLEXERS.md](BENCHMARK-MULTIPLEXERS.md).
 
 **And on a busy machine, trust the counters over the CPU.** A percentage from
@@ -2337,15 +2337,15 @@ measured is called out under [Honest gaps](#honest-gaps) rather than guessed at.
   7.0.14-arch1-1, tmux 3.7, rustc 1.97.0 stable.
 - **Build**: `cargo build --release` (LTO, stripped). No number below comes
   from a debug build.
-- **Isolation**: every binary ran with `HOME`, `THURBOX_CONFIG_DIR`,
-  `THURBOX_DATA_DIR`, `THURBOX_SOCKET` and `TMUX_TMPDIR` redirected to
+- **Isolation**: every binary ran with `HOME`, `TALOS_CONFIG_DIR`,
+  `TALOS_DATA_DIR`, `TALOS_SOCKET` and `TMUX_TMPDIR` redirected to
   throwaway directories, so no measurement touched real config, the real
   database, or the real tmux socket. Database work ran against a **copy** of
-  `thurbox.db`; `EXPLAIN QUERY PLAN` was never pointed at the live file.
+  `talos.db`; `EXPLAIN QUERY PLAN` was never pointed at the live file.
 - **Loop timing**: the built-in instrumentation, not a new dependency —
-  `THURBOX_PERF_LOG=1 thurbox` inside a scratch tmux pane, reading the
+  `TALOS_PERF_LOG=1 talos` inside a scratch tmux pane, reading the
   `startup` and `perf_window` lines (ADR-P11) from
-  `$THURBOX_DATA_DIR/thurbox.log.<date>`.
+  `$TALOS_DATA_DIR/talos.log.<date>`.
 - **Load generator**: a synthetic agent declared in a scratch `agents.toml` —
   a throttled producer (100 lines/s/session) and an unthrottled one (`yes`) —
   driven at 0, 4 sessions.
@@ -2355,7 +2355,7 @@ measured is called out under [Honest gaps](#honest-gaps) rather than guessed at.
   directly with a monotonic clock, five/three runs each.
 
 Reproduce: build release, export the five env vars above to temp dirs, run
-`THURBOX_PERF_LOG=1 thurbox` in a tmux pane, read the log.
+`TALOS_PERF_LOG=1 talos` in a tmux pane, read the log.
 
 ### Findings
 
@@ -2403,7 +2403,7 @@ spawn path never received the same treatment.
 #### 3. The mailbox wake reports success at a pane nothing is listening to
 
 `send_prompt_now` (`src/backend/tmux_compat/server.rs`) targets the session's tmux window and
-treats a zero exit from `send-keys` as delivery. thurbox sets
+treats a zero exit from `send-keys` as delivery. talos sets
 `remain-on-exit=on` on an agent's window (`keeps_dead_pane`, `src/backend/tmux_compat/server.rs`;
 at the time of this measurement it was asked for session-wide in `SESSION_OPTS`,
 which — being a window option — actually reached only whichever window was
@@ -2448,7 +2448,7 @@ iteration.
 | 4 sessions, 100 lines/s each | 987 (~99 fps) | 1.00 ms | 4.00 ms | 7.81 ms | 0.49 ms |
 | 4 sessions, unthrottled | 1000 (~100 fps) | 1.00 ms | 1.00 ms | 1.51 ms | 0.79 ms |
 
-Under the unthrottled load thurbox held a steady **65.6 % of one core** (RSS 34
+Under the unthrottled load talos held a steady **65.6 % of one core** (RSS 34
 MB) and the tmux server **98.7 %**. No frame came close to the 16 ms budget and
 **zero slow ops** were logged in any run.
 
@@ -2541,21 +2541,21 @@ worktree/spawn offload should ride with that branch or follow it.
 
 | I want to… | Do this |
 | --- | --- |
-| Measure startup | `THURBOX_PERF_LOG=1 thurbox`, read the `startup` line in `thurbox.log` |
+| Measure startup | `TALOS_PERF_LOG=1 talos`, read the `startup` line in `talos.log` |
 | Break down startup time | Read the `startup` line's phase fields: `config_init_ms`, `db_open_ms`, `theme_activate_ms`, `extension_heal_ms`, `heartbeat_ms`, `ui_build_ms` (building the Lua interface) and `first_frame_ms` |
-| Watch steady-state cost | `THURBOX_PERF_LOG=1 thurbox`, read the `perf_window` lines (~1000 iterations: counter deltas + frame/republish/tick percentiles + slow ops) |
-| Attribute an interactive stall | Look for `slow op` warnings in `thurbox.log` (named op + ms + the plugin whose call was longest), or the slow-op list in `perf_window` |
+| Watch steady-state cost | `TALOS_PERF_LOG=1 talos`, read the `perf_window` lines (~1000 iterations: counter deltas + frame/republish/tick percentiles + slow ops) |
+| Attribute an interactive stall | Look for `slow op` warnings in `talos.log` (named op + ms + the plugin whose call was longest), or the slow-op list in `perf_window` |
 | Watch perf live in the TUI | Press `F12` (perf HUD overlay; `[features] perf_hud`) |
-| Find the slow pane | `F12`, read the `panes` table (worst in red, `!` = a hint), then `thurbox-cli perf --plugins` for every column and the hints spelled out — ADR-P23 |
-| Script per-pane cost | `thurbox-cli perf --plugins --json` — one row per plugin, sorted by `total_us` |
-| Inspect a running TUI from outside | `thurbox-cli perf` (needs THURBOX_PERF_LOG or an open HUD in that TUI) |
-| See what a frame costs | `thurbox-cli perf` — `frame` is the paint and `republish` the table rebuild beside it; a frame is roughly the two added together |
+| Find the slow pane | `F12`, read the `panes` table (worst in red, `!` = a hint), then `talos-cli perf --plugins` for every column and the hints spelled out — ADR-P23 |
+| Script per-pane cost | `talos-cli perf --plugins --json` — one row per plugin, sorted by `total_us` |
+| Inspect a running TUI from outside | `talos-cli perf` (needs TALOS_PERF_LOG or an open HUD in that TUI) |
+| See what a frame costs | `talos-cli perf` — `frame` is the paint and `republish` the table rebuild beside it; a frame is roughly the two added together |
 | See binary size | Check the `Binary Size` CI job summary, or `cargo bloat --release --crates` |
-| Profile CPU | `cargo flamegraph --profile release-with-debug --bin thurbox` |
+| Profile CPU | `cargo flamegraph --profile release-with-debug --bin talos` |
 | Verify no perf regression | `cargo nextest run -E 'test(kernel::perf)'` for the counters; the loop's settling is asserted per surface in `tests/*.rs` |
 | Confirm idle CPU is low | `scripts/dev/perf-run.sh --idle` — or launch and leave it idle, where `idle skips` climbs while `frames` stays flat |
 | See why `git` keeps running | It is the per-session worktree poll — `git_poll_secs` in `settings.toml` sets its cadence and `0` turns it off (ADR-P25) |
 | Measure CPU under a real load | `scripts/dev/perf-run.sh -n 19 -p 3 -s 255x62` (see **Measuring**, below) |
 | See where the time in a frame goes | `cargo bench --bench frame_cost` |
-| Measure the content search | `cargo bench --bench search_cost` (`THURBOX_BENCH_SESSIONS`, `THURBOX_BENCH_SCROLLBACK`, `THURBOX_BENCH_CHECK=1` to fail over budget); `scripts/dev/perf-run.sh --search Q [--typing]` for the whole binary — ADR-P26 |
+| Measure the content search | `cargo bench --bench search_cost` (`TALOS_BENCH_SESSIONS`, `TALOS_BENCH_SCROLLBACK`, `TALOS_BENCH_CHECK=1` to fail over budget); `scripts/dev/perf-run.sh --search Q [--typing]` for the whole binary — ADR-P26 |
 | Attribute a change | Run one of the two above before and after — a paired reading at the same size and session count, never two absolute numbers from different days |

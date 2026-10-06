@@ -81,7 +81,7 @@ struct Discovered {
     panes: Option<WindowPanes>,
 }
 
-/// One backend's thurbox windows, indexed by the identity each one carries.
+/// One backend's talos windows, indexed by the identity each one carries.
 ///
 /// A window name is not unique — two sessions can be given the same one, and
 /// sanitising collapses others together — so the index keys on the session id
@@ -304,7 +304,7 @@ impl<'a> Pane<'a> {
         }
     }
 
-    /// Whether another thurbox is sizing this pane — see
+    /// Whether another talos is sizing this pane — see
     /// [`paint_sized_elsewhere`].
     fn sized_elsewhere(&self) -> bool {
         match (self.shell, &self.live.session.shell_pane) {
@@ -314,7 +314,7 @@ impl<'a> Pane<'a> {
         }
     }
 
-    /// Take this pane's size back if the thurbox sizing it has gone — see
+    /// Take this pane's size back if the talos sizing it has gone — see
     /// `WiredPane::retake_size`.
     fn retake_size(&self) {
         match (self.shell, &self.live.session.shell_pane) {
@@ -1542,7 +1542,7 @@ impl Terminals {
         // `Session::adopt` builds a fresh `SessionInfo`, so its own `cwd` is
         // always `None` here — v2 attaches rather than restoring the persisted
         // row. Without passing one the shell inherits the multiplexer's
-        // directory, which is wherever thurbox was started.
+        // directory, which is wherever talos was started.
         live.session
             .ensure_shell_pane(rows, cols, cwd)
             .map_err(|e| e.to_string())
@@ -1553,7 +1553,7 @@ impl Terminals {
     /// Read by the loop so the id can be **persisted**: a shell lives in its own
     /// tmux window (`tbsh-…`), so it outlives the interface — but the fact that
     /// this session had one lives only in the `Session` object, which does not.
-    /// Without persisting it, restarting thurbox (or a session) forgets the shell
+    /// Without persisting it, restarting talos (or a session) forgets the shell
     /// you had open and leaves its window orphaned, and the next `shell` key
     /// spawns a second one beside it. v1 keeps `shell_backend_id` on the row for
     /// exactly this reason.
@@ -1570,7 +1570,7 @@ impl Terminals {
     ///
     /// Mirrors v1's `readopt_shell_pane`, including its guard: a pane id that no
     /// longer names a live pane is ignored rather than adopted, so a shell whose
-    /// window was closed outside thurbox does not come back as a dead surface.
+    /// window was closed outside talos does not come back as a dead surface.
     pub fn readopt_shell(&mut self, session: &str, pane: &str, rows: u16, cols: u16) -> bool {
         let Some(live) = self.live.get_mut(session) else {
             return false;
@@ -1853,7 +1853,7 @@ impl Terminals {
     ///
     /// This is v1's restore-time question. When it finds no matching window v1
     /// **respawns** the agent (`respawn_stale_session`), which is how a session
-    /// survives a reboot or a dead tmux server — restart thurbox and the agents
+    /// survives a reboot or a dead tmux server — restart talos and the agents
     /// come back. Answering it needs the survey to have actually happened:
     /// "we have not looked yet" and "we looked and it is gone" are the same
     /// silence otherwise, and relaunching on the first would spawn a second agent
@@ -2052,7 +2052,7 @@ impl Terminals {
     /// process listing can make that distinction, which is why an interface
     /// may animate a `running` session and a headless reader may not.
     ///
-    /// Only live panes are considered — a session thurbox has not attached
+    /// Only live panes are considered — a session talos has not attached
     /// cannot be observed printing, so it is simply absent and draws static.
     pub fn sync_printing(&mut self) {
         let printing: std::collections::HashSet<String> = self
@@ -2376,7 +2376,7 @@ impl Terminals {
 
 /// Say why a terminal is not the size of the rect it is painted into.
 ///
-/// On a server several thurbox instances share, one of them sizes each pane
+/// On a server several talos instances share, one of them sizes each pane
 /// (`tmux_compat::Server::resize`) and the others show that pane's screen as it is —
 /// with blank margins when their rect is bigger, cropped when it is smaller —
 /// rather than parsing its output into a grid of their own size. Without a word
@@ -2387,7 +2387,7 @@ fn paint_sized_elsewhere(frame: &mut Frame, area: Rect, (rows, cols): (u16, u16)
         return;
     }
     let text =
-        format!(" {cols}\u{d7}{rows} \u{b7} sized by another thurbox \u{b7} type here to resize ");
+        format!(" {cols}\u{d7}{rows} \u{b7} sized by another talos \u{b7} type here to resize ");
     let width = u16::try_from(text.chars().count())
         .unwrap_or(u16::MAX)
         .min(area.width);
@@ -2543,7 +2543,7 @@ mod tests {
                 .unwrap();
             let buffer = terminal.backend().buffer();
             let bottom: String = (0..width).map(|x| buffer[(x, 4)].symbol()).collect();
-            let full = " 60\u{d7}3 \u{b7} sized by another thurbox \u{b7} type here to resize ";
+            let full = " 60\u{d7}3 \u{b7} sized by another talos \u{b7} type here to resize ";
             let shown: String = full.chars().take(usize::from(width)).collect();
             assert!(bottom.trim_end().ends_with(shown.trim_end()), "{bottom:?}");
             let above: String = (0..width).map(|x| buffer[(x, 3)].symbol()).collect();

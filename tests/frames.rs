@@ -36,13 +36,13 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::Frame;
 use ratatui::Terminal;
 
-use thurbox::kernel::host::{Click, KeyPress, LuaHost, Published, RenderContext};
-use thurbox::kernel::paint::{render, PlaceholderSurfaces, ProgramPaint, SurfaceProvider};
-use thurbox::kernel::registry::Registry;
-use thurbox::kernel::snapshot::{SessionRow, Snapshot};
-use thurbox::kernel::terminal::AgentMeta;
-use thurbox::kernel::theme::Themes;
-use thurbox::session::SessionState;
+use talos::kernel::host::{Click, KeyPress, LuaHost, Published, RenderContext};
+use talos::kernel::paint::{render, PlaceholderSurfaces, ProgramPaint, SurfaceProvider};
+use talos::kernel::registry::Registry;
+use talos::kernel::snapshot::{SessionRow, Snapshot};
+use talos::kernel::terminal::AgentMeta;
+use talos::kernel::theme::Themes;
+use talos::session::SessionState;
 
 // --- the world --------------------------------------------------------------
 
@@ -76,7 +76,7 @@ fn publish(host: &LuaHost, snapshot: &Snapshot) {
 fn publish_hovered(
     host: &LuaHost,
     snapshot: &Snapshot,
-    hovered: Option<&thurbox::kernel::node::Identity>,
+    hovered: Option<&talos::kernel::node::Identity>,
 ) {
     publish_inner(host, snapshot, &HashMap::new(), &HashMap::new(), hovered);
 }
@@ -99,14 +99,14 @@ fn publish_inner(
     snapshot: &Snapshot,
     attach_errors: &HashMap<String, String>,
     meta: &HashMap<String, AgentMeta>,
-    hovered: Option<&thurbox::kernel::node::Identity>,
+    hovered: Option<&talos::kernel::node::Identity>,
 ) {
     let themes = themes();
     let registry = registry(host);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     host.publish(&Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot,
         attach_errors,
         inflight: &[],
@@ -182,12 +182,12 @@ fn snapshot(rows: Vec<SessionRow>) -> Snapshot {
 /// parent → child pair so the tree prefix is on record.
 fn sample() -> Snapshot {
     let mut rows = vec![
-        row("fix-osc52", "thurbox", "working"),
-        row("add-wsl-tests", "thurbox", "blocked"),
-        row("perf-cache", "thurbox", "done"),
+        row("fix-osc52", "talos", "working"),
+        row("add-wsl-tests", "talos", "blocked"),
+        row("perf-cache", "talos", "done"),
         row("update-deps", "website", "idle"),
     ];
-    let mut child = row("fix-osc52-tests", "thurbox", "idle");
+    let mut child = row("fix-osc52-tests", "talos", "idle");
     child.parent_id = Some(rows[0].id.clone());
     rows.push(child);
     snapshot(rows)
@@ -328,7 +328,7 @@ fn the_session_list_groups_by_repo_and_nests_a_child_under_its_parent() {
         &[
             "┏ ▸ Sessions ━━━━━━━━━━━━━━━━━━━━━⠇○◆●○┓",
             "┃▾ ●⌂ local  !2  5 sessions · 1 active ┃",
-            "┃  ▾ thurbox                           ┃",
+            "┃  ▾ talos                           ┃",
             "┃ ⠇ ⑂ fix-osc52                        ┃",
             "┃ ○ └ ⑂ fix-osc52-tests                ┃",
             "┃ ◆ ⑂ add-wsl-tests  Blocked           ┃",
@@ -346,16 +346,16 @@ fn the_session_list_groups_by_repo_and_nests_a_child_under_its_parent() {
 fn the_session_list_groups_by_host_when_sessions_span_machines() {
     // The host is the OUTER axis: every local group first, then each remote
     // host's, and the repo grouping survives inside one. Without it the remote
-    // row sits inside the local `thurbox` group and only the
+    // row sits inside the local `talos` group and only the
     // `⇅` mark says it is somewhere else.
     let host = host();
     publish(
         &host,
         &snapshot(vec![
-            row("fix-osc52", "thurbox", "working"),
-            row("perf-cache", "thurbox", "done"),
+            row("fix-osc52", "talos", "working"),
+            row("perf-cache", "talos", "done"),
             row("update-deps", "website", "idle"),
-            remote_row("remote-build", "thurbox", "idle", "buildbox"),
+            remote_row("remote-build", "talos", "idle", "buildbox"),
         ]),
     );
     assert_frame(
@@ -363,13 +363,13 @@ fn the_session_list_groups_by_host_when_sessions_span_machines() {
         &[
             "┏ ▸ Sessions ━━━━━━━━━━━━━━━━━━━━━━⠇●○○┓",
             "┃▾ ●⌂ local  !1  3 sessions · 1 active ┃",
-            "┃  ▾ thurbox                           ┃",
+            "┃  ▾ talos                           ┃",
             "┃ ⠇ ⑂ fix-osc52                        ┃",
             "┃ ● ⑂ perf-cache                       ┃",
             "┃  ▾ website                           ┃",
             "┃ ○ ⑂ update-deps                      ┃",
             "┃▾ ●▣ ssh buildbox  1 session          ┃",
-            "┃  ▾ thurbox                           ┃",
+            "┃  ▾ talos                           ┃",
             "┃ ○ ⇅ ⑂ remote-build                   ┃",
             "┃                                      ┃",
             "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛",
@@ -383,8 +383,8 @@ fn one_remote_host_has_a_fold_handle_above_its_repo_groups() {
     publish(
         &host,
         &snapshot(vec![
-            remote_row("fix-osc52", "thurbox", "working", "buildbox"),
-            remote_row("perf-cache", "thurbox", "done", "buildbox"),
+            remote_row("fix-osc52", "talos", "working", "buildbox"),
+            remote_row("perf-cache", "talos", "done", "buildbox"),
             remote_row("update-deps", "website", "idle", "buildbox"),
         ]),
     );
@@ -393,7 +393,7 @@ fn one_remote_host_has_a_fold_handle_above_its_repo_groups() {
         &[
             "┏ ▸ Sessions ━━━━━━━━━━━━━━━━━━━━━━━⠇●○┓",
             "┃▾ ●▣ ssh buildbox  !1  3 sessions · 1…┃",
-            "┃  ▾ thurbox                           ┃",
+            "┃  ▾ talos                           ┃",
             "┃ ⠇ ⇅ ⑂ fix-osc52                      ┃",
             "┃ ● ⇅ ⑂ perf-cache                     ┃",
             "┃  ▾ website                           ┃",
@@ -434,8 +434,8 @@ fn a_host_named_local_is_a_second_machine_rather_than_this_one() {
     publish(
         &host,
         &snapshot(vec![
-            row("fix-osc52", "thurbox", "working"),
-            remote_row("remote-build", "thurbox", "idle", "local"),
+            row("fix-osc52", "talos", "working"),
+            remote_row("remote-build", "talos", "idle", "local"),
         ]),
     );
     assert_frame(
@@ -443,10 +443,10 @@ fn a_host_named_local_is_a_second_machine_rather_than_this_one() {
         &[
             "┏ ▸ Sessions ━━━━━━━━━━━━━━━━━━━━━━━━⠇○┓",
             "┃▾ ●⌂ local  1 session · 1 active      ┃",
-            "┃  ▾ thurbox                           ┃",
+            "┃  ▾ talos                           ┃",
             "┃ ⠇ ⑂ fix-osc52                        ┃",
             "┃▾ ●▣ ssh local  1 session             ┃",
-            "┃  ▾ thurbox                           ┃",
+            "┃  ▾ talos                           ┃",
             "┃ ○ ⇅ ⑂ remote-build                   ┃",
             "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛",
         ],
@@ -461,7 +461,7 @@ fn the_session_list_windows_more_rows_than_it_has_lines() {
     // that.
     let host = host();
     let rows: Vec<SessionRow> = (0..20)
-        .map(|n| row(&format!("session-{n:02}"), "thurbox", "idle"))
+        .map(|n| row(&format!("session-{n:02}"), "talos", "idle"))
         .collect();
     publish(&host, &snapshot(rows));
     assert_frame(
@@ -469,7 +469,7 @@ fn the_session_list_windows_more_rows_than_it_has_lines() {
         &[
             "┏ ▸ Sessions ━━━━━━○○○○○○○○○○○○○○○○○○○○┓",
             "┃▾ ●⌂ local  20 sessions               ┃",
-            "┃  ▾ thurbox                           ┃",
+            "┃  ▾ talos                           ┃",
             "┃ ○ ⑂ session-00                       ┃",
             "┃ ○ ⑂ session-01                       ┃",
             "┃ ○ ⑂ session-02                       ┃",
@@ -489,9 +489,9 @@ fn the_session_list_keeps_its_columns_under_double_width_names() {
     publish(
         &host,
         &snapshot(vec![
-            row("修复终端宽度", "thurbox", "idle"),
-            row("emoji-🚀-name", "thurbox", "blocked"),
-            row("plain-name", "thurbox", "idle"),
+            row("修复终端宽度", "talos", "idle"),
+            row("emoji-🚀-name", "talos", "blocked"),
+            row("plain-name", "talos", "idle"),
         ]),
     );
     assert_frame(
@@ -499,7 +499,7 @@ fn the_session_list_keeps_its_columns_under_double_width_names() {
         &[
             "┏ ▸ Sessions ━━━━━━━━━━━━━━━━━━━━━━━○◆○┓",
             "┃▾ ●⌂ local  !1  3 sessions            ┃",
-            "┃  ▾ thurbox                           ┃",
+            "┃  ▾ talos                           ┃",
             "┃ ○ ⑂ 修复终端宽度                     ┃",
             "┃ ◆ ⑂ emoji-🚀-name  Blocked           ┃",
             "┃ ○ ⑂ plain-name                       ┃",
@@ -517,7 +517,7 @@ fn a_double_width_name_budgets_the_status_by_the_columns_it_takes() {
     // row and the clip shears it, dropping the very mark that says it was
     // cut.
     let host = host();
-    let world = snapshot(vec![row("修复终端宽度", "thurbox", "idle")]);
+    let world = snapshot(vec![row("修复终端宽度", "talos", "idle")]);
     let meta = HashMap::from([(
         world.sessions[0].id.clone(),
         AgentMeta {
@@ -531,7 +531,7 @@ fn a_double_width_name_budgets_the_status_by_the_columns_it_takes() {
         &[
             "┏ ▸ Sessions ━━━━━━━━━━━━━━━━━━━━━━━━━○┓",
             "┃▾ ●⌂ local  1 session                 ┃",
-            "┃  ▾ thurbox                           ┃",
+            "┃  ▾ talos                           ┃",
             "┃ ○ ⑂ 修复终端宽度  waiting for your r…┃",
             "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛",
         ],
@@ -547,7 +547,7 @@ fn the_session_list_truncates_rather_than_overflows_when_narrow() {
         &[
             "┏ ▸ Sessions ━━━⠇○◆●○┓",
             "┃▾ ●⌂ local  !2  5 s…┃",
-            "┃  ▾ thurbox         ┃",
+            "┃  ▾ talos         ┃",
             "┃ ⠇ ⑂ fix-osc52      ┃",
             "┃ ○ └ ⑂ fix-osc52-tes┃",
             "┃ ◆ ⑂ add-wsl-tests  ┃",
@@ -578,9 +578,9 @@ fn the_selection_is_a_style_and_moves_with_j() {
             style_runs(&after, 3),
         ],
         &[
-    "⟨Cyan/Reset/BOLD⟩┃⟨Cyan/Reset/NONE⟩  ▾ ⟨Gray/Reset/BOLD⟩thurbox⟨Reset/Reset/NONE⟩                           ⟨Cyan/Reset/BOLD⟩┃",
+    "⟨Cyan/Reset/BOLD⟩┃⟨Cyan/Reset/NONE⟩  ▾ ⟨Gray/Reset/BOLD⟩talos⟨Reset/Reset/NONE⟩                           ⟨Cyan/Reset/BOLD⟩┃",
     "⟨Cyan/Reset/BOLD⟩┃⟨White/Indexed(24)/BOLD⟩ ⠇ ⑂ fix-osc52                        ⟨Cyan/Reset/BOLD⟩┃",
-    "⟨Cyan/Reset/BOLD⟩┃⟨Cyan/Reset/NONE⟩  ▾ ⟨Gray/Reset/BOLD⟩thurbox⟨Reset/Reset/NONE⟩                           ⟨Cyan/Reset/BOLD⟩┃",
+    "⟨Cyan/Reset/BOLD⟩┃⟨Cyan/Reset/NONE⟩  ▾ ⟨Gray/Reset/BOLD⟩talos⟨Reset/Reset/NONE⟩                           ⟨Cyan/Reset/BOLD⟩┃",
     "⟨Cyan/Reset/BOLD⟩┃⟨Yellow/Reset/NONE⟩ ⠇ ⟨Green/Reset/NONE⟩⑂ ⟨White/Reset/NONE⟩fix-osc52⟨Reset/Reset/NONE⟩                        ⟨Cyan/Reset/BOLD⟩┃",
         ],
     );
@@ -593,7 +593,7 @@ fn the_selection_is_a_style_and_moves_with_j() {
 fn paint_lua_node(source: &str, width: u16, height: u16) -> Buffer {
     let lua = mlua::Lua::new();
     let value: mlua::Value = lua.load(source).eval().expect("the table evaluates");
-    let node = thurbox::kernel::convert::to_node(&value, "plugins/90_test.lua")
+    let node = talos::kernel::convert::to_node(&value, "plugins/90_test.lua")
         .expect("the table converts");
     let mut terminal = Terminal::new(TestBackend::new(width, height)).expect("terminal");
     terminal
@@ -765,7 +765,7 @@ fn an_overlay_never_paints_over_a_corner() {
 /// widget can be held to its painted output without a bundled pane adopting it.
 fn paint_probe(render_body: &str, hovered: Option<&str>, width: u16, height: u16) -> Buffer {
     let dir = tempfile::tempdir().expect("tempdir");
-    let report = thurbox::kernel::bundled::materialize(dir.path());
+    let report = talos::kernel::bundled::materialize(dir.path());
     assert!(report.errors.is_empty(), "{:?}", report.errors);
     std::fs::write(
         dir.path().join("plugins").join("95_probe.lua"),
@@ -779,7 +779,7 @@ fn paint_probe(render_body: &str, hovered: Option<&str>, width: u16, height: u16
 
     let host = LuaHost::new(dir.path());
     assert!(host.error.is_none(), "{:?}", host.error);
-    let identity = hovered.map(|id| thurbox::kernel::node::Identity {
+    let identity = hovered.map(|id| talos::kernel::node::Identity {
         id: Some(id.to_string()),
         classes: Vec::new(),
         role: Some("row".to_string()),
@@ -914,7 +914,7 @@ fn the_agent_pane_closes_its_border_over_a_double_width_name() {
     // wider than its budget, and the corner drawn afterwards lands on top of
     // the very ellipsis that says the branch was cut.
     let host = host();
-    let world = snapshot(vec![row("修复终端宽度", "thurbox", "idle")]);
+    let world = snapshot(vec![row("修复终端宽度", "talos", "idle")]);
     publish(&host, &world);
     host.render(index_of(&host, "sessions"), ctx(40, 12, true))
         .expect("render list");
@@ -993,7 +993,7 @@ fn the_agent_pane_paints_a_live_screen_inside_its_border() {
         .expect("render list");
 
     let mut parser = vt100::Parser::new(6, 58, 0);
-    parser.process(b"$ cargo test\r\n   Compiling thurbox v0.0.0-dev\r\n\x1b[32mtest result: ok.\x1b[m 3 passed \xe2\x9c\x93 \xe4\xb8\xad\r\n$ ");
+    parser.process(b"$ cargo test\r\n   Compiling talos v0.0.0-dev\r\n\x1b[32mtest result: ok.\x1b[m 3 passed \xe2\x9c\x93 \xe4\xb8\xad\r\n$ ");
     let live = LiveScreen {
         session: world.sessions[0].id.clone(),
         parser,
@@ -1003,7 +1003,7 @@ fn the_agent_pane_paints_a_live_screen_inside_its_border() {
         &[
             "┏ ◀ F9 ━ Agent ━ Shell · F8 ━━ ▸ fix-osc52 (claude) [feat/…┓",
             "┃$ cargo test                                              ┃",
-            "┃   Compiling thurbox v0.0.0-dev                           ┃",
+            "┃   Compiling talos v0.0.0-dev                           ┃",
             "┃test result: ok. 3 passed ✓ 中                            ┃",
             "┃$ █                                                       ┃",
             "┃                                                          ┃",
@@ -1019,17 +1019,17 @@ fn the_agent_pane_paints_a_live_screen_inside_its_border() {
 #[test]
 #[ignore]
 fn record_session_groups_demo() {
-    let output = std::env::var("THURBOX_DEMO_CAST").expect("cast output path");
+    let output = std::env::var("TALOS_DEMO_CAST").expect("cast output path");
     let host = host();
     publish(
         &host,
         &snapshot(vec![
-            row("fix-osc52", "thurbox", "working"),
+            row("fix-osc52", "talos", "working"),
             row("update-site", "website", "idle"),
-            remote_row("review-auth", "thurbox", "blocked", "buildbox"),
-            remote_row("perf-cache", "thurbox", "working", "buildbox"),
+            remote_row("review-auth", "talos", "blocked", "buildbox"),
+            remote_row("perf-cache", "talos", "working", "buildbox"),
             remote_row("ship-docs", "website", "idle", "buildbox"),
-            remote_row("ci-linux", "thurbox", "working", "ci-runner"),
+            remote_row("ci-linux", "talos", "working", "ci-runner"),
             remote_row("ci-windows", "infra", "idle", "ci-runner"),
         ]),
     );
@@ -1073,9 +1073,9 @@ fn record_session_groups_demo() {
     frame(1.8);
     click("host:buildbox");
     frame(3.6);
-    click("repo:buildbox\x01thurbox");
+    click("repo:buildbox\x01talos");
     frame(5.4);
-    click("repo:buildbox\x01thurbox");
+    click("repo:buildbox\x01talos");
     frame(7.2);
     click("host:\0local");
     frame(9.0);

@@ -1,19 +1,19 @@
 # winget packaging
 
-Thurbox ships a [winget](https://learn.microsoft.com/windows/package-manager/)
+Talos ships a [winget](https://learn.microsoft.com/windows/package-manager/)
 package that installs the **prebuilt** x86_64 Windows release binaries
-(`thurbox.exe` + `thurbox-cli.exe`) from the GitHub Release as **portable**
+(`talos.exe` + `talos-cli.exe`) from the GitHub Release as **portable**
 commands on your `PATH`.
 
 ```powershell
-winget install Thurbeen.thurbox
+winget install Thurbeen.talos
 ```
 
 > **Status: live.** The package is published on
 > [`microsoft/winget-pkgs`](https://github.com/microsoft/winget-pkgs), so
-> `winget install Thurbeen.thurbox` resolves. Every release attempts a
+> `winget install Thurbeen.talos` resolves. Every release attempts a
 > submission (see [Automated publishing](#automated-publishing-ci) below), but
-> each *new version* goes through PR review there and only one thurbox PR is in
+> each *new version* goes through PR review there and only one talos PR is in
 > flight at a time — so the winget channel trails the newest release by however
 > long that review takes. For the latest build immediately, use
 > [`scripts/install.ps1`](../../scripts/install.ps1)
@@ -23,9 +23,9 @@ The canonical manifest set lives here under [`manifests/`](manifests/):
 
 | File | Manifest type | Purpose |
 | ---- | ------------- | ------- |
-| [`Thurbeen.thurbox.yaml`](manifests/Thurbeen.thurbox.yaml) | `version` | ties the version to the locale + installer manifests |
-| [`Thurbeen.thurbox.installer.yaml`](manifests/Thurbeen.thurbox.installer.yaml) | `installer` | the release zip URL + SHA256 + nested portable exes |
-| [`Thurbeen.thurbox.locale.en-US.yaml`](manifests/Thurbeen.thurbox.locale.en-US.yaml) | `defaultLocale` | descriptive metadata (publisher, license, tags, description) |
+| [`Thurbeen.talos.yaml`](manifests/Thurbeen.talos.yaml) | `version` | ties the version to the locale + installer manifests |
+| [`Thurbeen.talos.installer.yaml`](manifests/Thurbeen.talos.installer.yaml) | `installer` | the release zip URL + SHA256 + nested portable exes |
+| [`Thurbeen.talos.locale.en-US.yaml`](manifests/Thurbeen.talos.locale.en-US.yaml) | `defaultLocale` | descriptive metadata (publisher, license, tags, description) |
 
 The `PackageVersion`/`InstallerUrl`/`InstallerSha256`/`ReleaseNotesUrl` values
 committed here are a last-known-good template — CI overrides them per release.
@@ -34,9 +34,9 @@ committed here are a last-known-good template — CI overrides them per release.
 
 winget is Microsoft's first-party Windows package manager, bundled with Windows
 10/11 via *App Installer* — so a Windows user can `winget install
-Thurbeen.thurbox` with nothing else installed, whereas Chocolatey must be set up
+Thurbeen.talos` with nothing else installed, whereas Chocolatey must be set up
 first. Both are published from the same release and neither replaces the other.
-Both are also *manually moderated* channels that can't keep pace with thurbox's
+Both are also *manually moderated* channels that can't keep pace with talos's
 release cadence. winget **attempts every release and backs off when the
 channel pushes back** (see [Automated publishing](#automated-publishing-ci));
 Chocolatey is throttled to one publish per 30 days instead. The newest binary
@@ -45,13 +45,13 @@ always ships immediately via GitHub Releases regardless.
 ## Supported platforms
 
 Windows x86_64 only — the single published Windows release artifact is
-`thurbox-v<version>-x86_64-pc-windows-msvc.zip`. ARM64 Windows installs the
+`talos-v<version>-x86_64-pc-windows-msvc.zip`. ARM64 Windows installs the
 x86_64 build and runs it under x64 emulation (matching
 [`scripts/install.ps1`](../../scripts/install.ps1)).
 
 The installer is a `zip` whose `NestedInstallerType` is `portable`: winget
-extracts the archive and registers PATH aliases (`thurbox`, `thurbox-cli`) — no
-MSI, no per-machine installer, and `winget uninstall Thurbeen.thurbox` removes
+extracts the archive and registers PATH aliases (`talos`, `talos-cli`) — no
+MSI, no per-machine installer, and `winget uninstall Thurbeen.talos` removes
 them cleanly.
 
 ## Runtime dependencies
@@ -60,7 +60,7 @@ winget manifests have no cross-package dependency mechanism for this, so these
 are documented in the package `Description` rather than auto-installed:
 
 - **[psmux](https://github.com/psmux/psmux)** — the native-Windows terminal
-  multiplexer thurbox drives (a drop-in tmux clone). Install it separately.
+  multiplexer talos drives (a drop-in tmux clone). Install it separately.
 - A coding-agent CLI (claude, codex, antigravity, opencode, aider, …) on your
   PATH.
 
@@ -72,7 +72,7 @@ The `publish-winget` job in
 `windows-latest` after the GitHub Release is created and, **when
 [`submit-decision.py`](submit-decision.py) says to submit** (below):
 
-1. downloads the release `thurbox-<version>-checksums.txt`,
+1. downloads the release `talos-<version>-checksums.txt`,
 2. runs [`bump-manifests.py`](bump-manifests.py) to set `PackageVersion` across
    the manifests and the installer manifest's `InstallerUrl`/`InstallerSha256`
    (uppercased, as winget-pkgs expects) plus the locale `ReleaseNotesUrl` from
@@ -82,7 +82,7 @@ The `publish-winget` job in
 5. `wingetcreate submit`s the manifest set, which validates it and opens a PR
    against [`microsoft/winget-pkgs`](https://github.com/microsoft/winget-pkgs),
    then
-6. closes any *older* still-open `Thurbeen.thurbox` PR from the token account,
+6. closes any *older* still-open `Thurbeen.talos` PR from the token account,
    keeping only the one just opened (second-line cleanup).
 
 The job needs a `WINGET_TOKEN` secret — a classic PAT with the `public_repo`
@@ -94,11 +94,11 @@ Homebrew templates.
 
 > **Cadence: every release, paced by the queue rather than a calendar.**
 > winget-pkgs is a *manually moderated* repo — each `submit` opens a PR a human
-> must review — and thurbox's per-`feat`/`fix`/`perf` cadence can bury the
+> must review — and talos's per-`feat`/`fix`/`perf` cadence can bury the
 > maintainers under stale version-bump PRs (30 open at once, flagged in
 > [microsoft/winget-pkgs#405639](https://github.com/microsoft/winget-pkgs/pull/405639)).
-> The rule that prevents that is **one thurbox PR in flight**, not a monthly
-> window: the job lists our own thurbox PRs on winget-pkgs (`gh pr list`, any
+> The rule that prevents that is **one talos PR in flight**, not a monthly
+> window: the job lists our own talos PRs on winget-pkgs (`gh pr list`, any
 > state) and hands them to [`submit-decision.py`](submit-decision.py), which
 > **skips the submission and exits green** with a `::warning::` while one is
 > still open — `wingetcreate` cannot update a pending PR, so a second one would
@@ -133,7 +133,7 @@ Homebrew templates.
 > That same call also reports whether a PR was actually **opened**, and the
 > cleanup step is gated on *that* rather than on the pre-submit decision. The
 > distinction matters: a deferred submission exits green having opened nothing,
-> so cleanup keyed off the decision would close the pending thurbox PR and put
+> so cleanup keyed off the decision would close the pending talos PR and put
 > nothing in its place, leaving winget-pkgs with no PR at all and the version
 > silently unshipped — the very failure this job exists to prevent.
 >
@@ -149,7 +149,7 @@ Homebrew templates.
 > validation (manifest schema, installer hash, a sandbox install/uninstall
 > smoke test) and then human review before a version goes live. The
 > `wingetcreate submit` succeeds when the PR is opened; the package appears in
-> `winget search thurbox` only after that PR merges. This is not a CI failure.
+> `winget search talos` only after that PR merges. This is not a CI failure.
 
 ## Manual publishing / initial import
 
@@ -163,7 +163,7 @@ a version outside the release flow. On Windows with
 $ver = "<version>"   # a tag with published release assets, e.g. 0.79.46
 # curl.exe (not the `curl` alias for Invoke-WebRequest) ships on Windows 10+.
 curl.exe -fsSL -o checksums.txt `
-  "https://github.com/Thurbeen/thurbox/releases/download/v$ver/thurbox-v$ver-checksums.txt"
+  "https://github.com/zatzk/talos/releases/download/v$ver/talos-v$ver-checksums.txt"
 python packaging\winget\bump-manifests.py "v$ver" packaging\winget\manifests checksums.txt
 
 # Validate, then submit a PR to microsoft/winget-pkgs.

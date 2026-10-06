@@ -15,7 +15,7 @@ Run 20260923T230517Z · reps 5 (+1 warm-up discarded)
   "versions": {
     "tmux": "tmux 3.7c",
     "herdr": "herdr 0.9.1",
-    "thurbox": "0.0.0-dev (schema v47)",
+    "talos": "0.0.0-dev (schema v47)",
     "python": "3.13.15"
   }
 }
@@ -23,7 +23,7 @@ Run 20260923T230517Z · reps 5 (+1 warm-up discarded)
 
 ## create
 
-| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | thurbox median | thurbox p95 |
+| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | talos median | talos p95 |
 |---|---|---|---|---|---|---|---|
 | N=1 | first_ready_ms | 37.8 | 38.0 | 149 | 149 | 79.8 | 87.8 |
 | N=1 | last_create_ms | 13.5 | 13.5 | 122 | 123 | 78.9 | 87.2 |
@@ -44,7 +44,7 @@ Run 20260923T230517Z · reps 5 (+1 warm-up discarded)
 
 ## attach
 
-| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | thurbox median | thurbox p95 |
+| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | talos median | talos p95 |
 |---|---|---|---|---|---|---|---|
 | N=1 | attach_ms | 10.7 | 10.7 | 243 | 243 | 87.8 | 92.1 |
 | N=1 | detach_ms | 2.56 | 2.64 | 11.1 | 11.1 | 12.2 | 12.3 |
@@ -61,7 +61,7 @@ Run 20260923T230517Z · reps 5 (+1 warm-up discarded)
 
 ## resources
 
-| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | thurbox median | thurbox p95 |
+| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | talos median | talos p95 |
 |---|---|---|---|---|---|---|---|
 | N=1 attached idle | cpu_pct | 0.00 | 0.00 | 1.10 | 1.10 | 2.89 | 2.90 |
 | N=1 attached idle | first_view_stale | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
@@ -108,7 +108,7 @@ Run 20260923T230517Z · reps 5 (+1 warm-up discarded)
 
 ## throughput
 
-| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | thurbox median | thurbox p95 |
+| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | talos median | talos p95 |
 |---|---|---|---|---|---|---|---|
 | attached | host_cpu_s | 0.22 | 0.24 | 0.19 | 0.19 | 0.37 | 0.39 |
 | attached | intact | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 |
@@ -124,7 +124,7 @@ Run 20260923T230517Z · reps 5 (+1 warm-up discarded)
 
 ## scrollback
 
-| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | thurbox median | thurbox p95 |
+| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | talos median | talos p95 |
 |---|---|---|---|---|---|---|---|
 | after 1 burst | held_mib | 2.08 | 2.08 | 6.95 | 9.20 | 1.67 | 1.67 |
 | after 1 burst | read_all_ms | 7.80 | 9.45 | 7.47 | 7.89 | 41.9 | 46.4 |
@@ -133,7 +133,7 @@ Run 20260923T230517Z · reps 5 (+1 warm-up discarded)
 
 ## latency
 
-| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | thurbox median | thurbox p95 |
+| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | talos median | talos p95 |
 |---|---|---|---|---|---|---|---|
 | idle | echo_ms | 0.97 | 1.05 | 2.06 | 2.20 | 3.37 | 4.66 |
 | idle | timeouts | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
@@ -142,7 +142,7 @@ Run 20260923T230517Z · reps 5 (+1 warm-up discarded)
 
 ## survival
 
-| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | thurbox median | thurbox p95 |
+| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | talos median | talos p95 |
 |---|---|---|---|---|---|---|---|
 | crash | alive_after_client_kill | 3.00 | 3.00 | 3.00 | 3.00 | 3.00 | 3.00 |
 | crash | alive_after_server_kill | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |

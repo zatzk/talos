@@ -17,17 +17,17 @@ use ratatui::backend::TestBackend;
 use ratatui::layout::Rect;
 use ratatui::Terminal;
 
-use thurbox::kernel::host::{KeyPress, LuaHost, Published, RenderContext};
-use thurbox::kernel::layout::resolve;
-use thurbox::kernel::paint::{normalize_ambiguous_width, render, PlaceholderSurfaces};
-use thurbox::kernel::registry::Registry;
-use thurbox::kernel::selection::{
+use talos::kernel::host::{KeyPress, LuaHost, Published, RenderContext};
+use talos::kernel::layout::resolve;
+use talos::kernel::paint::{normalize_ambiguous_width, render, PlaceholderSurfaces};
+use talos::kernel::registry::Registry;
+use talos::kernel::selection::{
     extract_text_from_buffer, extract_text_from_screen, highlight_buffer, PaneBounds, Selection,
     TermPos,
 };
-use thurbox::kernel::snapshot::{SessionRow, Snapshot};
-use thurbox::kernel::theme::Themes;
-use thurbox::session::SessionState;
+use talos::kernel::snapshot::{SessionRow, Snapshot};
+use talos::kernel::theme::Themes;
+use talos::session::SessionState;
 
 fn host() -> LuaHost {
     let host = LuaHost::new(std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui"));
@@ -41,9 +41,9 @@ fn row(name: &str, status: &str) -> SessionRow {
         name: name.to_string(),
         agent: "claude".to_string(),
         status: SessionState::from_hook_state(status).expect("a hook state"),
-        cwd: Some(std::path::PathBuf::from("/src/thurbox")),
-        repo: Some("thurbox".to_string()),
-        repos: vec!["thurbox".to_string()],
+        cwd: Some(std::path::PathBuf::from("/src/talos")),
+        repo: Some("talos".to_string()),
+        repos: vec!["talos".to_string()],
         branch: Some(format!("feat/{name}")),
         base_branch: None,
         backend: "local-tmux".to_string(),
@@ -73,15 +73,15 @@ fn registry(host: &LuaHost) -> Registry {
 fn publish(host: &LuaHost, rows: Vec<SessionRow>) {
     let themes = Themes::load(None);
     let registry = registry(host);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     let snapshot = Snapshot {
         sessions: rows,
         taken_at_ms: 1_700_000_000_000,
         ..Snapshot::default()
     };
     host.publish(&Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot: &snapshot,
         attach_errors: &Default::default(),
         inflight: &[],
@@ -484,8 +484,8 @@ fn any_modal_key() -> impl Strategy<Value = crossterm::event::KeyEvent> {
 fn no_key_sequence_makes_the_palette_throw_or_stop_drawing() {
     // Every keystroke is query text or navigation; none may panic the modal
     // layer, and after any sequence the palette still paints at any size.
-    use thurbox::kernel::modals::{ModalKind, Modals, World};
-    use thurbox::kernel::theme::Themes;
+    use talos::kernel::modals::{ModalKind, Modals, World};
+    use talos::kernel::theme::Themes;
 
     let host = host();
 
@@ -528,7 +528,7 @@ fn no_key_sequence_makes_the_palette_throw_or_stop_drawing() {
                         &registry,
                         &themes,
                         &Default::default(),
-                        thurbox::kernel::modals::interface::Files { rows: &[], dir: "ui" },
+                        talos::kernel::modals::interface::Files { rows: &[], dir: "ui" },
                     );
                 })
                 .expect("draw");

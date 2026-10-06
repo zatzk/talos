@@ -1,4 +1,4 @@
-//! The home view: what `thurbox-cli` prints when it is given no subcommand.
+//! The home view: what `talos-cli` prints when it is given no subcommand.
 //!
 //! AXI principle 8 ("content first") asks a bare invocation for live,
 //! actionable data rather than a usage manual — an agent that runs a tool to
@@ -114,7 +114,7 @@ pub fn run(db: &Database) -> Result<CommandOutput, String> {
             // never empty, but a machine with no sessions still has to say so
             // rather than print a lone header.
             .collection("sessions")
-            .empty("0 sessions on this machine — `thurbox-cli session create` starts one"),
+            .empty("0 sessions on this machine — `talos-cli session create` starts one"),
     )
 }
 
@@ -124,7 +124,7 @@ pub fn run(db: &Database) -> Result<CommandOutput, String> {
 fn executable() -> String {
     std::env::current_exe()
         .map(|p| p.display().to_string())
-        .unwrap_or_else(|_| "thurbox-cli".to_string())
+        .unwrap_or_else(|_| "talos-cli".to_string())
 }
 
 /// The next steps this state makes sensible (AXI principle 9). Runtime values
@@ -133,12 +133,12 @@ fn suggestions(rows: &[Value], unread: usize, inside_session: bool) -> Vec<Strin
     let mut help = Vec::new();
     if unread > 0 {
         help.push(format!(
-            "thurbox-cli message inbox --claim   read and claim your {unread} unread message(s)"
+            "talos-cli message inbox --claim   read and claim your {unread} unread message(s)"
         ));
     }
     if rows.iter().any(|r| r["state"] == json!("blocked")) {
         help.push(
-            "thurbox-cli session capture <id>   see what a blocked agent is waiting on".to_string(),
+            "talos-cli session capture <id>   see what a blocked agent is waiting on".to_string(),
         );
     }
     // A row nothing can report for looks calm and is simply unknown. Naming the
@@ -147,30 +147,30 @@ fn suggestions(rows: &[Value], unread: usize, inside_session: bool) -> Vec<Strin
         .iter()
         .any(|r| r["state"] == json!(crate::session::SessionState::Uncovered.as_str()))
     {
-        help.push("thurbox-cli session doctor   why a session reports no state at all".to_string());
+        help.push("talos-cli session doctor   why a session reports no state at all".to_string());
     }
     if rows.is_empty() {
         help.push(
-            "thurbox-cli session create --name <name> --repo-path <path>   start a session"
+            "talos-cli session create --name <name> --repo-path <path>   start a session"
                 .to_string(),
         );
     } else {
-        help.push("thurbox-cli session list   every session, with branch and cwd".to_string());
+        help.push("talos-cli session list   every session, with branch and cwd".to_string());
     }
     if inside_session {
         help.push(
-            "thurbox-cli message send --to <id> --kind result --body <text>   hand work back"
+            "talos-cli message send --to <id> --kind result --body <text>   hand work back"
                 .to_string(),
         );
     }
-    help.push("thurbox-cli <command> --help   flags and examples for one command".to_string());
+    help.push("talos-cli <command> --help   flags and examples for one command".to_string());
     help
 }
 
 /// The terminal rendering: the same facts, laid out for a person.
 fn human(rows: &[Value], unread: usize) -> String {
     if rows.is_empty() {
-        return "No active sessions. `thurbox-cli session create --name <name> --repo-path <path>` starts one.".to_string();
+        return "No active sessions. `talos-cli session create --name <name> --repo-path <path>` starts one.".to_string();
     }
     let table = crate::cli::output::table(
         &["NAME", "AGENT", "STATE", "ID"],
@@ -187,7 +187,7 @@ fn human(rows: &[Value], unread: usize) -> String {
     let mut out = format!("{} session(s)\n{table}", rows.len());
     if unread > 0 {
         out.push_str(&format!(
-            "\n\n{unread} unread message(s) — `thurbox-cli message inbox --claim`"
+            "\n\n{unread} unread message(s) — `talos-cli message inbox --claim`"
         ));
     }
     out
@@ -266,7 +266,7 @@ mod tests {
         // Never reported, but its agent's hooks could have: `unreported`.
         let quiet = session("quiet", "claude");
         db.upsert_session(&quiet).unwrap();
-        // An agent thurbox ships no hooks for, and nothing has signalled:
+        // An agent talos ships no hooks for, and nothing has signalled:
         // `uncovered`. Reading this as `idle` is the conflation the assessment
         // exists to remove, and it is what the home view used to print.
         let foreign = session("foreign", "mine-own-cli");

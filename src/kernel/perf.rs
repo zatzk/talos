@@ -10,13 +10,13 @@
 //! duration histograms, a ring of named slow operations, and the startup phase
 //! breakdown. Those are wall-clock, so they are display and logging only and
 //! are never CI-asserted — the counters above remain the sole regression gate.
-//! They are populated only while timing is active (`THURBOX_PERF_LOG` or an
+//! They are populated only while timing is active (`TALOS_PERF_LOG` or an
 //! open perf HUD), so a default run pays one cached bool per iteration.
 //!
 //! The **per-plugin** half (ADR-P23) answers which pane spent the time:
 //! [`PluginTable`] is recorded by the Lua host under the same gate, and
 //! [`plugin_report`] turns it into the one ranked, hinted [`PluginReport`] the
-//! HUD, the snapshot and `thurbox-cli perf --plugins` all read.
+//! HUD, the snapshot and `talos-cli perf --plugins` all read.
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -44,7 +44,7 @@ pub struct Counters {
     pub reloads: AtomicU64,
     /// Pane renders served from a pure pane's tree cache instead of run.
     pub renders_skipped: AtomicU64,
-    /// Published `thurbox.*` groups reused instead of rebuilt.
+    /// Published `talos.*` groups reused instead of rebuilt.
     pub groups_reused: AtomicU64,
     /// Keystroke echoes painted with no frame floor (ADR-P28).
     pub echoes: AtomicU64,
@@ -243,7 +243,7 @@ impl SlowOps {
 ///
 /// `republish` has a histogram of its own because it is the one per-frame cost
 /// that is neither the draw nor the rest of the tick: it rebuilds every
-/// `thurbox.*` table, so telling it apart from painting is the difference
+/// `talos.*` table, so telling it apart from painting is the difference
 /// between "frames are expensive" and knowing why.
 #[derive(Default)]
 pub struct Timings {
@@ -774,7 +774,7 @@ fn histogram_json(h: &DurationHistogram) -> Value {
     })
 }
 
-/// The JSON `thurbox-cli perf` reads, published into the `metadata` table while
+/// The JSON `talos-cli perf` reads, published into the `metadata` table while
 /// timing is active.
 ///
 /// Built here rather than in the loop so the shape has one owner: the CLI

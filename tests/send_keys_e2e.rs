@@ -11,10 +11,10 @@
 
 use std::process::Command;
 
-use thurbox::cli::sessions::{run, Action};
-use thurbox::session::SessionId;
-use thurbox::storage::Database;
-use thurbox::sync::SharedSession;
+use talos::cli::sessions::{run, Action};
+use talos::session::SessionId;
+use talos::storage::Database;
+use talos::sync::SharedSession;
 
 /// The guard every tmux server in this file is reaped by — see its own doc.
 #[path = "support/tmux_server.rs"]
@@ -23,13 +23,13 @@ mod tmux_server;
 use tmux_server::TmuxServer;
 
 /// A throwaway tmux socket, so this never touches the real one.
-const SOCKET: &str = "thurbox-send-keys-e2e";
+const SOCKET: &str = "talos-send-keys-e2e";
 
-/// The tmux session thurbox groups its windows under, which is where every
+/// The tmux session talos groups its windows under, which is where every
 /// resolver looks. Mirrors `backend::tmux_compat::server::TMUX_SESSION`, which is private — and
-/// is `thurbox-dev` here, because a test build carries the same `dev_build`
+/// is `talos-dev` here, because a test build carries the same `dev_build`
 /// marker a dev binary does.
-const THURBOX_TMUX_SESSION: &str = "thurbox-dev";
+const TALOS_TMUX_SESSION: &str = "talos-dev";
 
 /// The pane runs `cat`: with no shell in the way, the tty echoes what is typed
 /// and `cat` writes the line back only once it is *submitted*. So "appears
@@ -63,7 +63,7 @@ fn live_session(db: &Database) -> Option<SharedSession> {
         "new-session",
         "-d",
         "-s",
-        THURBOX_TMUX_SESSION,
+        TALOS_TMUX_SESSION,
         "-n",
         "tb-probe",
         "-x",
@@ -145,7 +145,7 @@ fn no_enter_types_without_submitting_and_key_enter_submits() {
             no_enter: true,
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .expect("send --no-enter");
     assert_eq!(out["sent"], true);
@@ -165,7 +165,7 @@ fn no_enter_types_without_submitting_and_key_enter_submits() {
             key: "enter".into(),
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .expect("key enter");
     assert_eq!(out["sent"], true);
@@ -204,7 +204,7 @@ fn text_arrives_literally_whatever_it_starts_with() {
             no_enter: true,
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .expect("send --no-enter");
     assert_eq!(out["submitted"], false);
@@ -236,7 +236,7 @@ fn a_named_key_arrives_as_a_key_not_as_its_name() {
             no_enter: true,
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .expect("send --no-enter");
     screen_when(&session, |s| s.contains("DISCARD_ME"));
@@ -250,7 +250,7 @@ fn a_named_key_arrives_as_a_key_not_as_its_name() {
             key: "CTRL+U".into(),
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .expect("key ctrl-u");
     assert_eq!(
@@ -291,7 +291,7 @@ fn an_unknown_key_is_refused_before_anything_reaches_the_pane() {
             key: "Escpe".into(),
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .unwrap_err();
     assert!(err.contains("Unknown key"), "got {err}");

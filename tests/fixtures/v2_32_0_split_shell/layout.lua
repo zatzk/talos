@@ -17,8 +17,8 @@
 --   │ footer                                  │ (kernel)
 --   └─────────────────────────────────────────┘
 --
--- `thurbox-cli layout set split-shell` (or `layout` in settings) wrote this
--- file. Edit it freely: thurbox stops updating a layout.lua you have changed,
+-- `talos-cli layout set split-shell` (or `layout` in settings) wrote this
+-- file. Edit it freely: talos stops updating a layout.lua you have changed,
 -- and a later switch backs your copy up before replacing it.
 --
 -- It only ARRANGES, and it runs before any plugin renders — which is what lets
@@ -38,7 +38,7 @@ local panels = require("lib.panels")
 local TWO_PANEL_MIN_COLS_DEFAULT = 80
 
 local function two_panel_min_cols()
-  local settings = thurbox and thurbox.settings
+  local settings = talos and talos.settings
   return (settings and settings.two_panel_min_cols) or TWO_PANEL_MIN_COLS_DEFAULT
 end
 
@@ -57,7 +57,7 @@ local SHELL_MIN_ROWS = 8
 local SPLIT_MIN_ROWS = 20
 
 local function status_rows()
-  return (thurbox and thurbox.chrome and thurbox.chrome.status_rows) or 0
+  return (talos and talos.chrome and talos.chrome.status_rows) or 0
 end
 
 --- Will a loaded plugin actually paint into `slot`?

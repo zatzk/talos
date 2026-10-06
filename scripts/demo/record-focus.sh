@@ -21,7 +21,7 @@
 # sandbox is fully hermetic (tbx_sandbox_init_full): its own HOME, XDG dirs and
 # tmux socket, all removed on exit.
 #
-# Needs: a built thurbox + thurbox-cli (target/debug, `just build`), tmux, git,
+# Needs: a built talos + talos-cli (target/debug, `just build`), tmux, git,
 # sqlite3, python3, asciinema 2.x and agg on PATH (and ffmpeg for STILLS).
 set -euo pipefail
 
@@ -44,7 +44,7 @@ tools="asciinema agg tmux git sqlite3 python3"
 for tool in $tools; do
     command -v "$tool" >/dev/null || missing="$missing $tool"
 done
-for bin in thurbox thurbox-cli; do
+for bin in talos talos-cli; do
     [ -x "$ROOT/target/debug/$bin" ] || missing="$missing target/debug/$bin"
 done
 [ -n "$missing" ] && { echo "missing:$missing (run: just build)" >&2; exit 2; }
@@ -56,7 +56,7 @@ export TBX_REPO_ROOT="$ROOT"
 source "$ROOT/scripts/dev/lib/sandbox-env.sh"
 tbx_sandbox_init_full fresh
 S="$TBX_SANDBOX_ROOT"
-TM="tmux -L thurbox-focus-demo"
+TM="tmux -L talos-focus-demo"
 cleanup() {
     $TM kill-server 2>/dev/null || true
     tbx_sandbox_teardown
@@ -64,14 +64,14 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # --- the world: one repository, three sessions running the stand-in agent ----
-CONFIG="$XDG_CONFIG_HOME/thurbox-dev"
+CONFIG="$XDG_CONFIG_HOME/talos-dev"
 mkdir -p "$CONFIG" "$S/bin"
 printf '[features]\nautomations = false\nversion_check = false\nauto_update = false\n' \
     >"$CONFIG/settings.toml"
 
 cat >"$S/bin/demo-agent" <<'AGENT'
 #!/bin/sh
-# A stand-in coding agent: a few lines of filler once thurbox has sized the
+# A stand-in coding agent: a few lines of filler once talos has sized the
 # pane (text printed at the window's birth width re-wraps into spliced rows),
 # then a prompt that waits.
 birth=$(stty size 2>/dev/null)
@@ -99,17 +99,17 @@ git -C "$REPO" init -q -b main
 git -C "$REPO" -c user.name=demo -c user.email=demo@example.invalid \
     commit -q --allow-empty -m init
 for name in login-fix api-refactor docs-pass; do
-    thurbox-cli session create --name "$name" --repo-path "$REPO" --agent demo >/dev/null
+    talos-cli session create --name "$name" --repo-path "$REPO" --agent demo >/dev/null
 done
-thurbox-cli config accept-interface >/dev/null
+talos-cli config accept-interface >/dev/null
 
-DB="$XDG_DATA_HOME/thurbox-dev/thurbox.db"
-# Pin a theme, then read it back through thurbox itself so a schema change fails
+DB="$XDG_DATA_HOME/talos-dev/talos.db"
+# Pin a theme, then read it back through talos itself so a schema change fails
 # here rather than recording the fallback silently.
 pin_theme() {
     sqlite3 "$DB" "INSERT INTO metadata (key, value) VALUES ('active_theme', '$1') \
         ON CONFLICT(key) DO UPDATE SET value = excluded.value"
-    thurbox-cli config show --json | grep -q "\"theme\": *\"$1\"" || {
+    talos-cli config show --json | grep -q "\"theme\": *\"$1\"" || {
         echo "the theme did not take: expected $1" >&2
         exit 1
     }
@@ -118,7 +118,7 @@ pin_theme() {
 cat >"$S/run.sh" <<RUN
 #!/usr/bin/env bash
 cd "$S"
-exec thurbox
+exec talos
 RUN
 chmod +x "$S/run.sh"
 
@@ -137,7 +137,7 @@ wait_for() {
 # attributes included) wrapped in a one-event cast, rendered by agg, then the
 # last frame taken out of the GIF. `mono` drops every colour parameter from the
 # SGR sequences and keeps the rest.
-still() { # still <name> <mono:0|1> <thurbox theme>
+still() { # still <name> <mono:0|1> <talos theme>
     local ansi="$S/still.ansi" palette="$AGG_THEME"
     case "$3" in *light* | *latte* | *day* | *dawn*) palette="$AGG_LIGHT_THEME" ;; esac
     $TM capture-pane -p -e -t 0 >"$ansi"

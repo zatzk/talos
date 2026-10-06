@@ -1,5 +1,5 @@
 //! A spawn that fails because a binary is not installed must say which one,
-//! where thurbox looked, and what to do about it.
+//! where talos looked, and what to do about it.
 //!
 //! The report this pins comes from a user whose local spawn failed with
 //! `tmux new-window exited exit status: 127 for window tb-test01`: a number,
@@ -30,14 +30,14 @@ fn without_a_multiplexer<T>(f: impl FnOnce() -> T) -> T {
 #[test]
 fn a_spawn_with_no_multiplexer_installed_names_it_the_search_and_the_fix() {
     let message = without_a_multiplexer(|| {
-        let err = thurbox::backend::SessionBackend::create_window(
-            &thurbox::backend::tmux::TmuxBackend::new(),
-            &thurbox::backend::WindowSpec {
-                owner: thurbox::backend::Owner::new(
+        let err = talos::backend::SessionBackend::create_window(
+            &talos::backend::tmux::TmuxBackend::new(),
+            &talos::backend::WindowSpec {
+                owner: talos::backend::Owner::new(
                     "00000000-0000-0000-0000-000000000000",
                     "test01",
                 ),
-                role: thurbox::backend::WindowRole::Agent,
+                role: talos::backend::WindowRole::Agent,
                 command: "some-agent",
                 args: &[],
                 cwd: None,
@@ -55,7 +55,7 @@ fn a_spawn_with_no_multiplexer_installed_names_it_the_search_and_the_fix() {
     );
     assert!(
         message.contains("Looked in"),
-        "the message never says where thurbox looked: {message}"
+        "the message never says where talos looked: {message}"
     );
     assert!(
         message.contains("http"),

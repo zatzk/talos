@@ -74,8 +74,8 @@ impl TmuxCompatible for Tmux {
 
     fn session_config(session: &str) -> Vec<ConfigOption> {
         let mut config = Vec::new();
-        // An app's OSC 52 copy does not need tmux: control mode hands thurbox
-        // the raw bytes in `%output` whatever `set-clipboard` says, and thurbox
+        // An app's OSC 52 copy does not need tmux: control mode hands talos
+        // the raw bytes in `%output` whatever `set-clipboard` says, and talos
         // puts the focused pane's write on the user's clipboard itself
         // (`TermSignals::copy_to_clipboard`). tmux never sends a control-mode
         // client a selection, so `set-clipboard on` never delivered one here.
@@ -95,12 +95,12 @@ impl TmuxCompatible for Tmux {
 
         // Apps inside tmux can inspect this option before deciding whether to
         // request mouse reports. With it off, a full-screen app may leave wheel
-        // capture disabled even though thurbox can forward those reports.
+        // capture disabled even though talos can forward those reports.
         config.push(ConfigOption::set(&["-t", session, "mouse", "on"], true));
 
         // The `*:clipboard` feature goes into a fixed slot, and only while that
         // slot is empty. Appending it grew the list by one entry a run, since
-        // this runs on every spawn and the server outlives thurbox (#1278); an
+        // this runs on every spawn and the server outlives talos (#1278); an
         // unconditional write to the slot would overwrite an entry the user's
         // `~/.tmux.conf` put there. Reading the list from Rust first would cost
         // a process per session create, and a format cannot test the whole
@@ -185,7 +185,7 @@ impl PaneInput for HexKeys {
 /// outright, so the separator survives whatever the environment says.
 const PANE_STATE_UTF8_FLAG: &str = "-u";
 
-/// The `terminal-features` slot thurbox writes `*:clipboard` into — see
+/// The `terminal-features` slot talos writes `*:clipboard` into — see
 /// `session_config`. High enough that neither tmux's defaults nor a
 /// hand-appended list reaches it.
 const CLIPBOARD_FEATURE_SLOT: &str = "terminal-features[100]";
@@ -225,7 +225,7 @@ fn check_min_version(version_output: &str) -> Result<()> {
         let (major, minor) = parse_tmux_version(rest)?;
         if (major, minor) < MIN_TMUX_VERSION {
             bail!(
-                "tmux {major}.{minor} is too old; thurbox requires >= {}.{}",
+                "tmux {major}.{minor} is too old; talos requires >= {}.{}",
                 MIN_TMUX_VERSION.0,
                 MIN_TMUX_VERSION.1
             );
@@ -293,11 +293,11 @@ mod tests {
     /// A banner that says psmux is refused instead.
     #[test]
     fn a_psmux_answering_as_tmux_is_refused() {
-        let err = Tmux::check_banner("tmux 3.3.8\npsmux 3.3.8 (66cf613 2026-08-18)\n", "thurbox")
+        let err = Tmux::check_banner("tmux 3.3.8\npsmux 3.3.8 (66cf613 2026-08-18)\n", "talos")
             .unwrap_err()
             .to_string();
         assert!(err.contains("psmux"), "{err}");
-        assert!(Tmux::check_banner("tmux 3.5a\n", "thurbox").is_ok());
+        assert!(Tmux::check_banner("tmux 3.5a\n", "talos").is_ok());
     }
 
     #[test]
@@ -360,7 +360,7 @@ mod tests {
 
     /// Whether a backend polls for dead panes is what its multiplexer can
     /// report — tmux announces `%window-close`, psmux does not — not the OS
-    /// thurbox was built for, nor the host's.
+    /// talos was built for, nor the host's.
     #[test]
     fn liveness_polling_follows_close_events_not_the_build_os() {
         use crate::session::platform::simulate_local;
@@ -383,11 +383,11 @@ mod tests {
     #[test]
     fn paste_prompt_args_wraps_literally_for_tmux() {
         assert_eq!(
-            Tmux::paste_args("thurbox:tb-demo", "line one\nline two"),
+            Tmux::paste_args("talos:tb-demo", "line one\nline two"),
             vec![
                 "send-keys",
                 "-t",
-                "thurbox:tb-demo",
+                "talos:tb-demo",
                 "-l",
                 "\x1b[200~line one\nline two\x1b[201~",
             ]
@@ -433,6 +433,6 @@ mod tests {
         let command = TmuxBackend::local()
             .hook_signal_command()
             .expect("tmux has a status channel");
-        assert_eq!(command, "tmux set-option -p @thurbox_state ");
+        assert_eq!(command, "tmux set-option -p @talos_state ");
     }
 }

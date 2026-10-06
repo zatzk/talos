@@ -1,6 +1,6 @@
 //! The built-in **hooks** extension: wires each coding agent's lifecycle hooks
-//! to `thurbox-cli session signal` so sessions report `working`/`blocked`/`done`
-//! back to thurbox (see the hooks-driven `SessionState`). For **remote**
+//! to `talos-cli session signal` so sessions report `working`/`blocked`/`done`
+//! back to talos (see the hooks-driven `SessionState`). For **remote**
 //! sessions the same hook file is shipped with its commands rewritten to the
 //! command the row's backend reports state through
 //! (`SessionBackend::hook_signal_command`, via `rewrite_hook_signals`) — the
@@ -12,7 +12,7 @@
 //! is generic and lives in [`super::builtin`]; what is here is the `HOOKS`
 //! spec plus the hook rewriting no other built-in needs.
 //!
-//! Opt out with `thurbox-cli extension deactivate hooks`, which records an
+//! Opt out with `talos-cli extension deactivate hooks`, which records an
 //! opt-out flag so startup self-heal won't resurrect it.
 
 use super::builtin::Builtin;
@@ -34,19 +34,19 @@ pub(crate) const OMP_STATUS: &str = include_str!("../../extensions/hooks/omp-sta
 pub(crate) const GROK_HOOKS: &str = include_str!("../../extensions/hooks/grok-hooks.json");
 pub(crate) const KIMI_HOOKS: &str = include_str!("../../extensions/hooks/kimi-hooks.toml");
 
-/// Marker prefix of every thurbox-managed hook command; the state word
+/// Marker prefix of every talos-managed hook command; the state word
 /// (`working`/`blocked`/`done`/`idle`) follows it directly.
 ///
 /// Also what a diagnostic looks for to decide whether a payload on disk really
-/// is thurbox's wiring rather than a file that merely lives at that path.
-pub const SIGNAL_MARKER: &str = "thurbox-cli session signal --state ";
+/// is talos's wiring rather than a file that merely lives at that path.
+pub const SIGNAL_MARKER: &str = "talos-cli session signal --state ";
 
-/// Rewrite thurbox-managed hook commands for a pane on another machine:
-/// `thurbox-cli session signal --state <s>` → `<command><s>`, where `command`
+/// Rewrite talos-managed hook commands for a pane on another machine:
+/// `talos-cli session signal --state <s>` → `<command><s>`, where `command`
 /// is what the row's backend says a hook in its panes runs
 /// ([`crate::backend::SessionBackend::hook_signal_command`]).
 ///
-/// `thurbox-cli` can't signal from a remote host (it isn't installed there,
+/// `talos-cli` can't signal from a remote host (it isn't installed there,
 /// and it would write the host's own DB — never the one the local interface
 /// reads); the backend's own status channel can. Applied by the spawn-time
 /// materialization (`adapt_agent_args_for_remote`) to every launch arg and
@@ -61,7 +61,7 @@ pub(crate) fn rewrite_hook_signals(contents: &str, command: &str) -> String {
     // drop the local-only Codex ID binding command from that payload.
     contents
         .replace(
-            "thurbox-cli session bind-codex >/dev/null 2>&1 || true; ",
+            "talos-cli session bind-codex >/dev/null 2>&1 || true; ",
             "",
         )
         .replace(SIGNAL_MARKER, command)
@@ -70,7 +70,7 @@ pub(crate) fn rewrite_hook_signals(contents: &str, command: &str) -> String {
 /// Whether agent status hooks are wired — i.e. the user has not opted out of
 /// the built-in extension that installs them. The launch paths consult this
 /// before injecting an agent's hook args, so an opted-out profile spawns an
-/// agent with no `--settings` rather than one pointing at a file thurbox no
+/// agent with no `--settings` rather than one pointing at a file talos no
 /// longer maintains.
 pub fn hooks_enabled(db: &crate::storage::Database) -> bool {
     !db.builtin_extension_opted_out(HOOKS_EXTENSION_NAME)
@@ -78,7 +78,7 @@ pub fn hooks_enabled(db: &crate::storage::Database) -> bool {
 }
 
 /// The built-in hooks extension: every embedded asset, and the home under this
-/// build's config dir (`~/.config/thurbox/hooks`, or `~/.config/thurbox-dev/hooks`
+/// build's config dir (`~/.config/talos/hooks`, or `~/.config/talos-dev/hooks`
 /// for a dev build) that the injected `--settings` path has to point inside.
 pub(crate) static HOOKS: Builtin = Builtin {
     name: HOOKS_EXTENSION_NAME,
@@ -127,7 +127,7 @@ mod tests {
 
     /// What a tmux-protocol backend answers for its hook command — a sample,
     /// not a dependency: the adapters' own tests pin their real answers.
-    const PANE_OPTION: &str = "tmux set-option -p @thurbox_state ";
+    const PANE_OPTION: &str = "tmux set-option -p @talos_state ";
 
     fn rewrite_for_tmux(contents: &str) -> String {
         rewrite_hook_signals(contents, PANE_OPTION)
@@ -137,10 +137,10 @@ mod tests {
     fn remote_rewrite_replaces_every_signal_command() {
         let rewritten = rewrite_for_tmux(CLAUDE_SETTINGS);
         // No local CLI reference survives, every state maps to the pane option.
-        assert!(!rewritten.contains("thurbox-cli"));
+        assert!(!rewritten.contains("talos-cli"));
         for state in ["idle", "working", "blocked", "done"] {
             assert!(
-                rewritten.contains(&format!("tmux set-option -p @thurbox_state {state}")),
+                rewritten.contains(&format!("tmux set-option -p @talos_state {state}")),
                 "missing rewritten {state} command"
             );
         }
@@ -148,9 +148,9 @@ mod tests {
         // blocked `case`) survives the prefix replace, and the result is still
         // valid JSON with all five hook events.
         assert!(
-            rewritten.contains("tmux set-option -p @thurbox_state idle >/dev/null 2>&1 || true")
+            rewritten.contains("tmux set-option -p @talos_state idle >/dev/null 2>&1 || true")
         );
-        assert!(rewritten.contains("tmux set-option -p @thurbox_state blocked >/dev/null 2>&1 ;;"));
+        assert!(rewritten.contains("tmux set-option -p @talos_state blocked >/dev/null 2>&1 ;;"));
         let json: serde_json::Value = serde_json::from_str(&rewritten).expect("still valid JSON");
         let hooks = json.get("hooks").and_then(|h| h.as_object()).unwrap();
         for event in [
@@ -170,14 +170,14 @@ mod tests {
         // the rewrite has to survive each payload's own syntax — JSON string
         // escaping for grok, TOML for kimi.
         // Checked on the *commands*, not the raw text: a payload may mention
-        // `thurbox-cli` in a comment (kimi's does, explaining the ownership
+        // `talos-cli` in a comment (kimi's does, explaining the ownership
         // marker), and a comment is not something the agent runs.
         let grok = rewrite_for_tmux(GROK_HOOKS);
         let grok_doc: serde_json::Value =
             serde_json::from_str(&grok).expect("grok stays valid JSON");
         for command in json_hook_commands(&grok_doc) {
             assert!(
-                !command.contains("thurbox-cli"),
+                !command.contains("talos-cli"),
                 "grok command still calls the local CLI: {command}"
             );
         }
@@ -187,13 +187,13 @@ mod tests {
         for hook in kimi_doc["hooks"].as_array().expect("[[hooks]]") {
             let command = hook["command"].as_str().expect("hook has a command");
             assert!(
-                !command.contains("thurbox-cli"),
+                !command.contains("talos-cli"),
                 "kimi command still calls the local CLI: {command}"
             );
         }
 
         for state in ["idle", "working", "blocked", "done"] {
-            let option = format!("tmux set-option -p @thurbox_state {state}");
+            let option = format!("tmux set-option -p @talos_state {state}");
             assert!(grok.contains(&option), "grok is missing rewritten {state}");
             assert!(kimi.contains(&option), "kimi is missing rewritten {state}");
         }
@@ -227,17 +227,17 @@ mod tests {
             ("kimi-hooks.toml", KIMI_HOOKS),
             ("extension.toml", MANIFEST), // aider's literal --notifications-command arg
         ] {
-            // Key on the invocation-with-flags form (`thurbox-cli session
+            // Key on the invocation-with-flags form (`talos-cli session
             // signal --…`): a bare mention in a comment (ends at a backtick/
             // newline) is fine, but ANY flagged invocation — including one
             // whose flags drifted, e.g. `--quiet --state` — must carry the
             // exact marker prefix, or the remote rewrite silently misses it.
-            let occurrences = asset.matches("thurbox-cli session signal --").count();
+            let occurrences = asset.matches("talos-cli session signal --").count();
             assert!(occurrences > 0, "{name} carries no session-signal command");
             assert_eq!(
                 asset.matches(SIGNAL_MARKER).count(),
                 occurrences,
-                "a `thurbox-cli session signal --…` command in {name} doesn't match SIGNAL_MARKER"
+                "a `talos-cli session signal --…` command in {name} doesn't match SIGNAL_MARKER"
             );
         }
         assert_eq!(
@@ -249,9 +249,9 @@ mod tests {
 
     #[test]
     fn a_socket_naming_command_rewrites_and_stays_json_safe() {
-        let command = "psmux -L thurbox set-option -p @thurbox_state ";
+        let command = "psmux -L talos set-option -p @talos_state ";
         let rewritten = rewrite_hook_signals(CLAUDE_SETTINGS, command);
-        assert!(!rewritten.contains("thurbox-cli"));
+        assert!(!rewritten.contains("talos-cli"));
         for state in ["idle", "working", "blocked", "done"] {
             assert!(
                 rewritten.contains(&format!("{command}{state}")),
@@ -268,34 +268,34 @@ mod tests {
         assert!(CLAUDE_SETTINGS.contains("session signal --state working"));
         // The opencode plugin must carry the managed marker so uninstall can
         // safely remove it (see `is_user_modified`).
-        assert!(OPENCODE_PLUGIN.contains("thurbox `extension install`"));
+        assert!(OPENCODE_PLUGIN.contains("talos `extension install`"));
         // codex's hooks.json reports the full idle/working/done range.
         assert!(CODEX_HOOKS.contains("session signal --state idle"));
         // The vibe payload carries the signal marker (prune) and the managed
         // marker (external-file uninstall, see `is_user_modified`).
-        assert!(VIBE_HOOKS.contains("thurbox-cli session signal"));
-        assert!(VIBE_HOOKS.contains("thurbox `extension install`"));
+        assert!(VIBE_HOOKS.contains("talos-cli session signal"));
+        assert!(VIBE_HOOKS.contains("talos `extension install`"));
         // The copilot payload carries the signal command and the managed marker
         // (external-file uninstall, see `is_user_modified`).
-        assert!(COPILOT_HOOKS.contains("thurbox-cli session signal"));
-        assert!(COPILOT_HOOKS.contains("thurbox `extension install`"));
+        assert!(COPILOT_HOOKS.contains("talos-cli session signal"));
+        assert!(COPILOT_HOOKS.contains("talos `extension install`"));
         // The pi payload is a TypeScript extension dropped into pi's extensions
         // dir; it carries the signal command and the managed marker (external-
         // file uninstall, see `is_user_modified`).
-        assert!(PI_STATUS.contains("thurbox-cli session signal"));
-        assert!(PI_STATUS.contains("thurbox `extension install`"));
+        assert!(PI_STATUS.contains("talos-cli session signal"));
+        assert!(PI_STATUS.contains("talos `extension install`"));
         // The omp payload mirrors pi's shape but recognizes OMP's `ask` tool (and
         // upstream pi's `ask_user_question`) as the blocking edge.
-        assert!(OMP_STATUS.contains("thurbox-cli session signal"));
-        assert!(OMP_STATUS.contains("thurbox `extension install`"));
+        assert!(OMP_STATUS.contains("talos-cli session signal"));
+        assert!(OMP_STATUS.contains("talos `extension install`"));
         assert!(OMP_STATUS.contains("\"ask\""));
         // grok's standalone file carries the signal command and the managed
         // marker (external-file uninstall, see `is_user_modified`).
-        assert!(GROK_HOOKS.contains("thurbox-cli session signal"));
-        assert!(GROK_HOOKS.contains("thurbox `extension install`"));
+        assert!(GROK_HOOKS.contains("talos-cli session signal"));
+        assert!(GROK_HOOKS.contains("talos `extension install`"));
         // kimi's entries are merged into the user's own config.toml, so they
         // are pruned by the signal marker rather than by a managed marker.
-        assert!(KIMI_HOOKS.contains("thurbox-cli session signal"));
+        assert!(KIMI_HOOKS.contains("talos-cli session signal"));
     }
 
     #[test]
@@ -314,7 +314,7 @@ mod tests {
             .expect("grok external file present");
         assert_eq!(grok.source_path(), "grok-hooks.json");
         assert_eq!(grok.requires_dir.as_deref(), Some("~/.grok"));
-        assert_eq!(grok.path, "~/.grok/hooks/thurbox-status.json");
+        assert_eq!(grok.path, "~/.grok/hooks/talos-status.json");
 
         // The payload is valid JSON in grok's own (claude-shaped) schema, so a
         // typo can't ship a file grok would reject.
@@ -474,7 +474,7 @@ mod tests {
             serde_json::from_str(CODEX_HOOKS).expect("codex payload is valid JSON");
         assert!(codex_payload["hooks"]["SessionStart"].is_array());
         assert!(codex_payload["hooks"]["Stop"].is_array());
-        assert!(CODEX_HOOKS.contains("thurbox-cli session signal"));
+        assert!(CODEX_HOOKS.contains("talos-cli session signal"));
 
         // codex's second block edge is the question tool, and it is the only
         // thing `PreToolUse` is used for: an unmatched group there would signal
@@ -580,7 +580,7 @@ mod tests {
         }
         assert!(payload["hooks"]["BeforeTool"].is_null());
         assert!(payload["hooks"]["AfterAgent"].is_null());
-        assert!(ANTIGRAVITY_HOOKS.contains("thurbox-cli session signal"));
+        assert!(ANTIGRAVITY_HOOKS.contains("talos-cli session signal"));
 
         // copilot drops a managed standalone file into ~/.copilot/hooks/ (guarded
         // by requires_dir; the hooks/ subdir is created on write).
@@ -613,7 +613,7 @@ mod tests {
     #[test]
     fn hooks_home_derives_from_build_config_dir() {
         // Home must track the resolved config dir (so a dev build lands under
-        // `thurbox-dev`, not the release tree) — never a hardcoded path.
+        // `talos-dev`, not the release tree) — never a hardcoded path.
         let tmp = tempfile::tempdir().unwrap();
         let _guard = crate::paths::TestPathGuard::new(tmp.path());
         let home = HOOKS.home().expect("home resolves");
@@ -822,7 +822,7 @@ mod tests {
     );
 
     /// Run a payload's own `Notification` command against `stdin`, resolving
-    /// its `thurbox-cli` to a stub that records the state word instead of
+    /// its `talos-cli` to a stub that records the state word instead of
     /// writing a database.
     ///
     /// The shipped command **verbatim**, not a re-implementation of it: what is
@@ -847,7 +847,7 @@ mod tests {
 
         let dir = tempfile::TempDir::new().expect("tempdir");
         let log = dir.path().join("state");
-        let bin = dir.path().join("thurbox-cli");
+        let bin = dir.path().join("talos-cli");
         // `$4` is the state word of `… session signal --state <s>`.
         std::fs::write(
             &bin,
@@ -950,7 +950,7 @@ mod tests {
             for state in &actual {
                 assert!(
                     crate::session::HOOK_STATES.contains(&state.as_str()),
-                    "{agent}: signals '{state}', which is not a thurbox state"
+                    "{agent}: signals '{state}', which is not a talos state"
                 );
             }
             let mut promised: Vec<String> =

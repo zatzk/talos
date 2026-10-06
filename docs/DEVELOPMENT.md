@@ -1,6 +1,6 @@
 # Development
 
-How to set up a reproducible thurbox dev environment and run the app in an
+How to set up a reproducible talos dev environment and run the app in an
 isolated sandbox.
 
 ## 1. Toolchain — the dev environment
@@ -12,7 +12,7 @@ The `flake.nix` provides the tools CI uses — the Rust toolchain (read from
 `cargo-deny`, `cocogitto`, `just`, and the demo stack (`vhs`/`ffmpeg`/`ttyd`).
 `flake.lock` pins nixpkgs, so the shell's tools move only when someone runs
 `nix flake update`; the Rust toolchain still follows `stable` from
-`rust-toolchain.toml`. The same flake also packages thurbox itself
+`rust-toolchain.toml`. The same flake also packages talos itself
 (`nix/package.nix`), which CI's `nix` job builds; the rest of CI installs its
 tools without Nix, so the shell is a local convenience, not what CI runs.
 
@@ -51,7 +51,7 @@ records version evidence and RMUX platform limits.
 
 | Task | What it does |
 |------|--------------|
-| `just build` | build the dev binaries (`thurbox` + `thurbox-cli`) |
+| `just build` | build the dev binaries (`talos` + `talos-cli`) |
 | `just test` | `cargo nextest run --all` |
 | `just test-scripts` | the bats suites: `scripts/install.bats` + the pull-request-title checker (needs `bats`) |
 | `just lint` | fmt-check + clippy + cargo-deny + rumdl + shellcheck + selene, stylua and lua-language-server |
@@ -78,7 +78,7 @@ A destructor cannot run for a signal, though — a nextest `slow-timeout`
 termination, `kill -9`, an OOM kill — so that one case still leaks, and
 `just reap-tmux` is the sweep for it. It kills only processes that are both a
 tmux **server** of yours on one of the suite's own socket names and unreachable
-(no socket file), which is why it can never touch `thurbox`, `thurbox-dev` or
+(no socket file), which is why it can never touch `talos`, `talos-dev` or
 anything you are attached to. `just reap-tmux --dry-run` lists without killing.
 Linux only: the socket directory is read from `/proc/<pid>/environ`, and there
 is no portable equivalent.
@@ -91,17 +91,17 @@ reports CPU. Neither is in CI — wall-clock timing stays out of the gate
 terminal size and session count, never a single absolute number. Both are
 explained in [`docs/PERFORMANCE.md`](PERFORMANCE.md).
 
-## 3. Runtime sandbox — run thurbox isolated
+## 3. Runtime sandbox — run talos isolated
 
 The sandbox runs the dev build (`0.0.0-dev` → `dev_build` cfg, which uses a
-`thurbox-dev` tmux socket) with **thurbox's own config/data redirected** into the
-sandbox (via `THURBOX_CONFIG_DIR` / `THURBOX_DATA_DIR`), so it never touches your
-real `~/.config/thurbox` or sessions. It **keeps your real `HOME`**, so your
+`talos-dev` tmux socket) with **talos's own config/data redirected** into the
+sandbox (via `TALOS_CONFIG_DIR` / `TALOS_DATA_DIR`), so it never touches your
+real `~/.config/talos` or sessions. It **keeps your real `HOME`**, so your
 authenticated agent CLIs (`claude`/`codex`/`antigravity`/…) work normally — and it puts
 the dev `target/debug` first on `PATH`, so an agent's status hook calls *this*
-`thurbox-cli` and writes to the sandbox DB the TUI reads. The tmux socket is
-scoped twice over: a private `TMUX_TMPDIR`, and `THURBOX_SOCKET` naming the
-server outright — a relocated `THURBOX_DATA_DIR` derives a socket of its own
+`talos-cli` and writes to the sandbox DB the TUI reads. The tmux socket is
+scoped twice over: a private `TMUX_TMPDIR`, and `TALOS_SOCKET` naming the
+server outright — a relocated `TALOS_DATA_DIR` derives a socket of its own
 (`docs/CONFIG.md` → Relocating an instance), and teardown kills the socket by
 name.
 
@@ -110,16 +110,16 @@ scripts/dev/sandbox.sh                 # persistent "default" profile, launch th
 scripts/dev/sandbox.sh --fresh         # throwaway env, wiped on exit
 scripts/dev/sandbox.sh --profile foo   # a named persistent profile
 scripts/dev/sandbox.sh --isolate-home  # full hermetic isolation (fresh HOME; agents have NO creds)
-scripts/dev/sandbox.sh --shell         # a shell with the sandbox env (run thurbox-cli by hand)
-scripts/dev/sandbox.sh -- session list # run a thurbox-cli command in the sandbox
+scripts/dev/sandbox.sh --shell         # a shell with the sandbox env (run talos-cli by hand)
+scripts/dev/sandbox.sh -- session list # run a talos-cli command in the sandbox
 scripts/dev/sandbox.sh --clean [name]  # kill + wipe a persistent profile
 ```
 
 Or via `just`: `just sandbox`, `just sandbox-fresh`,
 `just sandbox-shell`, `just sandbox-clean [profile]`.
 
-The sandbox points `THURBOX_CONFIG_DIR` at its own root, so the interface
-materialises at `<sandbox>/thurbox-config/ui/` along with agents, settings and the
+The sandbox points `TALOS_CONFIG_DIR` at its own root, so the interface
+materialises at `<sandbox>/talos-config/ui/` along with agents, settings and the
 database. `--fresh` is therefore a clean first-run interface every time — which is
 how the plugin lifecycle (delivery, removal, restore) is exercised without touching
 your real one.
@@ -128,13 +128,13 @@ The TUI is launched **from the sandbox root rather than the repo**. Where you
 stand no longer decides which interface loads, so this is belt-and-braces.
 
 To run the dev TUI against **this checkout's** `ui/` instead of a copy, ask for it:
-`just tui-ui` (which sets `THURBOX_UI_DIR`).
+`just tui-ui` (which sets `TALOS_UI_DIR`).
 
 **Isolation flavors:**
 
-- **thurbox-only (default)** — real `HOME`/agents; only `thurbox-config` +
-  `thurbox-data` (+ a private `TMUX_TMPDIR`) are redirected. Use this to dev with
-  your real, logged-in agents without polluting your real thurbox state.
+- **talos-only (default)** — real `HOME`/agents; only `talos-config` +
+  `talos-data` (+ a private `TMUX_TMPDIR`) are redirected. Use this to dev with
+  your real, logged-in agents without polluting your real talos state.
 - **full (`--isolate-home`)** — also overrides `HOME` + `XDG_*`, so the env is
   hermetic and agents boot with no credentials. This is what `scripts/demo/
   record.sh` uses (via `tbx_sandbox_init_full`).
@@ -157,8 +157,8 @@ private `TMUX_TMPDIR` — so it never touches a real profile either.
 
 ```bash
 scripts/dev/sandbox.sh --shell
-# inside the sandbox shell (thurbox/thurbox-cli target the sandbox):
-thurbox-cli session create --name demo --repo-path "$PWD" --agent claude
-thurbox-cli session signal --state blocked --session <id>   # what an agent hook does
-thurbox-cli session list --json | jq '.[].name'
+# inside the sandbox shell (talos/talos-cli target the sandbox):
+talos-cli session create --name demo --repo-path "$PWD" --agent claude
+talos-cli session signal --state blocked --session <id>   # what an agent hook does
+talos-cli session list --json | jq '.[].name'
 ```

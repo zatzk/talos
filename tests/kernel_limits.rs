@@ -5,7 +5,7 @@
 //! and running them beside the rest would change the limits under those tests.
 //! They run in one file, in sequence, restoring the defaults afterwards.
 
-use thurbox::kernel::host::{self, LuaHost, RenderContext};
+use talos::kernel::host::{self, LuaHost, RenderContext};
 
 fn plugin_dir(source: &str) -> tempfile::TempDir {
     let dir = tempfile::tempdir().expect("tempdir");
@@ -39,7 +39,7 @@ fn an_event_handler_that_never_returns_is_interrupted_and_reported() {
     let spinner = LuaHost::new(dir.path());
     assert!(spinner.error.is_none(), "{:?}", spinner.error);
     let failures = spinner.dispatch_event(
-        &thurbox::kernel::events::Event::new("session.status").with("session", Some("s1")),
+        &talos::kernel::events::Event::new("session.status").with("session", Some("s1")),
     );
     host::set_instruction_budget(0);
     assert_eq!(failures.len(), 1, "{failures:?}");

@@ -1,6 +1,6 @@
 //! Mirroring a shareable host's database into local rows.
 //!
-//! The host's `thurbox-cli session list --json` (and `--deleted`) is the
+//! The host's `talos-cli session list --json` (and `--deleted`) is the
 //! record; this module reconciles the local rows on that host's backend to it
 //! — adopting what is new, updating what changed, deleting and restoring what
 //! the host says was deleted and restored — and writes nothing when nothing
@@ -132,7 +132,7 @@ pub fn session_to_json(
             "repo_path": w.repo_path.display().to_string(),
             "worktree_path": w.worktree_path.display().to_string(),
             "branch": w.branch,
-            "created_by_thurbox": w.created_by_thurbox,
+            "created_by_talos": w.created_by_talos,
         })).collect::<Vec<_>>(),
     })
 }
@@ -189,7 +189,7 @@ pub fn session_to_json_assessed(
     // null for both, which is what tells them from an agent's own report.
     put("state", json!(hook.state_word()));
     put("state_source", json!(hook.state_source.map(|s| s.as_str())));
-    // The parked mark, under the same name and type `thurbox-cli watch`
+    // The parked mark, under the same name and type `talos-cli watch`
     // already publishes it — so a driver polling `get`/`list` and one reading
     // the stream learn the same fact from the same key. Without it the two
     // verbs describe a parked session exactly as they describe a running one.
@@ -231,8 +231,8 @@ pub fn session_from_json(value: &Value, backend_type: &str) -> Result<HostRow, S
                         // Absent from a peer running a build that predates the
                         // field. Those peers only ever created their worktrees,
                         // so "ours" is the accurate reading, not a guess.
-                        created_by_thurbox: w
-                            .get("created_by_thurbox")
+                        created_by_talos: w
+                            .get("created_by_talos")
                             .and_then(Value::as_bool)
                             .unwrap_or(true),
                     })
@@ -701,7 +701,7 @@ fn as_transitive(row: &mut HostRow) {
         row.session.backend_type = route.format();
     }
     for worktree in &mut row.session.worktrees {
-        worktree.created_by_thurbox = false;
+        worktree.created_by_talos = false;
     }
 }
 
@@ -888,7 +888,7 @@ mod tests {
                 "updated_at": u64::MAX,
                 "worktrees": [{
                     "repo_path": "/srv/repo",
-                    "worktree_path": "/home/me/.local/share/thurbox/worktrees/repo/feat",
+                    "worktree_path": "/home/me/.local/share/talos/worktrees/repo/feat",
                     "branch": "feat/x",
                 }],
             }),
@@ -943,7 +943,7 @@ mod tests {
     #[test]
     fn a_borrowed_worktree_stays_borrowed_across_the_wire() {
         // The peer that tears a mirrored session down reads this flag off the
-        // JSON, not off its own database. `created_by_thurbox` is absent-means-
+        // JSON, not off its own database. `created_by_talos` is absent-means-
         // true for older hosts, so a writer that stopped emitting the key would
         // turn every borrowed worktree back into one force-delete may
         // `git worktree remove --force` — taking the user's uncommitted work
@@ -951,7 +951,7 @@ mod tests {
         // fixture never sets the flag false.
         let id = SessionId::default();
         let mut row = host_row(id, "borrowed");
-        row.session.worktrees[0].created_by_thurbox = false;
+        row.session.worktrees[0].created_by_talos = false;
 
         let again = session_from_json(
             &session_to_json(
@@ -964,7 +964,7 @@ mod tests {
         )
         .unwrap();
 
-        assert!(!again.session.worktrees[0].created_by_thurbox);
+        assert!(!again.session.worktrees[0].created_by_talos);
         assert_eq!(again, row);
     }
 

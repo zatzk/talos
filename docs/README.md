@@ -1,6 +1,6 @@
 # Design Documentation
 
-This directory holds the **rationale** behind Thurbox's design decisions. For
+This directory holds the **rationale** behind Talos's design decisions. For
 operational guidance (build commands, module layout, event loop), see
 [`AGENTS.md`](../AGENTS.md) and the skills it indexes under
 [`.agents/skills/`](../.agents/skills/).
@@ -14,10 +14,10 @@ operational guidance (build commands, module layout, event loop), see
 | [FEATURES.md](FEATURES.md) | Feature-level design | Altering keybindings, lifecycle, layout, or UX |
 | [PERFORMANCE.md](PERFORMANCE.md) | Render/tick performance decisions | Changing the render loop, a cache, or a worker cadence |
 | [KERNEL.md](KERNEL.md) | The plugin kernel: its shape, rules and traps | Changing the kernel's contract with Lua |
-| [PLUGINS.md](PLUGINS.md) | Writing an interface plugin | Changing the plugin API or the `thurbox.*` shape |
+| [PLUGINS.md](PLUGINS.md) | Writing an interface plugin | Changing the plugin API or the `talos.*` shape |
 | [ORCHESTRATION.md](ORCHESTRATION.md) | The control-plane pattern for running sessions across many repos | Changing the session/message/extension surface the pattern relies on |
 | [AGENTS.md](AGENTS.md) | Each built-in agent's config and status-hook mechanism | Adding or changing a built-in agent |
-| [CONFIG.md](CONFIG.md) | Thurbox's own config files / env vars / DB settings in one place | Adding/changing a config file, env var, or DB setting |
+| [CONFIG.md](CONFIG.md) | Talos's own config files / env vars / DB settings in one place | Adding/changing a config file, env var, or DB setting |
 | [RELEASING.md](RELEASING.md) | What a release may and may not change about the artifacts | Changing the release workflow or a published artifact |
 | [REVIEW.md](REVIEW.md) | The per-path house rules a change is reviewed against, and which document owns which class of fact | Encoding a new house rule, or moving what a document owns |
 

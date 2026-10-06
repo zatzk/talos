@@ -3,10 +3,10 @@
 
 Usage: bump-nuspec.py <version> <chocolatey_dir_or_nuspec> <checksums.txt>
 
-Sets <version> in thurbox.nuspec and $version/$url64/$checksum64 in
+Sets <version> in talos.nuspec and $version/$url64/$checksum64 in
 tools/chocolateyinstall.ps1 to match the freshly published release. The Windows
 artifact's sha256 is read from the release `checksums.txt`
-(`thurbox-v<version>-x86_64-pc-windows-msvc.zip`). Exits non-zero if that
+(`talos-v<version>-x86_64-pc-windows-msvc.zip`). Exits non-zero if that
 checksum is missing or any template anchor is not found, so CI fails loudly
 rather than packing a stale/partial package.
 """
@@ -26,7 +26,7 @@ def main() -> int:
     version = version_tag.lstrip("v")
 
     base = Path(arg)
-    nuspec = base if base.suffix == ".nuspec" else base / "thurbox.nuspec"
+    nuspec = base if base.suffix == ".nuspec" else base / "talos.nuspec"
     install_ps1 = nuspec.parent / "tools" / "chocolateyinstall.ps1"
 
     checks = {}
@@ -35,7 +35,7 @@ def main() -> int:
         if len(parts) == 2:
             checks[parts[1]] = parts[0]
 
-    fname = f"thurbox-v{version}-{TARGET}.zip"
+    fname = f"talos-v{version}-{TARGET}.zip"
     sha = checks.get(fname)
     if sha is None:
         print(f"error: checksum missing for: {fname}", file=sys.stderr)
@@ -50,7 +50,7 @@ def main() -> int:
     nuspec.write_text(nt)
 
     # install script $version / $url64 / $checksum64 (single-quoted literals)
-    url = f"https://github.com/Thurbeen/thurbox/releases/download/v{version}/{fname}"
+    url = f"https://github.com/zatzk/talos/releases/download/v{version}/{fname}"
     it = install_ps1.read_text()
     repls = [
         (r"(\$version\s*=\s*)'[^']*'", rf"\g<1>'{version}'"),

@@ -55,7 +55,7 @@ gate:
   # One such decision was that a paired before/after reading with
   # `scripts/dev/perf-run.sh` was the evidence to gather; it waited through a
   # release build and timed runs and failed the step on a 30-minute timeout.
-  # perf-run.sh refuses to run wherever `THURBOX_GATE` is exported, which
+  # perf-run.sh refuses to run wherever `TALOS_GATE` is exported, which
   # closes that one hole; naming the command closes the general one.
   #
   # The build is not marginal cost: the lint step above compiles the crate in

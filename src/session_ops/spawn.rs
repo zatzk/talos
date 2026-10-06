@@ -33,8 +33,8 @@ pub struct SpawnRequest {
     /// When set (with `worktree_branch` naming the branch checked out there)
     /// no `git worktree add` runs at all: the path becomes the cwd and is
     /// recorded as the session's worktree as-is. This is how a checkout made
-    /// outside thurbox — under the repo's own `.worktrees/`, beside it,
-    /// anywhere — is opened, since its location is not thurbox's derived
+    /// outside talos — under the repo's own `.worktrees/`, beside it,
+    /// anywhere — is opened, since its location is not talos's derived
     /// `<repo-hash>/<branch>` path and its branch is already claimed.
     pub existing_worktree: Option<PathBuf>,
     /// Optional agent name — falls back to the registry default agent.
@@ -51,7 +51,7 @@ pub struct SpawnRequest {
     pub command: Option<String>,
     /// Arguments for [`command`](Self::command), one token per element.
     pub args: Vec<String>,
-    /// Extra environment for the launched process, on top of the `THURBOX_*`
+    /// Extra environment for the launched process, on top of the `TALOS_*`
     /// identity vars. Applies to a registry agent as well as a raw command.
     pub env: BTreeMap<String, String>,
     /// Resume an existing agent conversation instead of starting a new one —
@@ -73,7 +73,7 @@ pub struct SpawnRequest {
     /// Optional parent session (lead/worker relationship for orchestration).
     /// Must reference an existing active session.
     pub parent_session_id: Option<SessionId>,
-    /// Optional originating task id. When set it is injected as `THURBOX_TASK`
+    /// Optional originating task id. When set it is injected as `TALOS_TASK`
     /// so the session's outgoing messages auto-tag `from_task_id` without the
     /// agent passing any id by hand.
     pub task_id: Option<i64>,
@@ -129,7 +129,7 @@ pub struct SpawnResult {
     /// under.
     pub warnings: Vec<String>,
     /// Why this session on a remote host was **not** created by the host's own
-    /// CLI — sharing is off for the host, or no `thurbox-cli` could be found
+    /// CLI — sharing is off for the host, or no `talos-cli` could be found
     /// or provisioned there — so it was driven from here the way every remote
     /// session used to be. `None` for a local session and for a shared one.
     pub sharing: Option<String>,
@@ -148,7 +148,7 @@ pub enum SpawnPhase {
     Resolving,
     /// Running the user's `session.pre_create` hooks, which may refuse.
     Hooks,
-    /// The host's own `thurbox-cli` creating the session, start to finish —
+    /// The host's own `talos-cli` creating the session, start to finish —
     /// one blocking call from here, so the phases below never show for it.
     Host,
     /// Creating or attaching worktrees — the `git fetch` and checkout.
@@ -188,7 +188,7 @@ pub fn spawn_session_headless(
 
 /// [`spawn_session_headless`], reporting each stage as it is reached.
 ///
-/// The reporting form is separate so every existing caller — `thurbox-cli`, the
+/// The reporting form is separate so every existing caller — `talos-cli`, the
 /// automation runner — is untouched and keeps its signature.
 pub fn spawn_session_headless_with_progress(
     db: &Database,
@@ -250,7 +250,7 @@ pub fn spawn_session_headless_with_progress(
 
     // Both ids are minted before anything happens, so the pre-create hook can
     // name the session it is being asked about — and correlate with the
-    // post-create one — and so `THURBOX_SESSION` is in the process env before
+    // post-create one — and so `TALOS_SESSION` is in the process env before
     // the agent launches.
     let session_id = SessionId::default();
     let agent_session_id = req
@@ -301,7 +301,7 @@ pub fn spawn_session_headless_with_progress(
     };
     super::fire_pre(crate::session::HookEvent::PreCreate, &hook_ctx)?;
 
-    // The def's `args` may reference thurbox-managed config files by their
+    // The def's `args` may reference talos-managed config files by their
     // *local* absolute path (e.g. claude's hooks `--settings <config>/hooks/
     // claude.json`), which the agent errors on when the path doesn't exist on
     // the host ("Settings file not found" → the pane dies instantly). Rewrite
@@ -346,19 +346,19 @@ pub fn spawn_session_headless_with_progress(
         // conversation into a new one.
         fork_session_id: req.fork_session_id.clone(),
         // An adopted conversation: the id belongs to the agent's own store, not
-        // to thurbox. `build_args` puts fork ahead of resume, so a fork that
+        // to talos. `build_args` puts fork ahead of resume, so a fork that
         // also carries one is still a fork.
         resume_session_id: req.resume_session_id.clone(),
         ..SessionConfig::default()
     };
-    // The caller's env goes on first so thurbox's own identity vars, injected
-    // next, always win: a session that could rename its own `THURBOX_SESSION`
+    // The caller's env goes on first so talos's own identity vars, injected
+    // next, always win: a session that could rename its own `TALOS_SESSION`
     // would report another session's state.
     config
         .env
         .extend(req.env.iter().map(|(k, v)| (k.clone(), v.clone())));
     config.env.remove(super::CODEX_PICKER_ENV);
-    super::inject_thurbox_env(&mut config, &agent_session_id, req.task_id);
+    super::inject_talos_env(&mut config, &agent_session_id, req.task_id);
 
     report(SpawnPhase::Backend);
     let (command, mut args) = super::build_agent_invocation(&agent_def, &config);
@@ -372,7 +372,7 @@ pub fn spawn_session_headless_with_progress(
     }
 
     // Asked before the launch rather than after it: this is the one moment
-    // thurbox knows both which binary it is about to ask for and that the user
+    // talos knows both which binary it is about to ask for and that the user
     // has committed. Only for a local session — a remote host's binaries are on
     // the host, and `Presence::Unknown` is the honest answer about a machine
     // this one has not looked at.
@@ -619,21 +619,21 @@ fn delegated_mux_option(
         Ok(Vec::new())
     } else {
         Err(format!(
-            "host '{}' has an older thurbox-cli that cannot select {}; update that CLI before creating this session",
+            "host '{}' has an older talos-cli that cannot select {}; update that CLI before creating this session",
             host.name,
             choice.multiplexer.name()
         ))
     }
 }
 
-/// Create the session by running `thurbox-cli session create` **on the host**.
+/// Create the session by running `talos-cli session create` **on the host**.
 ///
 /// The host's CLI does what the rest of this file does — resolves the
 /// repository, makes the worktrees, wires the hooks, launches the agent,
 /// persists the row — with the host's own `agents.toml` and `hooks.toml`, and
 /// mints the id. The local row is then a mirror of the host's, taken by the
 /// same pass the mirror worker runs. The caller's own `hooks.toml` fires here,
-/// around the delegated call, with `THURBOX_HOST` set; the host's fires there.
+/// around the delegated call, with `TALOS_HOST` set; the host's fires there.
 fn spawn_delegated(
     db: &Database,
     req: SpawnRequest,
@@ -830,7 +830,7 @@ fn resolve_dirs(
                 repo_path: repo.to_path_buf(),
                 worktree_path,
                 branch: branch.to_string(),
-                created_by_thurbox: true,
+                created_by_talos: true,
             }
         })
         .collect();
@@ -846,7 +846,7 @@ fn resolve_dirs(
                 repo_path: req.repo_path.clone(),
                 worktree_path: path.clone(),
                 branch: branch.to_string(),
-                created_by_thurbox: false,
+                created_by_talos: false,
             },
         );
     }
@@ -1078,7 +1078,7 @@ pub fn existing_launch_cwd(
     named.ok().or_else(primary)
 }
 
-/// Adapt agent `args` that reference thurbox-managed config files (by their
+/// Adapt agent `args` that reference talos-managed config files (by their
 /// *local* absolute path) for a spawn on the remote `host`, returning the args
 /// to actually launch with. An agent handed a path that doesn't exist on the
 /// host errors out and the pane dies instantly (claude: "Settings file not
@@ -1095,17 +1095,17 @@ pub fn existing_launch_cwd(
 ///   `--settings <path>` pair) with a warning so the agent launches clean
 ///   instead of dead.
 ///
-/// Scope is deliberately narrow: only paths under the **thurbox config dir**
+/// Scope is deliberately narrow: only paths under the **talos config dir**
 /// are touched (and only existing local files are copied), so an arbitrary
 /// path in the agent's own args — a repo path, a user file — is never
-/// rewritten or shipped. Each shipped file also has its thurbox-managed hook
+/// rewritten or shipped. Each shipped file also has its talos-managed hook
 /// commands rewritten to `signal`, the command the row's backend reports state
 /// through ([`super::builtin_hooks::rewrite_hook_signals`]): the local
-/// `thurbox-cli session signal` can't work there, but the backend's own status
+/// `talos-cli session signal` can't work there, but the backend's own status
 /// channel can, so remote sessions get live hooks-driven status. The same
 /// rewrite maps over every **literal** arg too, so a hook
 /// command carried directly in the args (aider's
-/// `--notifications-command "thurbox-cli session signal --state blocked"`)
+/// `--notifications-command "talos-cli session signal --state blocked"`)
 /// also reports remotely instead of invoking a CLI that isn't there — it is
 /// marker-keyed and idempotent, so non-matching args pass through
 /// byte-identical. With no `signal` there is no command to report through, so
@@ -1181,10 +1181,10 @@ pub(crate) fn adapt_agent_args_for_remote_with_report(
     (args, stripped)
 }
 
-/// Drop every literal arg carrying a thurbox hook command, and the flag
+/// Drop every literal arg carrying a talos hook command, and the flag
 /// before it when the arg is that flag's value (`--notifications-command
 /// "<cmd>"`, not `--notifications-command=<cmd>`), returning the args and the commands dropped. For a route with
-/// no status channel: left in place, the host would run `thurbox-cli`, which
+/// no status channel: left in place, the host would run `talos-cli`, which
 /// is absent there or writes the host's own database rather than this one.
 fn strip_literal_signals(args: Vec<String>) -> (Vec<String>, Vec<String>) {
     let mut kept: Vec<String> = Vec::with_capacity(args.len());
@@ -1287,7 +1287,7 @@ fn def_references_home(def: &crate::session::AgentDef) -> bool {
     has(&def.args) || has(&def.resume_args) || has(&def.fork_args) || has(&def.new_session_args)
 }
 
-/// Why no thurbox-managed agent config may be shipped to `host`, or `None`
+/// Why no talos-managed agent config may be shipped to `host`, or `None`
 /// when it may: the row's backend has no status channel (`signal` is `None`),
 /// or the host runs Windows — where an agent handed a forward-slash config
 /// path (claude's `--settings C:/…`) is unproven, whichever multiplexer serves
@@ -1302,14 +1302,14 @@ fn hook_config_refusal(host: &HostDef, signal: Option<&str>) -> Option<&'static 
     }
 }
 
-/// Where the local thurbox config root lands on `host`, or `None` when no
+/// Where the local talos config root lands on `host`, or `None` when no
 /// remote location can hold it (→ strip the args instead):
 /// - nowhere, when the row's backend has no status channel (`signal` is
 ///   `None`): the files would carry hooks with nothing to report through;
 /// - nowhere on a native-Windows host ([`hook_config_refusal`]); once that is
 ///   proven it maps onto `%USERPROFILE%/.config/<root-name>` — dev/release
 ///   isolation carries over via the root's final component;
-/// - a **Windows-local** root (`C:\Users\me\AppData\Roaming\thurbox`, a Windows
+/// - a **Windows-local** root (`C:\Users\me\AppData\Roaming\talos`, a Windows
 ///   TUI driving a POSIX host) has no absolute counterpart to mirror, so it
 ///   maps onto `$HOME/.config/<root-name>` there — same shape as the psmux
 ///   branch, and the case a WSL session on Windows always hits;
@@ -1391,7 +1391,7 @@ fn is_posix_root(root: &str) -> bool {
     root.starts_with('/')
 }
 
-/// The final component of a local config root (`thurbox` / `thurbox-dev`, which
+/// The final component of a local config root (`talos` / `talos-dev`, which
 /// carries dev/release isolation), split on either separator so a Windows root
 /// resolves the same when the code runs on a POSIX host (tests) as on Windows —
 /// `Path::file_name` would return the whole `C:\…` string there.
@@ -1400,13 +1400,13 @@ fn root_leaf_name(root: &str) -> &str {
         .rsplit(['/', '\\'])
         .next()
         .filter(|n| !n.is_empty())
-        .unwrap_or("thurbox")
+        .unwrap_or("talos")
 }
 
 /// True when `path` is `root` itself or a descendant — a plain
 /// `starts_with` would also claim sibling dirs sharing the prefix
-/// (`…/thurbox-backup` under root `…/thurbox`). A Windows root also accepts `\`
-/// as the boundary (thurbox's own args mix them: `{home}/claude.json` appended
+/// (`…/talos-backup` under root `…/talos`). A Windows root also accepts `\`
+/// as the boundary (talos's own args mix them: `{home}/claude.json` appended
 /// to a `C:\…` home); on a POSIX root it can't, since `\` is a legal filename
 /// character there.
 fn path_under_root(path: &str, root: &str) -> bool {
@@ -1618,7 +1618,7 @@ mod tests {
                 .expect("non-default choice");
         assert!(delegated_mux_option(&non_default, &host, &old_cli)
             .unwrap_err()
-            .contains("older thurbox-cli"));
+            .contains("older talos-cli"));
     }
 
     #[test]
@@ -1692,7 +1692,7 @@ mod tests {
 
     #[test]
     fn adapt_agent_args_is_identity_without_config_paths() {
-        // No arg references the thurbox config dir → args pass through
+        // No arg references the talos config dir → args pass through
         // untouched and, because the remote root is resolved lazily, no ssh
         // round-trip is attempted (the host here doesn't exist).
         let temp = tempfile::TempDir::new().unwrap();
@@ -1717,7 +1717,7 @@ mod tests {
     #[test]
     fn adapt_agent_args_rewrites_literal_signal_commands() {
         // aider carries its hook as a literal arg (`--notifications-command
-        // "thurbox-cli session signal --state blocked"`), not a config-file
+        // "talos-cli session signal --state blocked"`), not a config-file
         // path — the remote adaptation must rewrite it to the command the
         // row's backend reports through, or the host invokes a CLI that isn't
         // there.
@@ -1731,7 +1731,7 @@ mod tests {
         let args: Vec<String> = [
             "--notifications",
             "--notifications-command",
-            "thurbox-cli session signal --state blocked",
+            "talos-cli session signal --state blocked",
         ]
         .map(String::from)
         .into();
@@ -1743,7 +1743,7 @@ mod tests {
         // host never runs a CLI that is absent there or writes its own DB.
         let (out, stripped) = adapt_agent_args_for_remote_with_report(&host, None, args.clone());
         assert_eq!(out, ["--notifications"]);
-        assert_eq!(stripped, ["thurbox-cli session signal --state blocked"]);
+        assert_eq!(stripped, ["talos-cli session signal --state blocked"]);
     }
 
     /// A hook arg that carries its own flag (`--opt=<cmd>`) is the only thing
@@ -1752,7 +1752,7 @@ mod tests {
     fn a_self_contained_hook_arg_strips_alone() {
         let args: Vec<String> = [
             "--verbose",
-            "--notifications-command=thurbox-cli session signal --state blocked",
+            "--notifications-command=talos-cli session signal --state blocked",
             "--model",
             "x",
         ]
@@ -1808,15 +1808,15 @@ mod tests {
 
     #[test]
     fn rewrite_config_args_substitutes_translated_path() {
-        let args: Vec<String> = ["--settings", "/home/a/.config/thurbox/hooks/claude.json"]
+        let args: Vec<String> = ["--settings", "/home/a/.config/talos/hooks/claude.json"]
             .map(String::from)
             .into();
-        let out = rewrite_config_path_args(args, "/home/a/.config/thurbox", |p| {
+        let out = rewrite_config_path_args(args, "/home/a/.config/talos", |p| {
             Some(p.replace("/home/a/", "/home/b/"))
         });
         assert_eq!(
             out,
-            ["--settings", "/home/b/.config/thurbox/hooks/claude.json"].map(String::from)
+            ["--settings", "/home/b/.config/talos/hooks/claude.json"].map(String::from)
         );
     }
 
@@ -1827,13 +1827,13 @@ mod tests {
         let args: Vec<String> = [
             "--verbose",
             "--settings",
-            "/home/a/.config/thurbox/hooks/claude.json",
+            "/home/a/.config/talos/hooks/claude.json",
             "--session-id",
             "x",
         ]
         .map(String::from)
         .into();
-        let out = rewrite_config_path_args(args, "/home/a/.config/thurbox", |_| None);
+        let out = rewrite_config_path_args(args, "/home/a/.config/talos", |_| None);
         assert_eq!(out, ["--verbose", "--session-id", "x"].map(String::from));
     }
 
@@ -1889,42 +1889,42 @@ mod tests {
         // (it was not, so the literal `C:\…` reached claude inside the distro
         // and the pane died on "Settings file not found") and the shipped
         // remote path must come out fully POSIX.
-        let root = r"C:\Users\me\AppData\Roaming\thurbox";
-        let local = r"C:\Users\me\AppData\Roaming\thurbox\hooks/claude.json";
+        let root = r"C:\Users\me\AppData\Roaming\talos";
+        let local = r"C:\Users\me\AppData\Roaming\talos\hooks/claude.json";
         assert!(path_under_root(local, root));
         assert_eq!(
-            remote_config_path("/home/me/.config/thurbox", root, local),
-            "/home/me/.config/thurbox/hooks/claude.json"
+            remote_config_path("/home/me/.config/talos", root, local),
+            "/home/me/.config/talos/hooks/claude.json"
         );
 
         let args: Vec<String> = ["--settings", local].map(String::from).into();
         let out = rewrite_config_path_args(args, root, |p| {
-            Some(remote_config_path("/home/me/.config/thurbox", root, p))
+            Some(remote_config_path("/home/me/.config/talos", root, p))
         });
         assert_eq!(
             out,
-            ["--settings", "/home/me/.config/thurbox/hooks/claude.json"].map(String::from)
+            ["--settings", "/home/me/.config/talos/hooks/claude.json"].map(String::from)
         );
     }
 
     #[test]
     fn windows_config_root_ignores_sibling_and_keeps_dev_isolation() {
-        let root = r"C:\Users\me\AppData\Roaming\thurbox";
+        let root = r"C:\Users\me\AppData\Roaming\talos";
         // Sibling dirs sharing the string prefix are not under the root.
         assert!(!path_under_root(
-            r"C:\Users\me\AppData\Roaming\thurbox-backup\x.json",
+            r"C:\Users\me\AppData\Roaming\talos-backup\x.json",
             root
         ));
         // The leaf name carries dev/release isolation into the remote root, on
         // either separator (and whatever platform the test runs on).
-        assert_eq!(root_leaf_name(root), "thurbox");
+        assert_eq!(root_leaf_name(root), "talos");
         assert_eq!(
-            root_leaf_name(r"C:\Users\me\AppData\Roaming\thurbox-dev"),
-            "thurbox-dev"
+            root_leaf_name(r"C:\Users\me\AppData\Roaming\talos-dev"),
+            "talos-dev"
         );
         assert_eq!(
-            root_leaf_name("/home/me/.config/thurbox-dev"),
-            "thurbox-dev"
+            root_leaf_name("/home/me/.config/talos-dev"),
+            "talos-dev"
         );
     }
 
@@ -1945,7 +1945,7 @@ mod tests {
         let args: Vec<String> = ["--model", "opus", "--add-dir", "/home/a/repo"]
             .map(String::from)
             .into();
-        let out = rewrite_config_path_args(args.clone(), "/home/a/.config/thurbox", |_| {
+        let out = rewrite_config_path_args(args.clone(), "/home/a/.config/talos", |_| {
             panic!("map must not be called for non-config args")
         });
         assert_eq!(out, args);
@@ -2091,7 +2091,7 @@ mod tests {
     ///
     /// The pre-commit hook exports `GIT_DIR` and friends, so an unscrubbed call
     /// from the suite lands in the real repository (see the `GIT_*` scrub rule in
-    /// `.agents/skills/thurbox-testing/SKILL.md`).
+    /// `.agents/skills/talos-testing/SKILL.md`).
     fn git_in(repo: &std::path::Path, args: &[&str]) {
         let out = std::process::Command::new("git")
             .args(args)
@@ -2161,8 +2161,8 @@ mod tests {
         );
         assert!(worktrees.iter().all(|w| w.branch == "feat/x"));
         assert!(
-            worktrees.iter().all(|w| w.created_by_thurbox),
-            "thurbox checked these out, so force-delete owns their removal"
+            worktrees.iter().all(|w| w.created_by_talos),
+            "talos checked these out, so force-delete owns their removal"
         );
         assert!(additional.is_empty());
     }
@@ -2201,7 +2201,7 @@ mod tests {
         assert_eq!(worktrees[0].worktree_path, foreign);
         assert_eq!(worktrees[0].branch, "feat/tooltips");
         assert!(
-            !worktrees[0].created_by_thurbox,
+            !worktrees[0].created_by_talos,
             "an opened worktree is the user's; force-delete must not remove it"
         );
         assert!(additional.is_empty());

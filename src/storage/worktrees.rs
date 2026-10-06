@@ -25,7 +25,7 @@ impl Database {
 
         for wt in worktrees {
             self.conn.execute(
-                "INSERT INTO worktrees (session_id, repo_path, worktree_path, branch, created_at, deleted_at, created_by_thurbox) \
+                "INSERT INTO worktrees (session_id, repo_path, worktree_path, branch, created_at, deleted_at, created_by_talos) \
                  VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?6)",
                 params![
                     sid,
@@ -33,7 +33,7 @@ impl Database {
                     wt.worktree_path.display().to_string(),
                     wt.branch,
                     now,
-                    wt.created_by_thurbox,
+                    wt.created_by_talos,
                 ],
             )?;
         }
@@ -90,7 +90,7 @@ impl Database {
 
         // Cached: read on the refresh schedule, like the session queries.
         let mut stmt = self.conn.prepare_cached(
-            "SELECT repo_path, worktree_path, branch, created_by_thurbox FROM worktrees \
+            "SELECT repo_path, worktree_path, branch, created_by_talos FROM worktrees \
              WHERE session_id = ?1 AND deleted_at IS NULL \
              ORDER BY created_at",
         )?;
@@ -103,7 +103,7 @@ impl Database {
                 repo_path: std::path::PathBuf::from(repo),
                 worktree_path: std::path::PathBuf::from(wt_path),
                 branch,
-                created_by_thurbox: row.get(3)?,
+                created_by_talos: row.get(3)?,
             })
         })?;
 
@@ -126,7 +126,7 @@ mod tests {
             id: SessionId::default(),
             name: "S1".to_string(),
             agent: "developer".to_string(),
-            backend_id: "thurbox:@0".to_string(),
+            backend_id: "talos:@0".to_string(),
             backend_type: "tmux".to_string(),
             agent_session_id: None,
             cwd: None,
@@ -150,7 +150,7 @@ mod tests {
             repo_path: PathBuf::from("/repo"),
             worktree_path: PathBuf::from("/repo/.git/wt/feat"),
             branch: "feat".to_string(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         };
 
         db.upsert_worktrees(sid, &[wt]).unwrap();
@@ -164,7 +164,7 @@ mod tests {
     #[test]
     fn provenance_survives_the_round_trip() {
         // Force-delete decides whether to run `git worktree remove` from this
-        // flag, and it decides that after a restart — so a worktree thurbox
+        // flag, and it decides that after a restart — so a worktree talos
         // merely opened must still read as "not mine" when it comes back off
         // disk. A flag that defaulted to true on read would delete the user's
         // directory on the very restart it was meant to survive.
@@ -173,14 +173,14 @@ mod tests {
             repo_path: PathBuf::from("/repo"),
             worktree_path: PathBuf::from("/repo/.worktrees/mine"),
             branch: "feat/mine".to_string(),
-            created_by_thurbox: false,
+            created_by_talos: false,
         };
 
         db.upsert_worktrees(sid, &[opened]).unwrap();
 
         let result = db.get_worktrees(sid).unwrap();
         assert_eq!(result.len(), 1);
-        assert!(!result[0].created_by_thurbox);
+        assert!(!result[0].created_by_talos);
     }
 
     #[test]
@@ -191,13 +191,13 @@ mod tests {
                 repo_path: PathBuf::from("/repo1"),
                 worktree_path: PathBuf::from("/repo1/.git/wt/feat"),
                 branch: "feat".to_string(),
-                created_by_thurbox: true,
+                created_by_talos: true,
             },
             SharedWorktree {
                 repo_path: PathBuf::from("/repo2"),
                 worktree_path: PathBuf::from("/repo2/.git/wt/feat"),
                 branch: "feat".to_string(),
-                created_by_thurbox: true,
+                created_by_talos: true,
             },
         ];
 
@@ -216,7 +216,7 @@ mod tests {
             repo_path: PathBuf::from("/repo"),
             worktree_path: PathBuf::from("/repo/.git/wt/feat"),
             branch: "feat".to_string(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         };
 
         db.upsert_worktrees(sid, &[wt]).unwrap();
@@ -232,7 +232,7 @@ mod tests {
             repo_path: PathBuf::from("/repo"),
             worktree_path: PathBuf::from("/repo/.git/wt/feat"),
             branch: "feat".to_string(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         };
 
         db.upsert_worktrees(sid, &[wt]).unwrap();
@@ -262,7 +262,7 @@ mod tests {
             repo_path: PathBuf::from("/repo"),
             worktree_path: PathBuf::from("/repo/.git/wt/old"),
             branch: "old".to_string(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         };
         db.upsert_worktrees(sid, &[wt1]).unwrap();
 
@@ -270,7 +270,7 @@ mod tests {
             repo_path: PathBuf::from("/repo"),
             worktree_path: PathBuf::from("/repo/.git/wt/new"),
             branch: "new".to_string(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         };
         db.upsert_worktrees(sid, &[wt2]).unwrap();
 

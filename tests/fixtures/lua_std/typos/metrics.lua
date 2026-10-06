@@ -1,7 +1,7 @@
--- `thurbox.metrics`, with one letter wrong.
+-- `talos.metrics`, with one letter wrong.
 return {
   name = "std_typo_metrics",
   render = function()
-    return { text = tostring(thurbox.metrics.sesions) }
+    return { text = tostring(talos.metrics.sesions) }
   end,
 }

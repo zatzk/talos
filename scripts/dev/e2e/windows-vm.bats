@@ -39,22 +39,22 @@ drive() {
   ' _ "$SCRIPT" "$@"
 }
 
-# A stand-in `thurbox-cli` whose `runtime status --json` reports the psmux
+# A stand-in `talos-cli` whose `runtime status --json` reports the psmux
 # adapter's status channel as $1 ("true"/"false"), beside a tmux entry holding
 # the opposite — so a read that matched the wrong backend's answer would fail.
 cli_reporting() {
-  local path="${BATS_TEST_TMPDIR}/thurbox-cli-$1" other=true
+  local path="${BATS_TEST_TMPDIR}/talos-cli-$1" other=true
   [ "$1" = true ] && other=false
   cat >"$path" <<SH
 #!/bin/sh
 [ "\$*" = "--json runtime status" ] || exit 2
-printf '%s\n' '{"automation_heartbeat":false,"backend":"local:tmux","hook_status":{"local:psmux":$1,"local:tmux":$other},"tmux_socket":"thurbox"}'
+printf '%s\n' '{"automation_heartbeat":false,"backend":"local:tmux","hook_status":{"local:psmux":$1,"local:tmux":$other},"tmux_socket":"talos"}'
 SH
   chmod +x "$path"
   printf '%s\n' "$path"
 }
 
-@test "the gate is what thurbox's own binary reports, not restated in the harness" {
+@test "the gate is what talos's own binary reports, not restated in the harness" {
   drive psmux_hook_gate "$(cli_reporting false)"
   [ "${lines[0]}" = closed ]
   drive psmux_hook_gate "$(cli_reporting true)"
@@ -67,7 +67,7 @@ SH
 }
 
 @test "an answer naming no psmux backend is unreadable, not closed" {
-  local path="${BATS_TEST_TMPDIR}/thurbox-cli-silent"
+  local path="${BATS_TEST_TMPDIR}/talos-cli-silent"
   printf '#!/bin/sh\nprintf "%%s\\n" "{\\"hook_status\\":{}}"\n' >"$path"
   chmod +x "$path"
   drive psmux_hook_gate "$path"

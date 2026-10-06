@@ -5,7 +5,7 @@
 //! session pipelines in this module (`spawn`, `delete`, `restart`, `restore`)
 //! calls [`fire_pre`] before its first side effect and [`fire_post`] after its
 //! last, so a hook fires once per operation whichever interface asked — the
-//! TUI, `thurbox-cli`, an automation, an extension — because every one of
+//! TUI, `talos-cli`, an automation, an extension — because every one of
 //! them ends in those pipelines. That is the whole mechanism; nothing in the
 //! kernel or the interface knows hooks exist.
 //!
@@ -128,10 +128,10 @@ pub(crate) fn worktree(w: &crate::sync::SharedWorktree) -> crate::session::HookW
 
 /// Run one hook to completion or to its timeout.
 ///
-/// The shell gets the inherited environment plus the `THURBOX_*` facts and the
+/// The shell gets the inherited environment plus the `TALOS_*` facts and the
 /// config/data-dir overrides, the JSON on a piped stdin (written and closed
 /// before waiting, so a hook that never reads it is not blocked by it), and
-/// nothing of thurbox's own stdio — the TUI owns that terminal. Both output
+/// nothing of talos's own stdio — the TUI owns that terminal. Both output
 /// pipes are drained on threads for the whole run; a deadline without draining
 /// deadlocks on a full pipe, and draining without a deadline hangs on a hook
 /// that never exits.
@@ -141,7 +141,7 @@ pub fn run_hook(hook: &LifecycleHook, event: HookEvent, ctx: &HookContext) -> Re
 
     let mut cmd = super::platform_shell(&hook.command);
     cmd.envs(ctx.env(event))
-        .envs(super::thurbox_env_overrides())
+        .envs(super::talos_env_overrides())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -277,7 +277,7 @@ mod tests {
         let h = hook(
             HookEvent::PostCreate,
             &format!(
-                "printf '%s\\n%s\\n%s\\n%s\\n' \"$THURBOX_HOOK_EVENT\" \"$THURBOX_SESSION\" \"$PWD\" \"$THURBOX_CONFIG_DIR\" > {out}; cat >> {out}",
+                "printf '%s\\n%s\\n%s\\n%s\\n' \"$TALOS_HOOK_EVENT\" \"$TALOS_SESSION\" \"$PWD\" \"$TALOS_CONFIG_DIR\" > {out}; cat >> {out}",
                 out = out.display()
             ),
             None,
@@ -450,7 +450,7 @@ mod tests {
                 repo_path: "/srv/repo".into(),
                 worktree_path: "/srv/wt".into(),
                 branch: "feat/x".into(),
-                created_by_thurbox: true,
+                created_by_talos: true,
             }],
             shell_backend_id: None,
             parent_session_id: None,

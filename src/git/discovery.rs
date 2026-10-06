@@ -31,7 +31,7 @@ pub(super) fn repo_name_cache() -> &'static Mutex<HashMap<PathBuf, String>> {
 /// Get a short display name for a repo directory.
 ///
 /// Tries to extract the repo name from `git remote get-url origin`
-/// (e.g. `github.com/user/thurbox.git` → `"thurbox"`).
+/// (e.g. `github.com/user/talos.git` → `"talos"`).
 /// Falls back to the directory's file name if no remote is found.
 /// Results are cached globally.
 pub fn repo_display_name(path: &Path) -> Option<String> {

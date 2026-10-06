@@ -1,4 +1,4 @@
-//! Automation CRUD subcommands for `thurbox-cli`.
+//! Automation CRUD subcommands for `talos-cli`.
 //!
 //! Automations are persisted to the shared database; the running TUI's tick
 //! loop is what actually fires them. `run` just marks an automation due so the
@@ -281,9 +281,9 @@ fn list_automations(db: &Database) -> Result<CommandOutput, String> {
         .list("automations", &["id", "name", "enabled", "next_run_at"])
         .empty("0 automations scheduled")
         .help([
-            "thurbox-cli automation show <id>   its schedule, action and prompt",
-            "thurbox-cli automation run <id>   mark it due so the next tick fires it",
-            "thurbox-cli automation tick   run everything that is due now",
+            "talos-cli automation show <id>   its schedule, action and prompt",
+            "talos-cli automation run <id>   mark it due so the next tick fires it",
+            "talos-cli automation tick   run everything that is due now",
         ]))
 }
 
@@ -825,7 +825,7 @@ mod tests {
         // The tick self-heals the built-in extensions, whose outside-reaching
         // payloads resolve against `$HOME` — which `TestPathGuard` does not
         // redirect, because they target the *agent's* config dir rather than
-        // thurbox's. Without opting out, running the test suite installs hook
+        // talos's. Without opting out, running the test suite installs hook
         // files into the developer's own `~/.codex`, `~/.grok`, … Opt both
         // built-ins out: this test is about what `tick` reports, not about
         // what an install does.

@@ -16,7 +16,7 @@
 //! Arriving at all still needs the kitty keyboard protocol, which is pushed at
 //! startup: iTerm2 3.5+, kitty, WezTerm and Ghostty report `Cmd`, Terminal.app
 //! does not — and the emulator gets the chord first, so one that swallows its
-//! own unperformed `Cmd+C` keeps it from thurbox whatever is declared here
+//! own unperformed `Cmd+C` keeps it from talos whatever is declared here
 //! (`docs/FEATURES.md` → Text Selection and Copy-Paste).
 
 use super::modals::OWNER;
@@ -90,7 +90,7 @@ fn bindings_for(macos: bool) -> Vec<Binding> {
                     // is a *fall-through* decided per press by whether there is
                     // a selection, not a property of the binding: marking it
                     // passthrough would give the agent the chord even with one,
-                    // and copying is the one case where thurbox wins it back.
+                    // and copying is the one case where talos wins it back.
                     false,
                     Some(GROUP),
                 )

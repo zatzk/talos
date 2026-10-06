@@ -1,4 +1,4 @@
-//! Task CRUD subcommands for `thurbox-cli`.
+//! Task CRUD subcommands for `talos-cli`.
 //!
 //! Tasks are persisted to the shared database; the TUI's right-side panel reads
 //! them. `run` triggers a task's agent action headlessly (Send into a live tmux
@@ -158,9 +158,9 @@ pub fn run(
                 .list("tasks", &["id", "title", "status", "source"])
                 .empty("0 tasks — the todo list is empty")
                 .help([
-                    "thurbox-cli task show <id>   the full description",
-                    "thurbox-cli task run <id>   hand it to an agent",
-                    "thurbox-cli task create --title <title>   add one",
+                    "talos-cli task show <id>   the full description",
+                    "talos-cli task run <id>   hand it to an agent",
+                    "talos-cli task create --title <title>   add one",
                 ]))
         }
         Action::Show { id } => {
@@ -169,8 +169,8 @@ pub fn run(
                 CommandOutput::new(task_to_json(&task), render_task_detail(&task))
                     .truncate(2000)
                     .help([
-                        "thurbox-cli task edit <id> --status done   close it",
-                        "thurbox-cli task run <id>   hand it to an agent",
+                        "talos-cli task edit <id> --status done   close it",
+                        "talos-cli task run <id>   hand it to an agent",
                     ]),
             )
         }

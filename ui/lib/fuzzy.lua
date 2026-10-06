@@ -282,7 +282,7 @@ end
 --- Match a session's fields against a parsed query.
 ---
 --- Every term must hit SOME field, not necessarily the same one, so
---- `claude thurbox` finds the claude session in the thurbox repository. Returns
+--- `claude talos` finds the claude session in the talos repository. Returns
 --- nil for no match; otherwise `{ score, exact, positions, field, text }` where
 --- `positions` are the name's lit characters and `field`/`text` name the first
 --- other field that matched, for a row to explain itself with.

@@ -1,14 +1,14 @@
 ---
 layout: docs.njk
-title: 'Recipes — Thurbox Docs'
-description: 'Worked Thurbox recipes: provision a monorepo headless with operator, developer, and security/quality reviewer sessions, each with its own MCP config and blast radius.'
+title: 'Recipes — Talos Docs'
+description: 'Worked Talos recipes: provision a monorepo headless with operator, developer, and security/quality reviewer sessions, each with its own MCP config and blast radius.'
 currentPage: 'recipes'
 breadcrumb: 'Recipes'
 ---
 <h1>Recipes</h1>
 <p>
   Worked, copy-pasteable patterns built on
-  <a href="features.html#headless-cli"><code>thurbox-cli</code></a>
+  <a href="features.html#headless-cli"><code>talos-cli</code></a>
   and
   <a href="configuration.html"><code>agents.toml</code></a>
   &mdash; no glue code, no recompile.
@@ -50,8 +50,8 @@ breadcrumb: 'Recipes'
   <code>claude</code>
   with a different
   <code>--mcp-config</code>
-  file &mdash; Thurbox stays agent-neutral. The whole thing is a single shell script over
-  <code>thurbox-cli</code>
+  file &mdash; Talos stays agent-neutral. The whole thing is a single shell script over
+  <code>talos-cli</code>
   plus three
   <code>agents.toml</code>
   entries.
@@ -69,7 +69,7 @@ N_DEVELOPERS="${N_DEVELOPERS:-2}"
 N_REVIEWERS="${N_REVIEWERS:-1}"
 HOST="${HOST:-}"                          # e.g. devbox to run remotely; empty = local
 STAMP="$(date +%y%m%d-%H%M)"
-cli() { thurbox-cli "$@"; }
+cli() { talos-cli "$@"; }
 
 host_flag() { [ -n "$HOST" ] && printf -- '--host\n%s\n' "$HOST"; }
 
@@ -122,16 +122,16 @@ cli session list</code></pre>
   entry pointing at its own MCP config. Anything in
   <code>args</code>
   is always passed, so bake in a model or any other default flags there. Drop this into
-  <code>~/.config/thurbox/agents.toml</code>
+  <code>~/.config/talos/agents.toml</code>
   :
 </p>
-<pre data-title="~/.config/thurbox/agents.toml"><code class="language-toml">default = "claude"
+<pre data-title="~/.config/talos/agents.toml"><code class="language-toml">default = "claude"
 
 [[agents]]
 name = "operator"                 # prod backoffice: read/write
 command = "claude"
 args = [
-  "--mcp-config", "/home/me/.config/thurbox/mcp/backoffice-rw.json",
+  "--mcp-config", "/home/me/.config/talos/mcp/backoffice-rw.json",
   "--model", "opus",              # bake any default flags into args
 ]
 new_session_args = ["--session-id", "{id}"]
@@ -141,7 +141,7 @@ fork_args        = ["--resume", "{id}", "--fork-session"]
 [[agents]]
 name = "developer"                # prod backoffice: read-only
 command = "claude"
-args = ["--mcp-config", "/home/me/.config/thurbox/mcp/backoffice-ro.json"]
+args = ["--mcp-config", "/home/me/.config/talos/mcp/backoffice-ro.json"]
 new_session_args = ["--session-id", "{id}"]
 resume_args      = ["--resume", "{id}"]
 fork_args        = ["--resume", "{id}", "--fork-session"]
@@ -161,10 +161,10 @@ fork_args        = ["--resume", "{id}", "--fork-session"]</code></pre>
 <p>
   The read/write vs read-only split lives entirely in the two MCP config files those agents point
   at, under
-  <code>~/.config/thurbox/mcp/</code>
+  <code>~/.config/talos/mcp/</code>
   :
 </p>
-<pre data-title="~/.config/thurbox/mcp/backoffice-rw.json"><code class="language-json">{
+<pre data-title="~/.config/talos/mcp/backoffice-rw.json"><code class="language-json">{
   "mcpServers": {
     "backoffice": {
       "command": "npx",

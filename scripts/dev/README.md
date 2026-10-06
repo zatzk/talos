@@ -1,7 +1,7 @@
 # `scripts/dev/` — developer test & run harnesses
 
 Which script for which job. Everything here is isolated from your real
-environment (its own tmux socket, scoped `THURBOX_*_DIR` / temp `HOME`, private
+environment (its own tmux socket, scoped `TALOS_*_DIR` / temp `HOME`, private
 `-L` sockets) and writes only under `target/` (gitignored).
 
 ## e2e — session-backend end-to-end family (`e2e/`)
@@ -18,8 +18,8 @@ emitter, and the create → get → assert core).
 | `e2e/windows-vm.sh` | throwaway dockur/Windows psmux VM | yes (KVM) | podman+kvm, ssh, curl | the VM run is manual (the native `windows` CI job mirrors it); its gate probes are unit-tested by `e2e/windows-vm.bats` |
 | `e2e/real-host.sh` | a real Linux/Windows/WSL machine you own | no | ssh, cargo | no (manual) |
 
-`e2e/windows-vm.sh test` also decides whether thurbox's psmux hook-status gate
-(as `thurbox-cli runtime status --json` reports it, `hook_status`) still
+`e2e/windows-vm.sh test` also decides whether talos's psmux hook-status gate
+(as `talos-cli runtime status --json` reports it, `hook_status`) still
 matches what psmux does, and
 **fails** when the two disagree either way round — see issue #1170, where the
 probe reported on its own `ok` branch whichever way the measurement went.
@@ -40,7 +40,7 @@ scripts/dev/e2e/real-host.sh devbox check  # readiness probe on a real host
 
 ## The TUI smoke test moved
 
-The black-box TUI test is `tests/tui_e2e.rs`: the real `thurbox` binary on a
+The black-box TUI test is `tests/tui_e2e.rs`: the real `talos` binary on a
 real pty, asserting on the reconstructed frames *and* on the byte stream (the
 alternate screen, mouse modes, a reflow without a screen clear). It runs in the
 ordinary `cargo nextest run --all` — `just smoke` runs only it — and replaced
@@ -52,7 +52,7 @@ nor a session's own terminal.
 `perf-run.sh` runs the **real binary under a reproducible load** — real tmux
 panes, a real vt100 grid per session, the real render loop — in the same
 isolated sandbox as everything else, with `sh` printing on a timer as the agent
-so the measurement is of thurbox rather than of whichever coding CLI is
+so the measurement is of talos rather than of whichever coding CLI is
 installed. It reports CPU from `/proc` plus the loop's own `perf_window` line,
 and keeps the full log at `target/perf-run.log`.
 
@@ -67,11 +67,11 @@ scripts/dev/perf-run.sh --no-perf-log --json   # CPU alone, machine-readable
 
 A reading is only comparable with another at the same size and session count,
 so pass `-s` and `-n` explicitly when recording one. It **refuses to run inside
-a validation step** (`THURBOX_GATE`, the sentinel to export around one): it
+a validation step** (`TALOS_GATE`, the sentinel to export around one): it
 looks enough like a test to be picked up as one, and a step that waits through
 a release build and timed runs fails on the agent timeout — for a number a
 loaded machine cannot produce honestly anyway. Override with
-`THURBOX_PERF_ALLOW_IN_GATE=1` if you mean it. Its companion is
+`TALOS_PERF_ALLOW_IN_GATE=1` if you mean it. Its companion is
 `cargo bench --bench frame_cost`, which measures the *pieces* of a frame rather
 than the whole binary; both are explained in `docs/PERFORMANCE.md`.
 

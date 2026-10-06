@@ -1,7 +1,7 @@
 ---
 layout: docs.njk
-title: 'Installation — Thurbox Docs'
-description: 'Install Thurbox from binary or source. Platform detection, checksums, prerequisites.'
+title: 'Installation — Talos Docs'
+description: 'Install Talos from binary or source. Platform detection, checksums, prerequisites.'
 currentPage: 'installation'
 breadcrumb: 'Installation'
 ---
@@ -15,19 +15,19 @@ breadcrumb: 'Installation'
           <p>
             One command on Linux and macOS. The install script downloads the latest release,
             detects your platform, verifies checksums, and installs both binaries &mdash;
-            <code>thurbox</code>
+            <code>talos</code>
             (the TUI) and
-            <code>thurbox-cli</code>
+            <code>talos-cli</code>
             (the headless one) &mdash; to
             <code>~/.local/bin</code>
             .
           </p>
 
-          <pre data-wrap><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/install.sh | sh</code></pre>
+          <pre data-wrap><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/zatzk/talos/main/scripts/install.sh | sh</code></pre>
 
           <p>Then run it:</p>
 
-          <pre><code class="language-bash">thurbox</code></pre>
+          <pre><code class="language-bash">talos</code></pre>
 
           <p>The script handles:</p>
           <ul>
@@ -54,20 +54,20 @@ breadcrumb: 'Installation'
 
           <h3>Custom install directory</h3>
           <pre data-wrap><code class="language-bash">export INSTALL_DIR=/usr/local/bin
-curl -fsSL https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/install.sh | sh</code></pre>
+curl -fsSL https://raw.githubusercontent.com/zatzk/talos/main/scripts/install.sh | sh</code></pre>
 
           <h3 id="specific-version">Specific version</h3>
           <pre data-wrap><code class="language-bash">export VERSION=v2.5.4
-curl -fsSL https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/install.sh | sh</code></pre>
+curl -fsSL https://raw.githubusercontent.com/zatzk/talos/main/scripts/install.sh | sh</code></pre>
           <p>
             Without a pin you get the newest release. Every version is on the
-            <a href="https://github.com/Thurbeen/thurbox/releases">releases page</a>.
+            <a href="https://github.com/zatzk/talos/releases">releases page</a>.
           </p>
 
           <h3 id="rmux">Optional RMUX backend</h3>
           <p>
             <a href="https://github.com/Helvesec/rmux">RMUX</a> is a Rust terminal
-            multiplexer with a tmux-compatible command interface. Thurbox requires
+            multiplexer with a tmux-compatible command interface. Talos requires
             RMUX 0.10.0 or newer. Install it separately on the session machine;
             <code>cargo install rmux --locked</code> is one upstream option.
             Follow the <a href="https://github.com/Helvesec/rmux/tree/v0.10.0#installation">upstream installation guide</a>
@@ -76,11 +76,11 @@ curl -fsSL https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/insta
           <p>
             Press <kbd>Ctrl</kbd>+<kbd>N</kbd> and choose RMUX immediately after tmux
             in the multiplexer picker. Locally it appears when <code>rmux</code>
-            resolves on <code>PATH</code>. It was tested with thurbox on Linux;
+            resolves on <code>PATH</code>. It was tested with talos on Linux;
             macOS, real SSH, WSL execution and native Windows integration remain
             unverified. Defaults stay tmux on POSIX and psmux on native Windows.
             See <a href="configuration.html#multiplexers">multiplexer configuration</a>
-            and the <a href="https://github.com/Thurbeen/thurbox/blob/main/docs/CONFIG.md#multiplexer-requirements-and-rmux-setup">verified version table and troubleshooting</a>.
+            and the <a href="https://github.com/zatzk/talos/blob/main/docs/CONFIG.md#multiplexer-requirements-and-rmux-setup">verified version table and troubleshooting</a>.
           </p>
 
           <h3>Windows (PowerShell)</h3>
@@ -99,14 +99,14 @@ curl -fsSL https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/insta
             <strong>recommended route</strong>
             &mdash; unlike the winget and Chocolatey packages below, it always
             carries the newest release. It installs to
-            <code>%LOCALAPPDATA%\Programs\thurbox</code>
+            <code>%LOCALAPPDATA%\Programs\talos</code>
             (added to your user
             <code>PATH</code>).
           </p>
-          <pre data-wrap><code class="language-powershell">irm https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/install.ps1 | iex</code></pre>
+          <pre data-wrap><code class="language-powershell">irm https://raw.githubusercontent.com/zatzk/talos/main/scripts/install.ps1 | iex</code></pre>
           <p>
             Set
-            <code>$env:THURBOX_VERSION = 'v2.5.4'</code>
+            <code>$env:TALOS_VERSION = 'v2.5.4'</code>
             before that line to pin a specific version instead of taking the newest.
           </p>
 
@@ -123,22 +123,22 @@ curl -fsSL https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/insta
               <tr>
                 <td>Linux (glibc)</td>
                 <td>x86_64</td>
-                <td><code>thurbox-v{ver}-x86_64-unknown-linux-gnu.tar.gz</code></td>
+                <td><code>talos-v{ver}-x86_64-unknown-linux-gnu.tar.gz</code></td>
               </tr>
               <tr>
                 <td>Linux (musl)</td>
                 <td>x86_64</td>
-                <td><code>thurbox-v{ver}-x86_64-unknown-linux-musl.tar.gz</code></td>
+                <td><code>talos-v{ver}-x86_64-unknown-linux-musl.tar.gz</code></td>
               </tr>
               <tr>
                 <td>macOS</td>
                 <td>Apple Silicon</td>
-                <td><code>thurbox-v{ver}-aarch64-apple-darwin.tar.gz</code></td>
+                <td><code>talos-v{ver}-aarch64-apple-darwin.tar.gz</code></td>
               </tr>
               <tr>
                 <td>Windows</td>
                 <td>x86_64</td>
-                <td><code>thurbox-v{ver}-x86_64-pc-windows-msvc.zip</code></td>
+                <td><code>talos-v{ver}-x86_64-pc-windows-msvc.zip</code></td>
               </tr>
             </tbody>
           </table>
@@ -152,12 +152,12 @@ curl -fsSL https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/insta
             <a href="https://learn.microsoft.com/windows/package-manager/">winget</a>
             (Microsoft's package manager, bundled with Windows 10/11):
           </p>
-          <pre><code class="language-powershell">winget install Thurbeen.thurbox</code></pre>
+          <pre><code class="language-powershell">winget install Thurbeen.talos</code></pre>
           <p>
             Installs
-            <code>thurbox.exe</code>
+            <code>talos.exe</code>
             and
-            <code>thurbox-cli.exe</code>
+            <code>talos-cli.exe</code>
             from the GitHub Release as portable commands on your
             <code>PATH</code>
             . Needs
@@ -167,13 +167,13 @@ curl -fsSL https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/insta
           <div class="info-box">
             <p>
               <strong>Release cadence.</strong>
-              winget-pkgs is manually reviewed, so thurbox submits a new winget
+              winget-pkgs is manually reviewed, so talos submits a new winget
               version on every release, but skips a submission while its
               previous one is still an open PR &mdash; wingetcreate can't update
               a pending PR, and a submission waits on review before it goes
               live. The latest build always ships immediately via the
               PowerShell installer above and
-              <a href="https://github.com/Thurbeen/thurbox/releases">GitHub Releases</a>
+              <a href="https://github.com/zatzk/talos/releases">GitHub Releases</a>
               , so
               <code>irm &hellip; install.ps1 | iex</code>
               stays the recommended route on Windows; the winget channel
@@ -187,15 +187,15 @@ curl -fsSL https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/insta
           </h2>
           <p>
             On Windows, install the prebuilt x86_64 binaries from the
-            <a href="https://community.chocolatey.org/packages/thurbox">Chocolatey community repository</a>
+            <a href="https://community.chocolatey.org/packages/talos">Chocolatey community repository</a>
             :
           </p>
-          <pre><code class="language-powershell">choco install thurbox</code></pre>
+          <pre><code class="language-powershell">choco install talos</code></pre>
           <p>
             Installs
-            <code>thurbox.exe</code>
+            <code>talos.exe</code>
             and
-            <code>thurbox-cli.exe</code>
+            <code>talos-cli.exe</code>
             from the GitHub Release and shims them onto your
             <code>PATH</code>
             . Needs
@@ -207,12 +207,12 @@ curl -fsSL https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/insta
             <p>
               <strong>Release cadence.</strong>
               Unlike winget, the Chocolatey community repo is rate-limited on
-              a calendar, so thurbox pushes a new Chocolatey version
+              a calendar, so talos pushes a new Chocolatey version
               <strong>at most once every 30 days</strong>
               (intermediate releases are coalesced into the next push). The
               latest build always ships immediately via the PowerShell installer
               above and
-              <a href="https://github.com/Thurbeen/thurbox/releases">GitHub Releases</a>
+              <a href="https://github.com/zatzk/talos/releases">GitHub Releases</a>
               , so
               <code>irm &hellip; install.ps1 | iex</code>
               stays the recommended route on Windows; the Chocolatey channel
@@ -226,15 +226,15 @@ curl -fsSL https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/insta
           </h2>
           <p>
             On macOS or Linux, install the prebuilt binaries from the
-            <a href="https://github.com/Thurbeen/homebrew-thurbox">thurbox tap</a>
+            <a href="https://github.com/Thurbeen/homebrew-talos">talos tap</a>
             :
           </p>
-          <pre><code class="language-bash">brew install thurbeen/thurbox/thurbox</code></pre>
+          <pre><code class="language-bash">brew install thurbeen/talos/talos</code></pre>
           <p>
             This installs
-            <code>thurbox</code>
+            <code>talos</code>
             and
-            <code>thurbox-cli</code>
+            <code>talos-cli</code>
             , pulling in
             <code>tmux</code>
             and
@@ -249,14 +249,14 @@ curl -fsSL https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/insta
             <a href="#arch-linux" class="heading-anchor">#</a>
           </h2>
           <p>
-            Thurbox is on the AUR as
-            <a href="https://aur.archlinux.org/packages/thurbox"><code>thurbox</code></a>
+            Talos is on the AUR as
+            <a href="https://aur.archlinux.org/packages/talos"><code>talos</code></a>
             (builds from source) and
-            <a href="https://aur.archlinux.org/packages/thurbox-bin"><code>thurbox-bin</code></a>
+            <a href="https://aur.archlinux.org/packages/talos-bin"><code>talos-bin</code></a>
             (prebuilt release binary). Install with your AUR helper:
           </p>
-          <pre><code class="language-bash">paru -S thurbox-bin   # prebuilt binary (fastest)
-paru -S thurbox       # build from source</code></pre>
+          <pre><code class="language-bash">paru -S talos-bin   # prebuilt binary (fastest)
+paru -S talos       # build from source</code></pre>
           <p>
             <code>tmux</code>
             is pulled in as a dependency. Swap
@@ -281,18 +281,18 @@ paru -S thurbox       # build from source</code></pre>
             <code>PATH</code>
             , after anything you already have there. It covers x86_64 and aarch64 Linux and Apple Silicon macOS. CI builds it on x86_64 Linux only.
           </p>
-          <pre><code class="language-bash">nix run github:Thurbeen/thurbox                      # try it without installing
-nix profile install github:Thurbeen/thurbox          # install into your profile</code></pre>
+          <pre><code class="language-bash">nix run github:zatzk/talos                      # try it without installing
+nix profile install github:zatzk/talos          # install into your profile</code></pre>
           <p>On NixOS, add the flake to your system flake and enable its module:</p>
           <pre><code class="language-nix">{
-  inputs.thurbox.url = "github:Thurbeen/thurbox";
+  inputs.talos.url = "github:zatzk/talos";
 
-  outputs = { nixpkgs, thurbox, ... }: {
+  outputs = { nixpkgs, talos, ... }: {
     nixosConfigurations.my-host = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
-        thurbox.nixosModules.default
-        { programs.thurbox.enable = true; }
+        talos.nixosModules.default
+        { programs.talos.enable = true; }
       ];
     };
   };
@@ -300,13 +300,13 @@ nix profile install github:Thurbeen/thurbox          # install into your profile
           <p>
             <code>overlays.default</code>
             adds
-            <code>pkgs.thurbox</code>
+            <code>pkgs.talos</code>
             if you'd rather list the package yourself, and
             <code>homeManagerModules.default</code>
             offers the same
-            <code>programs.thurbox</code>
+            <code>programs.talos</code>
             options under Home Manager. The only other option,
-            <code>programs.thurbox.automations.enable</code>
+            <code>programs.talos.automations.enable</code>
             , sets up the user timer from
             <code>packaging/systemd</code>
             (or the launchd agent from
@@ -318,7 +318,7 @@ nix profile install github:Thurbeen/thurbox          # install into your profile
             <code>0.0.0-unstable-&lt;date&gt;+&lt;commit&gt;</code>
             and never updates itself, because Nix owns the binary. To pin a version, point the input at a
             tag, for example
-            <code>github:Thurbeen/thurbox/v2.30.3</code>
+            <code>github:zatzk/talos/v2.30.3</code>
             .
           </p>
 
@@ -327,15 +327,15 @@ nix profile install github:Thurbeen/thurbox          # install into your profile
             <a href="#from-source" class="heading-anchor">#</a>
           </h2>
 
-          <pre><code class="language-bash">git clone https://github.com/Thurbeen/thurbox.git
-cd thurbox
+          <pre><code class="language-bash">git clone https://github.com/zatzk/talos.git
+cd talos
 cargo build --release</code></pre>
 
           <p>
             The binaries will be at
-            <code>target/release/thurbox</code>
+            <code>target/release/talos</code>
             and
-            <code>target/release/thurbox-cli</code>
+            <code>target/release/talos-cli</code>
             . Requires Rust 1.75+.
           </p>
 
@@ -394,9 +394,9 @@ cargo build --release</code></pre>
 
           <ol>
             <li>
-              <strong>Launch Thurbox</strong>
+              <strong>Launch Talos</strong>
               &mdash; run
-              <code>thurbox</code>
+              <code>talos</code>
               in your terminal. You'll see the session sidebar and a terminal panel.
             </li>
             <li>
@@ -452,13 +452,13 @@ cargo build --release</code></pre>
 
           <p>
             Session state is stored in SQLite at
-            <code>~/.local/share/thurbox/thurbox.db</code>
+            <code>~/.local/share/talos/talos.db</code>
             (
             <code>$XDG_DATA_HOME</code>
             respected). Agent definitions live in
-            <code>~/.config/thurbox/agents.toml</code>
+            <code>~/.config/talos/agents.toml</code>
             (seeded on first run). Logs go to
-            <code>~/.local/share/thurbox/thurbox.log</code>
+            <code>~/.local/share/talos/talos.log</code>
             .
           </p>
 
@@ -468,27 +468,27 @@ cargo build --release</code></pre>
           </h2>
           <p>
             Removing the binary is not enough on its own: agent sessions keep running in tmux,
-            Thurbox has written hook and skill files into your coding agents' own directories, and
+            Talos has written hook and skill files into your coding agents' own directories, and
             every worktree it created is registered in the repository it came from. Go through the
             steps below in order, because steps 1 and 2 need
-            <code>thurbox-cli</code>
+            <code>talos-cli</code>
             , which step 3 removes. The paths are the defaults on Linux and macOS; Windows and remote
             hosts follow in step 5.
           </p>
           <div class="info-box">
             <p>
               <strong>Moved something?</strong>
-              <code>thurbox-cli version --json</code>
+              <code>talos-cli version --json</code>
               prints the tmux socket in use (<code>tmux_socket</code>) and the data directory
               (<code>data_dir</code>). They differ from the defaults for a development build
-              (<code>thurbox-dev</code>), under
-              <code>THURBOX_DATA_DIR</code>
+              (<code>talos-dev</code>), under
+              <code>TALOS_DATA_DIR</code>
               or
-              <code>THURBOX_SOCKET</code>
+              <code>TALOS_SOCKET</code>
               , and the data directory follows
               <code>$XDG_DATA_HOME</code>
               . The config directory follows
-              <code>THURBOX_CONFIG_DIR</code>
+              <code>TALOS_CONFIG_DIR</code>
               , then
               <code>$XDG_CONFIG_HOME</code>
               . Substitute your values below.
@@ -497,13 +497,13 @@ cargo build --release</code></pre>
 
           <h3 id="uninstall-stop">1. Stop sessions</h3>
           <p>
-            Quit the TUI, then stop each multiplexer server Thurbox used. The command below
+            Quit the TUI, then stop each multiplexer server Talos used. The command below
             stops the default POSIX tmux server, including its agent sessions and heartbeat.
             <strong>Destructive:</strong>
             this ends every running agent session, and any unsaved agent conversation with it.
           </p>
-          <pre data-wrap><code class="language-bash">thurbox-cli version --json      # note tmux_socket and data_dir
-tmux -L thurbox kill-server     # stops every session and the heartbeat</code></pre>
+          <pre data-wrap><code class="language-bash">talos-cli version --json      # note tmux_socket and data_dir
+tmux -L talos kill-server     # stops every session and the heartbeat</code></pre>
           <p>
             For RMUX sessions run <code>rmux -L &lt;socket&gt; kill-server</code>;
             for psmux use <code>psmux -L &lt;socket&gt; kill-server</code>.
@@ -512,9 +512,9 @@ tmux -L thurbox kill-server     # stops every session and the heartbeat</code></
             sessions running. Remote servers must be stopped on their hosts.
           </p>
 
-          <h3 id="uninstall-other-tools">2. Remove what Thurbox added to other tools</h3>
+          <h3 id="uninstall-other-tools">2. Remove what Talos added to other tools</h3>
           <p>
-            Thurbox ships two built-in extensions that reach outside its own directories, and
+            Talos ships two built-in extensions that reach outside its own directories, and
             reinstalls both on every start unless you opt out.
             <code>hooks</code>
             wires your agents' status hooks: it merges entries into
@@ -526,30 +526,30 @@ tmux -L thurbox kill-server     # stops every session and the heartbeat</code></
             , and drops its own files for opencode, vibe, pi, omp, Copilot and grok.
             <code>ui-skill</code>
             installs the
-            <code>thurbox-ui</code>
+            <code>talos-ui</code>
             skill into Claude Code, Codex, opencode, Copilot and
             <code>~/.agents</code>
             . Each file is written only if that agent's directory already exists.
           </p>
           <p>
             Deactivating an extension reverses its install. It deletes only files that still carry
-            Thurbox's marker (the text
-            <code>thurbox `extension install`</code>
-            ), prunes Thurbox's entries from the merged files, and removes the arguments it
+            Talos's marker (the text
+            <code>talos `extension install`</code>
+            ), prunes Talos's entries from the merged files, and removes the arguments it
             added to
             <code>agents.toml</code>
             . A skill or hook file you edited and took the marker out of is yours, and is left
             alone.
           </p>
-          <pre data-wrap><code class="language-bash">thurbox-cli extension deactivate hooks
-thurbox-cli extension deactivate ui-skill
-thurbox-cli extension list                        # anything else you installed?
-thurbox-cli extension uninstall &lt;name&gt; --purge   # for each one listed</code></pre>
+          <pre data-wrap><code class="language-bash">talos-cli extension deactivate hooks
+talos-cli extension deactivate ui-skill
+talos-cli extension list                        # anything else you installed?
+talos-cli extension uninstall &lt;name&gt; --purge   # for each one listed</code></pre>
           <p>
             That can leave empty directories behind &mdash; the
-            <code>thurbox-ui</code>
-            skill directories, and a hooks or plugin directory Thurbox created for an agent &mdash;
-            and a merge target that Thurbox created itself, such as
+            <code>talos-ui</code>
+            skill directories, and a hooks or plugin directory Talos created for an agent &mdash;
+            and a merge target that Talos created itself, such as
             <code>~/.codex/hooks.json</code>
             , as an empty
             <code>{}</code>
@@ -557,39 +557,39 @@ thurbox-cli extension uninstall &lt;name&gt; --purge   # for each one listed</co
             <code>rmdir</code>
             only removes a directory that is empty:
           </p>
-          <pre data-wrap><code class="language-bash">rmdir ~/.claude/skills/thurbox-ui ~/.codex/skills/thurbox-ui \
-  ~/.config/opencode/skills/thurbox-ui ~/.copilot/skills/thurbox-ui \
-  ~/.agents/skills/thurbox-ui 2&gt;/dev/null</code></pre>
+          <pre data-wrap><code class="language-bash">rmdir ~/.claude/skills/talos-ui ~/.codex/skills/talos-ui \
+  ~/.config/opencode/skills/talos-ui ~/.copilot/skills/talos-ui \
+  ~/.agents/skills/talos-ui 2&gt;/dev/null</code></pre>
           <p>
             Beyond these, the git worktrees and branches of step 4, and the Windows
             <code>PATH</code>
-            entry of step 5, Thurbox writes nothing outside its own directories: no shell
+            entry of step 5, Talos writes nothing outside its own directories: no shell
             completions, no shell profile, no
             <code>~/.claude/settings.json</code>
             (Claude Code gets its hooks through a
             <code>--settings</code>
-            file in Thurbox's config directory), no tmux or git config, and no services.
+            file in Talos's config directory), no tmux or git config, and no services.
           </p>
 
           <h3 id="uninstall-binaries">3. Remove the binaries</h3>
-          <p>Every install method ships both <code>thurbox</code> and <code>thurbox-cli</code>.</p>
+          <p>Every install method ships both <code>talos</code> and <code>talos-cli</code>.</p>
           <pre data-wrap><code class="language-bash"># curl one-liner (the tarball also puts a LICENSE file next to the binaries)
-rm -f ~/.local/bin/thurbox ~/.local/bin/thurbox-cli ~/.local/bin/LICENSE
+rm -f ~/.local/bin/talos ~/.local/bin/talos-cli ~/.local/bin/LICENSE
 # ...or in the directory you set INSTALL_DIR to
 
-brew uninstall thurbox          # Homebrew
-paru -R thurbox-bin             # Arch (AUR), prebuilt package
-paru -R thurbox                 # Arch (AUR), built from source
-nix profile remove thurbox      # Nix, installed with nix profile install</code></pre>
+brew uninstall talos          # Homebrew
+paru -R talos-bin             # Arch (AUR), prebuilt package
+paru -R talos                 # Arch (AUR), built from source
+nix profile remove talos      # Nix, installed with nix profile install</code></pre>
           <p>
             On NixOS or Home Manager, delete
-            <code>programs.thurbox</code>
+            <code>programs.talos</code>
             ,
-            <code>thurbox.nixosModules.default</code>
+            <code>talos.nixosModules.default</code>
             or
-            <code>thurbox.homeManagerModules.default</code>
+            <code>talos.homeManagerModules.default</code>
             and the
-            <code>thurbox</code>
+            <code>talos</code>
             input from your flake, then rebuild with
             <code>sudo nixos-rebuild switch</code>
             or
@@ -604,9 +604,9 @@ nix profile remove thurbox      # Nix, installed with nix profile install</code>
             A
             <a href="#from-source">source build</a>
             installs nothing: delete the clone, and any copy of
-            <code>target/release/thurbox</code>
+            <code>target/release/talos</code>
             or
-            <code>thurbox-cli</code>
+            <code>talos-cli</code>
             you put on your
             <code>PATH</code>
             . Windows is in step 5.
@@ -614,8 +614,8 @@ nix profile remove thurbox      # Nix, installed with nix profile install</code>
 
           <h3 id="uninstall-state">4. Optionally remove worktrees, config and state</h3>
           <p>
-            Every worktree Thurbox created lives under
-            <code>~/.local/share/thurbox/worktrees/</code>
+            Every worktree Talos created lives under
+            <code>~/.local/share/talos/worktrees/</code>
             , and can hold a lot, build output included. Each one is also registered in its
             repository's
             <code>.git/worktrees</code>
@@ -625,20 +625,20 @@ nix profile remove thurbox      # Nix, installed with nix profile install</code>
             discards uncommitted changes in each worktree. The loop prints each branch and path
             first, and commits already on a branch stay there.
           </p>
-          <pre data-wrap><code class="language-bash">for wt in ~/.local/share/thurbox/worktrees/*/*/; do
+          <pre data-wrap><code class="language-bash">for wt in ~/.local/share/talos/worktrees/*/*/; do
   [ -e "$wt/.git" ] || continue
   echo "$(git -C "$wt" branch --show-current)  $wt"
   git -C "$wt" worktree remove --force "$wt"
 done</code></pre>
           <p>
-            Thurbox never deletes the branches it created; remove any you no longer want with
+            Talos never deletes the branches it created; remove any you no longer want with
             <code>git branch -D &lt;branch&gt;</code>
             in their repository. If you already deleted the worktree directories by hand, run
             <code>git worktree prune</code>
             in each repository to drop the stale registrations.
           </p>
           <p>
-            Then delete Thurbox's own directories.
+            Then delete Talos's own directories.
             <strong>Destructive:</strong>
             this erases the session database and history, logs,
             <code>agents.toml</code>
@@ -647,43 +647,43 @@ done</code></pre>
             , your theme, keybindings and interface customisations, and the extension opt-outs from
             step 2 (a later reinstall starts from scratch).
           </p>
-          <pre data-wrap><code class="language-bash">rm -rf ~/.local/share/thurbox ~/.config/thurbox</code></pre>
+          <pre data-wrap><code class="language-bash">rm -rf ~/.local/share/talos ~/.config/talos</code></pre>
 
           <h3 id="uninstall-windows">5. Windows and remote hosts</h3>
           <p>
             <strong>Windows.</strong>
             The same steps, in PowerShell. Sessions run on psmux instead of tmux; step 2 is the same
-            <code>thurbox-cli extension</code>
+            <code>talos-cli extension</code>
             commands, and the agent files it removes sit under
             <code>%USERPROFILE%</code>
             . Configuration lives in
-            <code>%APPDATA%\thurbox</code>
+            <code>%APPDATA%\talos</code>
             and state in
-            <code>%LOCALAPPDATA%\thurbox</code>
+            <code>%LOCALAPPDATA%\talos</code>
             .
           </p>
           <pre data-wrap><code class="language-powershell"># 1. Stop sessions (destructive: ends every running agent session)
-psmux -L thurbox kill-server
+psmux -L talos kill-server
 
-# 2. Remove what Thurbox added to other tools
-thurbox-cli extension deactivate hooks
-thurbox-cli extension deactivate ui-skill
+# 2. Remove what Talos added to other tools
+talos-cli extension deactivate hooks
+talos-cli extension deactivate ui-skill
 
 # 3. Remove the binaries
-winget uninstall Thurbeen.thurbox       # winget
-choco uninstall thurbox                 # Chocolatey
+winget uninstall Thurbeen.talos       # winget
+choco uninstall talos                 # Chocolatey
 # install.ps1: the install directory, and its entry in your user PATH
-$dir = "$env:LOCALAPPDATA\Programs\thurbox"   # or your THURBOX_INSTALL_DIR
+$dir = "$env:LOCALAPPDATA\Programs\talos"   # or your TALOS_INSTALL_DIR
 Remove-Item -Recurse -Force $dir
 $path = [Environment]::GetEnvironmentVariable('Path', 'User') -split ';' |
   Where-Object { $_ -and $_ -ne $dir }
 [Environment]::SetEnvironmentVariable('Path', ($path -join ';'), 'User')
 
 # 4. Optional (destructive): worktrees, then config and state
-Get-ChildItem "$env:LOCALAPPDATA\thurbox\worktrees\*\*" -Directory | ForEach-Object {
+Get-ChildItem "$env:LOCALAPPDATA\talos\worktrees\*\*" -Directory | ForEach-Object {
   git -C $_.FullName worktree remove --force $_.FullName
 }
-Remove-Item -Recurse -Force "$env:APPDATA\thurbox", "$env:LOCALAPPDATA\thurbox"</code></pre>
+Remove-Item -Recurse -Force "$env:APPDATA\talos", "$env:LOCALAPPDATA\talos"</code></pre>
           <p>
             <strong>Remote hosts.</strong>
             Sessions on an
@@ -692,15 +692,15 @@ Remove-Item -Recurse -Force "$env:APPDATA\thurbox", "$env:LOCALAPPDATA\thurbox"<
             <code>wsl:</code>
             host from
             <code>hosts.toml</code>
-            run on that host, and Thurbox never cleans a host up for you. On each host it may have
+            run on that host, and Talos never cleans a host up for you. On each host it may have
             left a tmux server, worktrees under
-            <code>~/.local/share/thurbox/worktrees</code>
+            <code>~/.local/share/talos/worktrees</code>
             (or the host's
             <code>worktrees_dir</code>
             ), a copy of
-            <code>thurbox-cli</code>
+            <code>talos-cli</code>
             and its database under
-            <code>~/.local/share/thurbox</code>
+            <code>~/.local/share/talos</code>
             , and the same agent hook files as step 2. Run this on the host, through
             <code>ssh &lt;host&gt;</code>
             or
@@ -713,17 +713,17 @@ Remove-Item -Recurse -Force "$env:APPDATA\thurbox", "$env:LOCALAPPDATA\thurbox"<
             <code>hosts.toml</code>
             if you set one.
           </p>
-          <pre data-wrap><code class="language-bash">tmux -L thurbox kill-server
-for wt in ~/.local/share/thurbox/worktrees/*/*/; do
+          <pre data-wrap><code class="language-bash">tmux -L talos kill-server
+for wt in ~/.local/share/talos/worktrees/*/*/; do
   [ -e "$wt/.git" ] || continue
   git -C "$wt" worktree remove --force "$wt"
 done
-for f in ~/.config/opencode/plugin/thurbox-status.js ~/.vibe/hooks.toml \
-  ~/.copilot/hooks/thurbox-status.json ~/.grok/hooks/thurbox-status.json \
-  ~/.pi/agent/extensions/thurbox-status.ts ~/.omp/agent/extensions/thurbox-status.ts; do
-  grep -qs 'thurbox `extension install`' "$f" &amp;&amp; rm "$f"
+for f in ~/.config/opencode/plugin/talos-status.js ~/.vibe/hooks.toml \
+  ~/.copilot/hooks/talos-status.json ~/.grok/hooks/talos-status.json \
+  ~/.pi/agent/extensions/talos-status.ts ~/.omp/agent/extensions/talos-status.ts; do
+  grep -qs 'talos `extension install`' "$f" &amp;&amp; rm "$f"
 done
-rm -rf ~/.local/share/thurbox ~/.config/thurbox</code></pre>
+rm -rf ~/.local/share/talos ~/.config/talos</code></pre>
           <p>
             The entries merged into
             <code>~/.codex/hooks.json</code>
@@ -733,8 +733,8 @@ rm -rf ~/.local/share/thurbox ~/.config/thurbox</code></pre>
             <code>~/.kimi-code/config.toml</code>
             on the host have no command to prune them: delete by hand each hook whose command
             mentions
-            <code>@thurbox_state</code>
+            <code>@talos_state</code>
             or
-            <code>thurbox-cli session signal</code>
+            <code>talos-cli session signal</code>
             . A Windows host is the same with psmux and the Windows paths above.
           </p>

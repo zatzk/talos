@@ -170,7 +170,7 @@ const MODULE_RULES: &[ModuleRules] = &[
         allowed: &[],
         allowed_path_only: &[],
     },
-    // Which window is whose: thurbox's window-naming convention and the
+    // Which window is whose: talos's window-naming convention and the
     // resolution rule (ADR-25), over the listing the contract defines.
     ModuleRules {
         name: "backend::identity",
@@ -338,7 +338,7 @@ const MODULE_RULES: &[ModuleRules] = &[
     // Headless session ops: no TUI state or PTY-attached backend. Reaches the
     // agent config and the backend contract via fully-qualified paths only
     // (never `use`), same pattern as the cli module. `shell` for the same
-    // reason `agent` has it: `host_cli` spells a `thurbox-cli` invocation for a
+    // reason `agent` has it: `host_cli` spells a `talos-cli` invocation for a
     // host's `sh` or PowerShell, and the two quoting rules have exactly one
     // home (`shell::posix_quote` / `powershell_quote`).
     ModuleRules {
@@ -485,7 +485,7 @@ const MODULE_RULES: &[ModuleRules] = &[
     // chrome. It is the one module whose job *is* to wire the layers together,
     // so its list is the widest — but it is a list, and a new layer reached
     // from the loop is a decision recorded here rather than an exemption.
-    // Reaches the library by its crate name (`thurbox::`), which is the only
+    // Reaches the library by its crate name (`talos::`), which is the only
     // spelling available from inside the binary.
     ModuleRules {
         name: "coordinator",
@@ -1000,7 +1000,7 @@ const HOST_OR_MUX_SPECIFIC: &[&str] = &[
 
 /// The route and the contract are the same for every host OS, launcher and
 /// multiplexer (ADR-13): they reach no launcher and no adapter, and decide
-/// nothing by the OS this build was compiled for — a Windows thurbox drives a
+/// nothing by the OS this build was compiled for — a Windows talos drives a
 /// Linux host, and a Linux one a Windows host. A platform is a host's, read
 /// from its configuration; a behaviour is a backend's, read from what it can
 /// do.

@@ -164,15 +164,15 @@ mod tests {
             },
             "rmux",
         );
-        let policy = Rmux::control_policy(&remote, "thurbox");
+        let policy = Rmux::control_policy(&remote, "talos");
         assert!(!policy.subscriptions);
         assert!(policy.command_list_single_reply);
         assert_eq!(
             policy.status_poll.as_deref(),
-            Some("list-panes -s -t thurbox -F '#{pane_id} #{@thurbox_state}'")
+            Some("list-panes -s -t talos -F '#{pane_id} #{@talos_state}'")
         );
         assert!(
-            Rmux::control_policy(&TmuxTransport::local("rmux"), "thurbox")
+            Rmux::control_policy(&TmuxTransport::local("rmux"), "talos")
                 .status_poll
                 .is_none()
         );

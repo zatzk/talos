@@ -1,12 +1,12 @@
 """What is left when something dies. Three sessions each time.
 
 ``client-killed``: the attached client is SIGKILLed; agents still running, of 3.
-``server-killed``: the host's server is SIGKILLed (for thurbox that is its tmux
+``server-killed``: the host's server is SIGKILLed (for talos that is its tmux
 server — the TUI is only a client); agents still running, of 3.
 ``restart``: server and agents are all SIGTERMed, as a machine shutdown does,
 then the host is started again the way a user would (anything still up after
 10 s is SIGKILLed first, and ``forced_shutdown`` records it) (tmux: nothing to start;
-Herdr: its server; thurbox: its interface, which respawns every session it has
+Herdr: its server; talos: its interface, which respawns every session it has
 a record of). ``commands_back``: sessions running their command again within
 30 s, of 3; ``restore_ms``: until the last of them started; ``listed``: sessions
 the host itself lists after the restart, whatever runs in them.

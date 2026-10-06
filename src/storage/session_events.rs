@@ -1,4 +1,4 @@
-//! The append-only session event log — what `thurbox-cli watch` streams.
+//! The append-only session event log — what `talos-cli watch` streams.
 //!
 //! Every writer that changes what a watcher would report appends one row here
 //! **in the same transaction as the change it describes**. That is the whole
@@ -54,7 +54,7 @@ impl SessionEventKind {
 /// one has had its worktrees and any uncommitted work torn down.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EventReason {
-    /// `created`: thurbox launched it.
+    /// `created`: talos launched it.
     Spawned,
     /// `created`: an already-running session was adopted into this database
     /// (`session register`, or a mirror pass adopting a shared host's row).

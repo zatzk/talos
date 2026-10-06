@@ -18,11 +18,11 @@ use std::path::PathBuf;
 use std::process::{Command, Output};
 
 use serde_json::Value;
-use thurbox::cli::sessions::{run, Action};
-use thurbox::session::SessionId;
-use thurbox::session_ops::mirror::{self, Transitive};
-use thurbox::storage::Database;
-use thurbox::sync::SharedSession;
+use talos::cli::sessions::{run, Action};
+use talos::session::SessionId;
+use talos::session_ops::mirror::{self, Transitive};
+use talos::storage::Database;
+use talos::sync::SharedSession;
 
 #[path = "support/tmux_server.rs"]
 mod tmux_server;
@@ -51,7 +51,7 @@ impl Env {
         }
         let env = Self {
             root,
-            server: TmuxServer::private("thurbox-routes-test"),
+            server: TmuxServer::private("talos-routes-test"),
         };
         std::fs::write(env.path("config/agents.toml"), AGENTS_TOML).expect("agents.toml");
         std::fs::write(env.path("config/hosts.toml"), hosts_toml).expect("hosts.toml");
@@ -97,7 +97,7 @@ impl Env {
     }
 
     fn db(&self) -> Database {
-        Database::open(&self.path("data/thurbox.db")).expect("open the instance database")
+        Database::open(&self.path("data/talos.db")).expect("open the instance database")
     }
 
     /// A row as an earlier build (or a peer) wrote it, spelling and all.
@@ -113,27 +113,27 @@ impl Env {
         let path = std::env::var_os("PATH").unwrap_or_default();
         let mut dirs = vec![self.path("bin")];
         dirs.extend(std::env::split_paths(&path));
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         cmd.arg("--json").args(args);
         cmd.env("PATH", std::env::join_paths(dirs).expect("PATH"));
         cmd.env("HOME", self.path("home"));
         cmd.env("XDG_DATA_HOME", self.path("home/xdg-data"));
         cmd.env("XDG_CONFIG_HOME", self.path("home/xdg-config"));
-        cmd.env("THURBOX_CONFIG_DIR", self.path("config"));
-        cmd.env("THURBOX_DATA_DIR", self.path("data"));
+        cmd.env("TALOS_CONFIG_DIR", self.path("config"));
+        cmd.env("TALOS_DATA_DIR", self.path("data"));
         self.server.scope(&mut cmd);
-        cmd.env_remove("THURBOX_SESSION");
-        cmd.env_remove("THURBOX_SESSION_ID");
+        cmd.env_remove("TALOS_SESSION");
+        cmd.env_remove("TALOS_SESSION_ID");
         cmd.env_remove("TMUX");
         cmd.env_remove("TMUX_PANE");
-        cmd.output().expect("run thurbox-cli")
+        cmd.output().expect("run talos-cli")
     }
 
     fn cli_json(&self, args: &[&str]) -> Value {
         let out = self.cli(args);
         serde_json::from_slice(&out.stdout).unwrap_or_else(|e| {
             panic!(
-                "thurbox-cli {args:?} printed no JSON ({e}): {}\n{}",
+                "talos-cli {args:?} printed no JSON ({e}): {}\n{}",
                 String::from_utf8_lossy(&out.stdout),
                 String::from_utf8_lossy(&out.stderr)
             )
@@ -274,7 +274,7 @@ fn a_lifecycle_hook_is_told_the_bare_host_of_a_qualified_row() {
     std::fs::write(
         env.path("config/hooks.toml"),
         format!(
-            "[[hooks]]\nevent = \"session.pre_delete\"\ncommand = 'printf %s \"$THURBOX_HOST\" > \"{}\"'\n",
+            "[[hooks]]\nevent = \"session.pre_delete\"\ncommand = 'printf %s \"$TALOS_HOST\" > \"{}\"'\n",
             told.display()
         ),
     )
@@ -322,7 +322,7 @@ fn listing(db: &Database, deleted: bool) -> Value {
             verify: false,
         },
         db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .expect("session list")
     .json
@@ -392,13 +392,13 @@ fn a_legacy_tmux_row_holds_its_name_on_the_local_server() {
     db.upsert_session(&session(id, "build", "tmux")).unwrap();
 
     for key in ["local-tmux", "", "tmux"] {
-        let held = thurbox::session_ops::names::live_namesakes(&db, "build", key).unwrap();
+        let held = talos::session_ops::names::live_namesakes(&db, "build", key).unwrap();
         assert_eq!(
             held.iter().map(|s| s.id).collect::<Vec<_>>(),
             vec![id],
             "{key:?}"
         );
-        let windows = thurbox::session_ops::names::window_namesakes(&db, "build", key).unwrap();
+        let windows = talos::session_ops::names::window_namesakes(&db, "build", key).unwrap();
         assert_eq!(windows.len(), 1, "{key:?}");
     }
 }
@@ -411,11 +411,11 @@ fn an_undrivable_rows_checkout_outlives_its_window() {
     let env = Env::new(HOST_ON_TMUX);
     let id = SessionId::default();
     let mut row = session(id, "r", "ssh:box:herdr");
-    row.worktrees = vec![thurbox::sync::SharedWorktree {
+    row.worktrees = vec![talos::sync::SharedWorktree {
         repo_path: PathBuf::from("/srv/repo"),
         worktree_path: PathBuf::from("/srv/worktrees/r"),
         branch: "r".into(),
-        created_by_thurbox: true,
+        created_by_talos: true,
     }];
     env.db().upsert_session(&row).expect("seed a row");
 
@@ -533,14 +533,14 @@ fn git(dir: &std::path::Path, args: &[&str]) {
 }
 
 /// The tmux session the local backend groups its windows under in a test
-/// build (`backend::tmux_compat::server::TMUX_SESSION`, private; `thurbox-dev` because a test
+/// build (`backend::tmux_compat::server::TMUX_SESSION`, private; `talos-dev` because a test
 /// build carries the dev marker).
-const LOCAL_SESSION: &str = "thurbox-dev";
+const LOCAL_SESSION: &str = "talos-dev";
 
 impl Env {
-    /// A repository with one commit and a live thurbox-made worktree of it on
+    /// A repository with one commit and a live talos-made worktree of it on
     /// branch `name`, holding uncommitted work.
-    fn checkout(&self, name: &str) -> thurbox::sync::SharedWorktree {
+    fn checkout(&self, name: &str) -> talos::sync::SharedWorktree {
         let repo = self.path("repo");
         std::fs::create_dir_all(&repo).expect("repo dir");
         git(&repo, &["init", "-q", "-b", "main"]);
@@ -563,11 +563,11 @@ impl Env {
             ],
         );
         std::fs::write(worktree.join("unsaved.txt"), "work in progress").expect("work");
-        thurbox::sync::SharedWorktree {
+        talos::sync::SharedWorktree {
             repo_path: repo,
             worktree_path: worktree,
             branch: name.into(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         }
     }
 
@@ -749,7 +749,7 @@ fn a_host_entry_without_a_platform_keeps_its_posix_meaning() {
 const HOST_WITH_SOCKET: &str = "[[hosts]]\n\
      name = \"box\"\n\
      destination = \"e2e@box.invalid\"\n\
-     socket = \"thurbox-routes-host\"\n\
+     socket = \"talos-routes-host\"\n\
      share_sessions = false\n";
 
 /// `tmux_socket` in a create document is what a caller hands `tmux -L` to
@@ -780,12 +780,12 @@ fn a_remote_create_reports_the_hosts_socket() {
     let report = create(&[]);
     assert_eq!(report["backend_type"], "ssh:box:tmux", "{report}");
     assert_eq!(
-        report["tmux_socket"], "thurbox-routes-host",
+        report["tmux_socket"], "talos-routes-host",
         "a remote session's socket is the host's: {report}"
     );
     let adopted = create(&["--on-existing", "adopt"]);
     assert_eq!(adopted["created"], false, "{adopted}");
-    assert_eq!(adopted["tmux_socket"], "thurbox-routes-host", "{adopted}");
+    assert_eq!(adopted["tmux_socket"], "talos-routes-host", "{adopted}");
 
     // And it is the socket the pane is really on.
     let pane = report["backend_id"].as_str().expect("backend_id");
@@ -794,7 +794,7 @@ fn a_remote_create_reports_the_hosts_socket() {
         .env_remove("TMUX")
         .args([
             "-L",
-            "thurbox-routes-host",
+            "talos-routes-host",
             "display-message",
             "-p",
             "-t",

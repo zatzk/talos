@@ -18,7 +18,7 @@ mod tmux_server;
 use tmux_server::TmuxServer;
 
 /// A throwaway tmux socket, so this never touches the real one.
-const SOCKET: &str = "thurbox-create-e2e";
+const SOCKET: &str = "talos-create-e2e";
 
 fn have_tmux() -> bool {
     Command::new("tmux")
@@ -48,7 +48,7 @@ fn repo() -> tempfile::TempDir {
     let dir = tempfile::tempdir().expect("tempdir");
     git(dir.path(), &["init", "-q", "-b", "main"]);
     git(dir.path(), &["config", "user.email", "t@example.com"]);
-    git(dir.path(), &["config", "user.name", "thurbox-test"]);
+    git(dir.path(), &["config", "user.name", "talos-test"]);
     // Commit signing is a user setting that fails in a bare environment, and
     // this repo is not the place to be signing anything.
     git(dir.path(), &["config", "commit.gpgsign", "false"]);
@@ -83,7 +83,7 @@ fn registered_worktrees(repo: &Path) -> usize {
 #[test]
 #[cfg(unix)]
 fn opening_an_existing_worktree_reuses_it_and_names_the_session_after_it() {
-    use thurbox::kernel::command::{Command, CommandBus, Phase};
+    use talos::kernel::command::{Command, CommandBus, Phase};
 
     if !have_tmux() {
         eprintln!("skipping: tmux is not installed");
@@ -112,7 +112,7 @@ fn opening_an_existing_worktree_reuses_it_and_names_the_session_after_it() {
 
     // Exactly what the flow issues for an existing worktree: no name, no base.
     let mut bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     bus.dispatch(Command::Create {
         name: String::new(),
@@ -172,18 +172,18 @@ fn creating_a_session_produces_a_worktree_a_row_and_a_window() {
     }
 
     let repo = repo();
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let _server = TmuxServer::pin(SOCKET);
 
     // Isolate config and data, so this uses neither the real agents.toml nor
     // the real database. nextest runs each test in its own process, so a
     // process-wide path override is safe here.
     let home = tempfile::tempdir().expect("tempdir");
-    thurbox::paths::set_test_dir(home.path());
+    talos::paths::set_test_dir(home.path());
 
     // A shell rather than a real agent: the pipeline is what is under test, and
     // launching a coding agent would want credentials and a network.
-    let config = thurbox::paths::config_file()
+    let config = talos::paths::config_file()
         .expect("config path")
         .parent()
         .expect("config dir")
@@ -195,10 +195,10 @@ fn creating_a_session_produces_a_worktree_a_row_and_a_window() {
     )
     .expect("write agents.toml");
 
-    let result = thurbox::session_ops::spawn::spawn_session_headless(
+    let result = talos::session_ops::spawn::spawn_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
-        thurbox::session_ops::spawn::SpawnRequest {
+        &talos::backend::wiring::configured().0,
+        talos::session_ops::spawn::SpawnRequest {
             name: "e2e-probe".into(),
             repo_path: repo.path().to_path_buf(),
             worktree_branch: Some("feat/e2e".into()),
@@ -269,9 +269,9 @@ fn creating_a_session_produces_a_worktree_a_row_and_a_window() {
     );
 
     // And the snapshot the kernel publishes sees it.
-    let store = thurbox::kernel::snapshot::SnapshotStore::with_database(
+    let store = talos::kernel::snapshot::SnapshotStore::with_database(
         db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
     );
     let published = store
         .current()
@@ -295,11 +295,11 @@ fn two_sessions_sharing_a_name_get_distinct_pane_ids() {
     }
 
     let repo = repo();
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let _server = TmuxServer::pin(SOCKET);
     let home = tempfile::tempdir().expect("tempdir");
-    thurbox::paths::set_test_dir(home.path());
-    let config = thurbox::paths::config_file()
+    talos::paths::set_test_dir(home.path());
+    let config = talos::paths::config_file()
         .expect("config path")
         .parent()
         .expect("config dir")
@@ -313,16 +313,16 @@ fn two_sessions_sharing_a_name_get_distinct_pane_ids() {
 
     // No worktree: the duplicate-default repro is the plain-directory path (a
     // repeated branch would fail loudly long before the window spawns).
-    let request = || thurbox::session_ops::spawn::SpawnRequest {
+    let request = || talos::session_ops::spawn::SpawnRequest {
         name: "twin".into(),
         repo_path: repo.path().to_path_buf(),
         agent: Some("shell".into()),
         ..Default::default()
     };
 
-    let first = match thurbox::session_ops::spawn::spawn_session_headless(
+    let first = match talos::session_ops::spawn::spawn_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         request(),
     ) {
         Ok(spawned) => spawned,
@@ -334,9 +334,9 @@ fn two_sessions_sharing_a_name_get_distinct_pane_ids() {
             panic!("first creation failed: {e}");
         }
     };
-    let second = thurbox::session_ops::spawn::spawn_session_headless(
+    let second = talos::session_ops::spawn::spawn_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         request(),
     )
     .expect("second creation");
@@ -354,7 +354,7 @@ fn two_sessions_sharing_a_name_get_distinct_pane_ids() {
 }
 
 /// Regression: a resume brings in an *existing* conversation id from outside
-/// thurbox — "the checkout comes in as a path, the conversation as this id"
+/// talos — "the checkout comes in as a path, the conversation as this id"
 /// (`session_ops/mod.rs`). For an agent that pins a specific conversation id
 /// rather than "resume whatever's latest" (`resume_latest = false`, with
 /// `resume_args` to emit), the persisted `agent_session_id` must be that same
@@ -370,11 +370,11 @@ fn resuming_an_id_pinned_agent_persists_the_resumed_id() {
     }
 
     let repo = repo();
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let _server = TmuxServer::pin(SOCKET);
     let home = tempfile::tempdir().expect("tempdir");
-    thurbox::paths::set_test_dir(home.path());
-    let config = thurbox::paths::config_file()
+    talos::paths::set_test_dir(home.path());
+    let config = talos::paths::config_file()
         .expect("config path")
         .parent()
         .expect("config dir")
@@ -396,10 +396,10 @@ fn resuming_an_id_pinned_agent_persists_the_resumed_id() {
     .expect("write agents.toml");
 
     let external_conversation_id = "external-conv-1234";
-    let result = thurbox::session_ops::spawn::spawn_session_headless(
+    let result = talos::session_ops::spawn::spawn_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
-        thurbox::session_ops::spawn::SpawnRequest {
+        &talos::backend::wiring::configured().0,
+        talos::session_ops::spawn::SpawnRequest {
             name: "arrived".into(),
             repo_path: repo.path().to_path_buf(),
             agent: Some("resumable".into()),
@@ -449,10 +449,10 @@ fn isolated_config() -> (tempfile::TempDir, std::path::PathBuf) {
     // process-wide env overrides for any thread the pipeline spawns — the
     // command bus runs each command on its own, and a worker resolving the
     // real XDG paths would create a real session in the real database.
-    thurbox::paths::set_test_dir(home.path());
-    std::env::set_var(thurbox::paths::CONFIG_DIR_OVERRIDE_ENV, home.path());
-    std::env::set_var(thurbox::paths::DATA_DIR_OVERRIDE_ENV, home.path());
-    let config = thurbox::paths::config_file()
+    talos::paths::set_test_dir(home.path());
+    std::env::set_var(talos::paths::CONFIG_DIR_OVERRIDE_ENV, home.path());
+    std::env::set_var(talos::paths::DATA_DIR_OVERRIDE_ENV, home.path());
+    let config = talos::paths::config_file()
         .expect("config path")
         .parent()
         .expect("config dir")
@@ -466,20 +466,20 @@ fn isolated_config() -> (tempfile::TempDir, std::path::PathBuf) {
     (home, config)
 }
 
-/// The database at the path a `thurbox-cli` run *inside* a hook resolves —
+/// The database at the path a `talos-cli` run *inside* a hook resolves —
 /// the same file, so what the hook reads is what the pipeline wrote.
 #[cfg(unix)]
-fn on_disk_db() -> thurbox::storage::Database {
-    let path = thurbox::paths::database_file().expect("db path");
+fn on_disk_db() -> talos::storage::Database {
+    let path = talos::paths::database_file().expect("db path");
     std::fs::create_dir_all(path.parent().expect("data dir")).expect("mkdir");
-    thurbox::storage::Database::open(&path).expect("open db")
+    talos::storage::Database::open(&path).expect("open db")
 }
 
 #[test]
 #[cfg(unix)]
 fn editing_agents_while_open_updates_the_picker_and_the_agent_actually_spawned() {
-    use thurbox::kernel::snapshot::SnapshotStore;
-    use thurbox::session_ops::spawn::{spawn_session_headless, SpawnRequest};
+    use talos::kernel::snapshot::SnapshotStore;
+    use talos::session_ops::spawn::{spawn_session_headless, SpawnRequest};
 
     if !have_tmux() {
         eprintln!("skipping: tmux is not installed");
@@ -496,11 +496,11 @@ fn editing_agents_while_open_updates_the_picker_and_the_agent_actually_spawned()
     .expect("initial registry");
     let db = on_disk_db();
     let mut snapshot =
-        SnapshotStore::with_database(on_disk_db(), &thurbox::backend::wiring::configured().0);
+        SnapshotStore::with_database(on_disk_db(), &talos::backend::wiring::configured().0);
     assert!(snapshot.poll_registry().is_none());
     let first = spawn_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         SpawnRequest {
             name: "existing".into(),
             repo_path: repo.path().to_path_buf(),
@@ -533,10 +533,10 @@ fn editing_agents_while_open_updates_the_picker_and_the_agent_actually_spawned()
     .expect("edited registry");
     // Another in-process reader must not publish an unpolled generation to
     // the launch worker while the picker still offers the old one.
-    let _ = thurbox::agent::agent_config::load_or_seed();
+    let _ = talos::agent::agent_config::load_or_seed();
     let before_poll = spawn_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         SpawnRequest {
             name: "before-poll".into(),
             repo_path: repo.path().to_path_buf(),
@@ -564,7 +564,7 @@ fn editing_agents_while_open_updates_the_picker_and_the_agent_actually_spawned()
     let selected = snapshot.current().agents[0].name.clone();
     let second = spawn_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         SpawnRequest {
             name: "new".into(),
             repo_path: repo.path().to_path_buf(),
@@ -653,7 +653,7 @@ fn editing_agents_while_open_updates_the_picker_and_the_agent_actually_spawned()
     std::fs::remove_file(&marker).expect("clear launch marker");
     let third = spawn_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         SpawnRequest {
             name: "after-invalid-edit".into(),
             repo_path: repo.path().to_path_buf(),
@@ -702,19 +702,19 @@ fn write_hooks(config: &Path, body: &str) {
     std::fs::write(config.join("hooks.toml"), body).expect("write hooks.toml");
 }
 
-/// A hook entry that appends `$THURBOX_HOOK_EVENT` (and, for the create pair,
+/// A hook entry that appends `$TALOS_HOOK_EVENT` (and, for the create pair,
 /// the paths) to `log`.
 #[cfg(unix)]
 fn logging_hook(event: &str, log: &Path) -> String {
     format!(
-        "[[hooks]]\nevent = \"{event}\"\ncommand = 'echo \"$THURBOX_HOOK_EVENT ${{THURBOX_CWD:-unset}} ${{THURBOX_REPO:-unset}} ${{THURBOX_SESSION:-unset}}\" >> {}'\n\n",
+        "[[hooks]]\nevent = \"{event}\"\ncommand = 'echo \"$TALOS_HOOK_EVENT ${{TALOS_CWD:-unset}} ${{TALOS_REPO:-unset}} ${{TALOS_SESSION:-unset}}\" >> {}'\n\n",
         log.display()
     )
 }
 
 #[cfg(unix)]
-fn shell_request(repo: &Path, branch: Option<&str>) -> thurbox::session_ops::spawn::SpawnRequest {
-    thurbox::session_ops::spawn::SpawnRequest {
+fn shell_request(repo: &Path, branch: Option<&str>) -> talos::session_ops::spawn::SpawnRequest {
+    talos::session_ops::spawn::SpawnRequest {
         name: "hooked".into(),
         repo_path: repo.to_path_buf(),
         worktree_branch: branch.map(String::from),
@@ -737,10 +737,10 @@ fn codex_sessions_in_one_directory_resume_their_own_conversations_after_lost_win
     let _server = TmuxServer::pin(SOCKET);
     let (home, config) = isolated_config();
     let db = on_disk_db();
-    let outside = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"))
+    let outside = Command::new(env!("CARGO_BIN_EXE_talos-cli"))
         .args(["session", "bind-codex", "--json"])
-        .env_remove("THURBOX_SESSION")
-        .env_remove("THURBOX_SESSION_ID")
+        .env_remove("TALOS_SESSION")
+        .env_remove("TALOS_SESSION_ID")
         .output()
         .unwrap();
     assert!(outside.status.success());
@@ -750,7 +750,7 @@ fn codex_sessions_in_one_directory_resume_their_own_conversations_after_lost_win
     std::fs::create_dir_all(&bin).unwrap();
     let log = home.path().join("codex.log");
     let fake = bin.join("codex");
-    std::fs::write(&fake, "#!/bin/sh\nprintf '%s|%s\\n' \"$THURBOX_SESSION\" \"$*\" >> \"$FAKE_CODEX_LOG\"\nif [ \"$#\" -eq 0 ] || [ \"$*\" = resume ] || [ \"$*\" = fork ]; then\n  source=startup\n  [ \"$*\" = resume ] && source=resume\n  printf '{\"session_id\":\"%s\",\"source\":\"%s\"}\\n' \"$FAKE_CONV_ID\" \"$source\" | sh \"$FAKE_HOOK_DRIVER\"\nfi\nsleep 300\n").unwrap();
+    std::fs::write(&fake, "#!/bin/sh\nprintf '%s|%s\\n' \"$TALOS_SESSION\" \"$*\" >> \"$FAKE_CODEX_LOG\"\nif [ \"$#\" -eq 0 ] || [ \"$*\" = resume ] || [ \"$*\" = fork ]; then\n  source=startup\n  [ \"$*\" = resume ] && source=resume\n  printf '{\"session_id\":\"%s\",\"source\":\"%s\"}\\n' \"$FAKE_CONV_ID\" \"$source\" | sh \"$FAKE_HOOK_DRIVER\"\nfi\nsleep 300\n").unwrap();
     let mut mode = std::fs::metadata(&fake).unwrap().permissions();
     mode.set_mode(0o755);
     std::fs::set_permissions(&fake, mode).unwrap();
@@ -775,9 +775,9 @@ fn codex_sessions_in_one_directory_resume_their_own_conversations_after_lost_win
         source.join("codex-hooks.json"),
     )
     .unwrap();
-    thurbox::session_ops::extensions::install_extension(
+    talos::session_ops::extensions::install_extension(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         source.to_str().unwrap(),
         Some(home.path().to_str().unwrap()),
         false,
@@ -795,7 +795,7 @@ fn codex_sessions_in_one_directory_resume_their_own_conversations_after_lost_win
         &driver,
         format!(
             "#!/bin/sh\n{}\n",
-            command.replace("thurbox-cli", env!("CARGO_BIN_EXE_thurbox-cli"))
+            command.replace("talos-cli", env!("CARGO_BIN_EXE_talos-cli"))
         ),
     )
     .unwrap();
@@ -812,7 +812,7 @@ fn codex_sessions_in_one_directory_resume_their_own_conversations_after_lost_win
     let first_conv = "11111111-1111-4111-8111-111111111111";
     let second_conv = "22222222-2222-4222-8222-222222222222";
     let create = |name: &str, conversation: &str| {
-        let mut req = thurbox::session_ops::spawn::SpawnRequest {
+        let mut req = talos::session_ops::spawn::SpawnRequest {
             name: name.into(),
             repo_path: repo.path().to_path_buf(),
             agent: Some("codex".into()),
@@ -821,15 +821,15 @@ fn codex_sessions_in_one_directory_resume_their_own_conversations_after_lost_win
         req.env
             .insert("FAKE_CODEX_LOG".into(), log.display().to_string());
         req.env.insert(
-            "FAKE_THURBOX_CLI".into(),
-            env!("CARGO_BIN_EXE_thurbox-cli").into(),
+            "FAKE_TALOS_CLI".into(),
+            env!("CARGO_BIN_EXE_talos-cli").into(),
         );
         req.env.insert("FAKE_CONV_ID".into(), conversation.into());
         req.env
             .insert("FAKE_HOOK_DRIVER".into(), driver.display().to_string());
-        thurbox::session_ops::spawn::spawn_session_headless(
+        talos::session_ops::spawn::spawn_session_headless(
             &db,
-            &thurbox::backend::wiring::configured().0,
+            &talos::backend::wiring::configured().0,
             req,
         )
         .unwrap()
@@ -857,10 +857,10 @@ fn codex_sessions_in_one_directory_resume_their_own_conversations_after_lost_win
     wait_for(2);
     for _ in 0..100 {
         let a = db
-            .get_session_meta(first.session_id, "thurbox.codex_conversation_id")
+            .get_session_meta(first.session_id, "talos.codex_conversation_id")
             .unwrap();
         let b = db
-            .get_session_meta(second.session_id, "thurbox.codex_conversation_id")
+            .get_session_meta(second.session_id, "talos.codex_conversation_id")
             .unwrap();
         if a.as_deref() == Some(first_conv) && b.as_deref() == Some(second_conv) {
             break;
@@ -868,22 +868,22 @@ fn codex_sessions_in_one_directory_resume_their_own_conversations_after_lost_win
         std::thread::sleep(std::time::Duration::from_millis(50));
     }
     assert_eq!(
-        db.get_session_meta(first.session_id, "thurbox.codex_conversation_id")
+        db.get_session_meta(first.session_id, "talos.codex_conversation_id")
             .unwrap()
             .as_deref(),
         Some(first_conv)
     );
     assert_eq!(
-        db.get_session_meta(second.session_id, "thurbox.codex_conversation_id")
+        db.get_session_meta(second.session_id, "talos.codex_conversation_id")
             .unwrap()
             .as_deref(),
         Some(second_conv)
     );
     let switched_conv = "33333333-3333-4333-8333-333333333333";
-    let mut hook = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"))
+    let mut hook = Command::new(env!("CARGO_BIN_EXE_talos-cli"))
         .args(["session", "bind-codex"])
-        .env("THURBOX_SESSION", first.session_id.to_string())
-        .env("THURBOX_SESSION_ID", &first.agent_session_id)
+        .env("TALOS_SESSION", first.session_id.to_string())
+        .env("TALOS_SESSION_ID", &first.agent_session_id)
         .env_remove("TMUX_PANE")
         .stdin(std::process::Stdio::piped())
         .spawn()
@@ -899,16 +899,16 @@ fn codex_sessions_in_one_directory_resume_their_own_conversations_after_lost_win
         "in-pane /clear must leave a safe recovery state"
     );
     assert_eq!(
-        db.get_session_meta(first.session_id, "thurbox.codex_conversation_id")
+        db.get_session_meta(first.session_id, "talos.codex_conversation_id")
             .unwrap(),
         Some("picker-required".to_string()),
         "an in-pane switch must not leave the old conversation pinned"
     );
     let other_conv = "44444444-4444-4444-8444-444444444444";
-    let mut other = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"))
+    let mut other = Command::new(env!("CARGO_BIN_EXE_talos-cli"))
         .args(["session", "bind-codex"])
-        .env("THURBOX_SESSION", first.session_id.to_string())
-        .env("THURBOX_SESSION_ID", &first.agent_session_id)
+        .env("TALOS_SESSION", first.session_id.to_string())
+        .env("TALOS_SESSION_ID", &first.agent_session_id)
         .stdin(std::process::Stdio::piped())
         .spawn()
         .unwrap();
@@ -919,16 +919,16 @@ fn codex_sessions_in_one_directory_resume_their_own_conversations_after_lost_win
     .unwrap();
     assert!(other.wait().unwrap().success());
     assert_eq!(
-        db.get_session_meta(first.session_id, "thurbox.codex_conversation_id")
+        db.get_session_meta(first.session_id, "talos.codex_conversation_id")
             .unwrap(),
         Some("picker-required".to_string()),
         "a second Codex process in the same pane must not redirect the row"
     );
-    let mut nested_resume = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"))
+    let mut nested_resume = Command::new(env!("CARGO_BIN_EXE_talos-cli"))
         .args(["session", "bind-codex"])
-        .env("THURBOX_SESSION", first.session_id.to_string())
-        .env("THURBOX_SESSION_ID", &first.agent_session_id)
-        .env_remove("THURBOX_CODEX_PICKER")
+        .env("TALOS_SESSION", first.session_id.to_string())
+        .env("TALOS_SESSION_ID", &first.agent_session_id)
+        .env_remove("TALOS_CODEX_PICKER")
         .stdin(std::process::Stdio::piped())
         .spawn()
         .unwrap();
@@ -939,7 +939,7 @@ fn codex_sessions_in_one_directory_resume_their_own_conversations_after_lost_win
     .unwrap();
     assert!(nested_resume.wait().unwrap().success());
     assert_eq!(
-        db.get_session_meta(first.session_id, "thurbox.codex_conversation_id")
+        db.get_session_meta(first.session_id, "talos.codex_conversation_id")
             .unwrap(),
         Some("picker-required".to_string()),
         "a nested resume cannot claim the pending picker"
@@ -951,16 +951,16 @@ fn codex_sessions_in_one_directory_resume_their_own_conversations_after_lost_win
             .unwrap();
         assert!(killed.success());
     }
-    thurbox::session_ops::restart::restart_session_headless_with(
+    talos::session_ops::restart::restart_session_headless_with(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         first.session_id,
         true,
     )
     .unwrap();
-    thurbox::session_ops::restart::restart_session_headless_with(
+    talos::session_ops::restart::restart_session_headless_with(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         second.session_id,
         true,
     )
@@ -978,7 +978,7 @@ fn codex_sessions_in_one_directory_resume_their_own_conversations_after_lost_win
     );
     for _ in 0..100 {
         if db
-            .get_session_meta(first.session_id, "thurbox.codex_conversation_id")
+            .get_session_meta(first.session_id, "talos.codex_conversation_id")
             .unwrap()
             .as_deref()
             == Some(first_conv)
@@ -988,14 +988,14 @@ fn codex_sessions_in_one_directory_resume_their_own_conversations_after_lost_win
         std::thread::sleep(std::time::Duration::from_millis(50));
     }
     assert_eq!(
-        db.get_session_meta(first.session_id, "thurbox.codex_conversation_id")
+        db.get_session_meta(first.session_id, "talos.codex_conversation_id")
             .unwrap()
             .as_deref(),
         Some(first_conv),
         "picker must replace the ambiguity marker with its selected conversation"
     );
 
-    db.unset_session_meta(first.session_id, "thurbox.codex_conversation_id")
+    db.unset_session_meta(first.session_id, "talos.codex_conversation_id")
         .unwrap();
     let pane = db
         .get_session_by_id(first.session_id)
@@ -1007,9 +1007,9 @@ fn codex_sessions_in_one_directory_resume_their_own_conversations_after_lost_win
         .status()
         .unwrap()
         .success());
-    thurbox::session_ops::restart::restart_session_headless_with(
+    talos::session_ops::restart::restart_session_headless_with(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         first.session_id,
         true,
     )
@@ -1023,7 +1023,7 @@ fn codex_sessions_in_one_directory_resume_their_own_conversations_after_lost_win
     );
     for _ in 0..100 {
         if db
-            .get_session_meta(first.session_id, "thurbox.codex_conversation_id")
+            .get_session_meta(first.session_id, "talos.codex_conversation_id")
             .unwrap()
             .as_deref()
             == Some(first_conv)
@@ -1033,18 +1033,18 @@ fn codex_sessions_in_one_directory_resume_their_own_conversations_after_lost_win
         std::thread::sleep(std::time::Duration::from_millis(50));
     }
     assert_eq!(
-        db.get_session_meta(first.session_id, "thurbox.codex_conversation_id")
+        db.get_session_meta(first.session_id, "talos.codex_conversation_id")
             .unwrap()
             .as_deref(),
         Some(first_conv),
         "picker selection was not rebound by SessionStart"
     );
 
-    db.unset_session_meta(second.session_id, "thurbox.codex_conversation_id")
+    db.unset_session_meta(second.session_id, "talos.codex_conversation_id")
         .unwrap();
-    let fork = thurbox::session_ops::fork_session_headless(
+    let fork = talos::session_ops::fork_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         second.session_id,
         "second-fork",
     )
@@ -1071,20 +1071,20 @@ fn create_hooks_fire_once_each_with_the_facts_and_can_reach_the_database() {
     let db = on_disk_db();
     let log = home.path().join("hooks.log");
     let seen_by_cli = home.path().join("session.json");
-    // The post hook asks thurbox-cli about the session it was told of — the
+    // The post hook asks talos-cli about the session it was told of — the
     // dev binary, by absolute path, so PATH plays no part.
     let mut hooks = logging_hook("session.pre_create", &log);
     hooks.push_str(&logging_hook("session.post_create", &log));
     hooks.push_str(&format!(
-        "[[hooks]]\nevent = \"session.post_create\"\ncommand = '{} session get \"$THURBOX_SESSION\" --json > {}'\n",
-        env!("CARGO_BIN_EXE_thurbox-cli"),
+        "[[hooks]]\nevent = \"session.post_create\"\ncommand = '{} session get \"$TALOS_SESSION\" --json > {}'\n",
+        env!("CARGO_BIN_EXE_talos-cli"),
         seen_by_cli.display()
     ));
     write_hooks(&config, &hooks);
 
-    let spawned = match thurbox::session_ops::spawn::spawn_session_headless(
+    let spawned = match talos::session_ops::spawn::spawn_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         shell_request(repo.path(), Some("feat/hooked")),
     ) {
         Ok(spawned) => spawned,
@@ -1117,10 +1117,10 @@ fn create_hooks_fire_once_each_with_the_facts_and_can_reach_the_database() {
         ["session.post_create", &worktree, &repo_path, &sid]
     );
 
-    let cli = std::fs::read_to_string(&seen_by_cli).expect("thurbox-cli ran inside the hook");
+    let cli = std::fs::read_to_string(&seen_by_cli).expect("talos-cli ran inside the hook");
     assert!(
         cli.contains(&sid),
-        "the hook's thurbox-cli must see the row the pipeline wrote: {cli}"
+        "the hook's talos-cli must see the row the pipeline wrote: {cli}"
     );
 }
 
@@ -1143,13 +1143,13 @@ fn a_pre_create_veto_leaves_nothing_behind() {
     let phases: Arc<Mutex<Vec<&'static str>>> = Arc::new(Mutex::new(Vec::new()));
     let recorder = {
         let phases = phases.clone();
-        move |phase: thurbox::session_ops::spawn::SpawnPhase| {
+        move |phase: talos::session_ops::spawn::SpawnPhase| {
             phases.lock().unwrap().push(phase.as_str());
         }
     };
-    let err = thurbox::session_ops::spawn::spawn_session_headless_with_progress(
+    let err = talos::session_ops::spawn::spawn_session_headless_with_progress(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         shell_request(repo.path(), Some("feat/vetoed")),
         Some(&recorder),
     )
@@ -1160,9 +1160,9 @@ fn a_pre_create_veto_leaves_nothing_behind() {
     assert_eq!(*phases.lock().unwrap(), ["resolving", "hooks"]);
 
     // Nothing happened: no row, no worktree, no window, no post hook.
-    let store = thurbox::kernel::snapshot::SnapshotStore::with_database(
+    let store = talos::kernel::snapshot::SnapshotStore::with_database(
         db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
     );
     assert!(store.current().sessions.is_empty());
     let worktrees = Command::new("git")
@@ -1195,7 +1195,7 @@ fn a_pre_create_veto_leaves_nothing_behind() {
 fn a_vetoed_creation_reports_through_the_command_bus() {
     // The TUI's path: the creation flow dispatches, the worker runs the same
     // pipeline, and the refusal is the in-flight error the placeholder shows.
-    use thurbox::kernel::command::{Command, CommandBus, Phase};
+    use talos::kernel::command::{Command, CommandBus, Phase};
     let repo = repo();
     let _server = TmuxServer::pin(SOCKET);
     let (_home, config) = isolated_config();
@@ -1206,7 +1206,7 @@ fn a_vetoed_creation_reports_through_the_command_bus() {
     );
 
     let mut bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     bus.dispatch(Command::Create {
         name: "vetoed".into(),
@@ -1253,9 +1253,9 @@ fn a_post_create_failure_leaves_the_session_running() {
         "[[hooks]]\nevent = \"session.post_create\"\ncommand = 'echo \"could not warm the cache\" >&2; exit 2'\n",
     );
 
-    let spawned = match thurbox::session_ops::spawn::spawn_session_headless(
+    let spawned = match talos::session_ops::spawn::spawn_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         shell_request(repo.path(), None),
     ) {
         Ok(spawned) => spawned,
@@ -1312,9 +1312,9 @@ fn delete_restart_and_restore_fire_their_pairs_once_and_pre_delete_can_refuse() 
     }
     write_hooks(&config, &hooks);
 
-    let spawned = match thurbox::session_ops::spawn::spawn_session_headless(
+    let spawned = match talos::session_ops::spawn::spawn_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         shell_request(repo.path(), None),
     ) {
         Ok(spawned) => spawned,
@@ -1335,9 +1335,9 @@ fn delete_restart_and_restore_fire_their_pairs_once_and_pre_delete_can_refuse() 
             .collect()
     };
 
-    let restart = thurbox::session_ops::restart_session_headless(
+    let restart = talos::session_ops::restart_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         id,
     )
     .expect("restart");
@@ -1351,17 +1351,17 @@ fn delete_restart_and_restore_fire_their_pairs_once_and_pre_delete_can_refuse() 
         ["session.pre_restart", "session.post_restart"]
     );
 
-    let soft = thurbox::session_ops::delete_session_headless(
+    let soft = talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         id,
         false,
     )
     .expect("soft delete");
     assert!(soft.hook_failures.is_empty());
-    let restore = thurbox::session_ops::restore_session_headless(
+    let restore = talos::session_ops::restore_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         id,
         false,
     )
@@ -1371,9 +1371,9 @@ fn delete_restart_and_restore_fire_their_pairs_once_and_pre_delete_can_refuse() 
         "{:?}",
         restore.hook_failures
     );
-    let forced = thurbox::session_ops::delete_session_headless(
+    let forced = talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         id,
         true,
     )
@@ -1401,9 +1401,9 @@ fn delete_restart_and_restore_fire_their_pairs_once_and_pre_delete_can_refuse() 
         &config,
         "[[hooks]]\nevent = \"session.pre_delete\"\ncommand = 'echo \"build still running\" >&2; exit 1'\n",
     );
-    let kept = match thurbox::session_ops::spawn::spawn_session_headless(
+    let kept = match talos::session_ops::spawn::spawn_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         shell_request(repo.path(), None),
     ) {
         Ok(spawned) => spawned,
@@ -1411,9 +1411,9 @@ fn delete_restart_and_restore_fire_their_pairs_once_and_pre_delete_can_refuse() 
             panic!("second creation failed: {e}");
         }
     };
-    let err = thurbox::session_ops::delete_session_headless(
+    let err = talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         kept.session_id,
         true,
     )
@@ -1442,16 +1442,16 @@ fn a_command_session_survives_restart_and_can_be_parked() {
     }
 
     let repo = repo();
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let _server = TmuxServer::pin(SOCKET);
     let home = tempfile::tempdir().expect("tempdir");
-    thurbox::paths::set_test_dir(home.path());
+    talos::paths::set_test_dir(home.path());
 
     // No agents.toml is written: the point is that this session names no agent.
-    let result = thurbox::session_ops::spawn::spawn_session_headless(
+    let result = talos::session_ops::spawn::spawn_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
-        thurbox::session_ops::spawn::SpawnRequest {
+        &talos::backend::wiring::configured().0,
+        talos::session_ops::spawn::SpawnRequest {
             name: "recipe-probe".into(),
             repo_path: repo.path().to_path_buf(),
             worktree_branch: None,
@@ -1460,7 +1460,7 @@ fn a_command_session_survives_restart_and_can_be_parked() {
             agent: None,
             command: Some("sh".into()),
             args: vec!["-c".into(), "while :; do sleep 1; done".into()],
-            env: [("THURBOX_E2E_MARKER".to_string(), "kept".to_string())]
+            env: [("TALOS_E2E_MARKER".to_string(), "kept".to_string())]
                 .into_iter()
                 .collect(),
             resume_session_id: None,
@@ -1497,16 +1497,16 @@ fn a_command_session_survives_restart_and_can_be_parked() {
         .expect("a command session persists its recipe");
     assert_eq!(recipe.command, "sh");
     assert_eq!(
-        recipe.env.get("THURBOX_E2E_MARKER").map(String::as_str),
+        recipe.env.get("TALOS_E2E_MARKER").map(String::as_str),
         Some("kept")
     );
 
     // A registry agent stores none, so restart keeps resolving it by name and
     // an `agents.toml` edit still takes effect.
     assert!(
-        thurbox::session_ops::restart::restart_session_headless(
+        talos::session_ops::restart::restart_session_headless(
             &db,
-            &thurbox::backend::wiring::configured().0,
+            &talos::backend::wiring::configured().0,
             id
         )
         .is_ok(),
@@ -1519,9 +1519,9 @@ fn a_command_session_survives_restart_and_can_be_parked() {
     );
 
     // Park it: the pane goes, the row stays.
-    thurbox::session_ops::restart::stop_session_headless(
+    talos::session_ops::restart::stop_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         id,
     )
     .expect("stop");
@@ -1536,9 +1536,9 @@ fn a_command_session_survives_restart_and_can_be_parked() {
 
     // And nothing puts it back on its own: a peer asking for "relaunch what is
     // missing" must not undo a deliberate stop.
-    thurbox::session_ops::restart::restart_session_headless_with(
+    talos::session_ops::restart::restart_session_headless_with(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         id,
         true,
     )
@@ -1549,9 +1549,9 @@ fn a_command_session_survives_restart_and_can_be_parked() {
     );
 
     // `start` is the one caller that may, and the identity survives it.
-    thurbox::session_ops::restart::start_session_headless(
+    talos::session_ops::restart::start_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         id,
     )
     .expect("start");
@@ -1568,7 +1568,7 @@ fn a_command_session_survives_restart_and_can_be_parked() {
 
 /// Forking a registry-agent session must carry over its recorded `--env`.
 ///
-/// A registry agent has no [`LaunchRecipe`](thurbox::session::LaunchRecipe) —
+/// A registry agent has no [`LaunchRecipe`](talos::session::LaunchRecipe) —
 /// only a command session does — so a fork that read its env from the recipe
 /// would always find one and silently produce a fork with no env at all,
 /// unlike a command session's fork, which keeps its env via the recipe. Both
@@ -1582,11 +1582,11 @@ fn a_forked_registry_agent_session_keeps_its_recorded_env() {
     }
 
     let repo = repo();
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let _server = TmuxServer::pin(SOCKET);
     let home = tempfile::tempdir().expect("tempdir");
-    thurbox::paths::set_test_dir(home.path());
-    let config = thurbox::paths::config_file()
+    talos::paths::set_test_dir(home.path());
+    let config = talos::paths::config_file()
         .expect("config path")
         .parent()
         .expect("config dir")
@@ -1598,10 +1598,10 @@ fn a_forked_registry_agent_session_keeps_its_recorded_env() {
     )
     .expect("write agents.toml");
 
-    let result = thurbox::session_ops::spawn::spawn_session_headless(
+    let result = talos::session_ops::spawn::spawn_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
-        thurbox::session_ops::spawn::SpawnRequest {
+        &talos::backend::wiring::configured().0,
+        talos::session_ops::spawn::SpawnRequest {
             name: "env-probe".into(),
             repo_path: repo.path().to_path_buf(),
             worktree_branch: None,
@@ -1650,9 +1650,9 @@ fn a_forked_registry_agent_session_keeps_its_recorded_env() {
         "the spawn recorded its own --env"
     );
 
-    let fork = match thurbox::session_ops::fork_session_headless(
+    let fork = match talos::session_ops::fork_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         spawned.session_id,
         "env-probe-fork",
     ) {

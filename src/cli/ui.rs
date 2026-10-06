@@ -101,7 +101,7 @@ pub enum Action {
 pub(super) fn target(chosen: Option<String>) -> Result<Instance, CommandError> {
     let instances = ui_control::instances().map_err(CommandError::from)?;
     let chosen = chosen.or_else(|| {
-        std::env::var("THURBOX_UI_INSTANCE")
+        std::env::var("TALOS_UI_INSTANCE")
             .ok()
             .filter(|id| !id.is_empty())
     });

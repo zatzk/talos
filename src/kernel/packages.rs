@@ -364,7 +364,7 @@ fn prune_empty(dir: &Path, removed: &Path) {
     }
 }
 
-/// The directory in the thurbox repository that bare plugin names resolve against
+/// The directory in the talos repository that bare plugin names resolve against
 /// — `examples/panes/`, laid out like `extensions/` and pinned to the same release tag
 /// by the same helper.
 ///
@@ -373,7 +373,7 @@ fn prune_empty(dir: &Path, removed: &Path) {
 /// are examples to copy from (see [`EXAMPLE_PLUGINS`]) and calling the constant
 /// official would put the two words back in the same file.
 ///
-/// Pinning to the tag is worth keeping even for examples: a pane reads `thurbox.*`,
+/// Pinning to the tag is worth keeping even for examples: a pane reads `talos.*`,
 /// a contract that moves, so what a bare name fetches matches the binary asking
 /// for it.
 pub const EXAMPLE_SET: &str = "examples/panes";
@@ -383,7 +383,7 @@ pub const EXAMPLE_SET: &str = "examples/panes";
 ///
 /// **Examples, not a supported catalogue.** What lives in `examples/panes/` is there to
 /// be read and copied from — one pane that draws the `input` node kind, one that
-/// runs a program — not a set thurbox maintains on anybody's behalf. Installing one
+/// runs a program — not a set talos maintains on anybody's behalf. Installing one
 /// is a convenience over `cp`, and delivery treats it as the user's the moment they
 /// edit it.
 ///
@@ -667,7 +667,7 @@ pub fn repository_name(url: &str) -> Result<String, String> {
 /// The last segment of a source, without `.git`.
 ///
 /// `windows` decides whether a **backslash separates**. On Windows a local source is
-/// `D:\src\thurbox-widget`; on POSIX a backslash is a legal filename character, and
+/// `D:\src\talos-widget`; on POSIX a backslash is a legal filename character, and
 /// splitting on one there would rename a directory that legitimately contains it. A
 /// remote URL separates with `/` or `:` on either platform, so this changes nothing
 /// but the local-path case.
@@ -1327,28 +1327,28 @@ mod tests {
         // A remote URL reads the same either way.
         for windows in [true, false] {
             for url in [
-                "https://github.com/you/thurbox-widget",
-                "https://github.com/you/thurbox-widget.git",
-                "https://github.com/you/thurbox-widget/",
-                "git@github.com:you/thurbox-widget.git",
+                "https://github.com/you/talos-widget",
+                "https://github.com/you/talos-widget.git",
+                "https://github.com/you/talos-widget/",
+                "git@github.com:you/talos-widget.git",
             ] {
-                assert_eq!(last_segment(url, windows), "thurbox-widget", "{url}");
+                assert_eq!(last_segment(url, windows), "talos-widget", "{url}");
             }
             assert_eq!(
-                last_segment("/home/me/src/thurbox-widget", windows),
-                "thurbox-widget"
+                last_segment("/home/me/src/talos-widget", windows),
+                "talos-widget"
             );
         }
 
         // A local Windows path: the drive letter's colon already split, but the
         // backslashes did not, so the whole tail was taken as one name and refused.
         for path in [
-            r"D:\a\thurbox\thurbox-widget",
-            r"D:\a\thurbox\thurbox-widget\",
-            r"\\server\share\thurbox-widget",
-            r"C:\Users\me\thurbox-widget.git",
+            r"D:\a\talos\talos-widget",
+            r"D:\a\talos\talos-widget\",
+            r"\\server\share\talos-widget",
+            r"C:\Users\me\talos-widget.git",
         ] {
-            assert_eq!(last_segment(path, true), "thurbox-widget", "{path}");
+            assert_eq!(last_segment(path, true), "talos-widget", "{path}");
         }
 
         // And on POSIX a backslash stays part of the name: it is legal there, so
@@ -1630,7 +1630,7 @@ mod tests {
     #[test]
     fn trust_follows_an_installed_pane_across_its_versions() {
         let home = tempfile::tempdir().expect("tempdir");
-        std::env::set_var("THURBOX_CONFIG_DIR", home.path());
+        std::env::set_var("TALOS_CONFIG_DIR", home.path());
         let dir = home.path().join("ui");
         std::fs::create_dir_all(dir.join("plugins")).expect("mkdir");
         let file = "plugins/75_atlas.lua";
@@ -1710,7 +1710,7 @@ mod tests {
             trust_of(&dir, mine, &lock, &registry),
             super::super::inventory::Trust::Drifted
         );
-        std::env::remove_var("THURBOX_CONFIG_DIR");
+        std::env::remove_var("TALOS_CONFIG_DIR");
     }
 
     #[test]

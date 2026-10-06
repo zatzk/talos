@@ -30,7 +30,7 @@ pub(crate) struct RestartPlan {
 }
 
 /// Build the [`RestartPlan`] for a persisted session: keep its identity stable,
-/// replay the session's recorded `--env`, inject the standard `THURBOX_*` env,
+/// replay the session's recorded `--env`, inject the standard `TALOS_*` env,
 /// decide the resume trigger from the agent definition, and resolve the process
 /// cwd (the symlink workspace for a multi-repo session, else the primary repo —
 /// mirroring the TUI's `App::resolve_process_cwd`).
@@ -51,18 +51,18 @@ pub(crate) fn build_restart_plan(
     })?;
 
     let mut config = SessionConfig {
-        // Keep the same identity across a restart so `THURBOX_SESSION` is stable.
+        // Keep the same identity across a restart so `TALOS_SESSION` is stable.
         session_id: Some(session.id),
         agent_session_id: Some(agent_session_id.clone()),
         cwd: session.cwd.clone(),
         agent: session.agent.clone(),
-        // Which machine this is for — `inject_thurbox_env` reads it to decide
+        // Which machine this is for — `inject_talos_env` reads it to decide
         // whether the local-path hints travel (they must not, off-local).
         backend: Some(session.backend_type.clone()),
         ..SessionConfig::default()
     };
     // The session's own env is part of what it *is*, so it goes on before
-    // thurbox's identity vars — which must still win — exactly as at spawn.
+    // talos's identity vars — which must still win — exactly as at spawn.
     // Recorded for a registry agent as much as for a command session: `--env`
     // is the caller's, not the registry's, and there is nowhere else to
     // re-resolve it from.
@@ -70,7 +70,7 @@ pub(crate) fn build_restart_plan(
         .env
         .extend(env.iter().map(|(k, v)| (k.clone(), v.clone())));
     config.env.remove(super::CODEX_PICKER_ENV);
-    super::inject_thurbox_env(&mut config, &agent_session_id, None);
+    super::inject_talos_env(&mut config, &agent_session_id, None);
     // Where a restart gets what to run. A registry agent is resolved by name
     // *now* rather than replayed, so an `agents.toml` edit takes effect on the
     // next restart. A command session has no entry to resolve, so its persisted
@@ -90,7 +90,7 @@ pub(crate) fn build_restart_plan(
     }
     let codex_builtin = def.name == "codex" && def.resume_args == ["resume", "{id}"];
     let codex_id = if codex_builtin {
-        db.get_session_meta(session.id, "thurbox.codex_conversation_id")
+        db.get_session_meta(session.id, "talos.codex_conversation_id")
             .map_err(|e| format!("read Codex conversation id: {e}"))?
             .filter(|id| uuid::Uuid::parse_str(id).is_ok())
     } else {
@@ -117,7 +117,7 @@ pub(crate) fn build_restart_plan(
 
     let (command, mut args) = super::build_agent_invocation(&def, &config);
     if codex_builtin && codex_id.is_none() {
-        // An old row has only Thurbox's generated id. The interactive picker
+        // An old row has only Talos's generated id. The interactive picker
         // can recover its real conversation without guessing from the CWD.
         args = std::iter::once("resume".to_string())
             .chain(def.args.iter().cloned())
@@ -560,7 +560,7 @@ impl Drop for HeldRestart<'_> {
 /// `restart --if-missing`, extension self-heal — and both then spawn and stamp,
 /// leaving one session id on two windows (issue #1207). The `respawned` guard
 /// in `respawn_missing_agents` only ever closed the interface racing itself;
-/// `thurbox-cli session restart` is a separate process, and the database is the
+/// `talos-cli session restart` is a separate process, and the database is the
 /// only thing the two share.
 ///
 /// Sized by [`super::names::hold_ttl_ms`], which already counts every
@@ -906,11 +906,11 @@ mod tests {
         let plan =
             build_restart_plan(&db, &sess, None, None, true, None, &Default::default()).unwrap();
 
-        // The thurbox session key and the agent conversation id are both present
+        // The talos session key and the agent conversation id are both present
         // and distinct, exactly as a fresh spawn would inject them.
-        assert_eq!(plan.env.get("THURBOX_SESSION"), Some(&sess.id.to_string()));
+        assert_eq!(plan.env.get("TALOS_SESSION"), Some(&sess.id.to_string()));
         assert_eq!(
-            plan.env.get("THURBOX_SESSION_ID"),
+            plan.env.get("TALOS_SESSION_ID"),
             Some(&"agent-conv-uuid".to_string())
         );
     }
@@ -973,7 +973,7 @@ mod tests {
     #[test]
     fn a_remote_restart_does_not_carry_local_paths_to_the_host() {
         // The identity vars are opaque and travel; the path hints name local
-        // directories that do not exist on the host, so a remote `thurbox-cli`
+        // directories that do not exist on the host, so a remote `talos-cli`
         // pinned to them would resolve garbage instead of its own defaults.
         let temp = tempfile::TempDir::new().unwrap();
         let _guard = crate::paths::TestPathGuard::new(temp.path());
@@ -983,8 +983,8 @@ mod tests {
 
         let plan =
             build_restart_plan(&db, &sess, None, None, true, None, &Default::default()).unwrap();
-        assert_eq!(plan.env.get("THURBOX_SESSION"), Some(&sess.id.to_string()));
+        assert_eq!(plan.env.get("TALOS_SESSION"), Some(&sess.id.to_string()));
         assert!(!plan.env.contains_key(crate::paths::CONFIG_DIR_OVERRIDE_ENV));
-        assert!(!plan.env.contains_key("THURBOX_METRICS_DIR"));
+        assert!(!plan.env.contains_key("TALOS_METRICS_DIR"));
     }
 }

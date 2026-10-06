@@ -21,7 +21,7 @@
 //! multiplexer is an environment fact, not a regression.
 //!
 //! The session is created with **`remain-on-exit on`**, which is not decoration:
-//! it is what thurbox sets for its own session (`SESSION_OPTS`), so that a dead
+//! it is what talos sets for its own session (`SESSION_OPTS`), so that a dead
 //! agent leaves a readable window behind. With that option a window does NOT
 //! close when its program ends — the pane simply goes dead and stays — and the
 //! close notification never comes. The first version of this test used tmux's
@@ -34,9 +34,9 @@ use std::collections::HashMap;
 use std::process::Command;
 use std::time::{Duration, Instant};
 
-use thurbox::backend::pane::ProgramPane;
-use thurbox::backend::tmux::TmuxBackend;
-use thurbox::backend::SessionBackend;
+use talos::backend::pane::ProgramPane;
+use talos::backend::tmux::TmuxBackend;
+use talos::backend::SessionBackend;
 
 /// The guard every tmux server in this file is reaped by — see its own doc.
 #[path = "support/tmux_server.rs"]
@@ -45,7 +45,7 @@ mod tmux_server;
 use tmux_server::TmuxServer;
 
 /// A throwaway socket, so this never touches the real one.
-const SOCKET: &str = "thurbox-program-exit-e2e";
+const SOCKET: &str = "talos-program-exit-e2e";
 
 /// Generous next to the notification, which arrives with the exit: the budget is
 /// for a loaded machine starting a tmux server, not for the signal itself.
@@ -63,8 +63,8 @@ fn have_tmux() -> bool {
 // `#[tokio::test(flavor = "multi_thread")]`: the body runs on its own thread
 // (`block_on(body)`), while spawned tasks run on worker threads.
 fn start_session(server: &TmuxServer) -> std::process::Output {
-    let started = server.tmux(&["new-session", "-d", "-s", "thurbox", "-x", "80", "-y", "24"]);
-    let _ = server.tmux(&["set-option", "-t", "thurbox", "remain-on-exit", "on"]);
+    let started = server.tmux(&["new-session", "-d", "-s", "talos", "-x", "80", "-y", "24"]);
+    let _ = server.tmux(&["set-option", "-t", "talos", "remain-on-exit", "on"]);
     started
 }
 
@@ -79,7 +79,7 @@ async fn a_program_that_ends_reports_that_it_ended() {
 
     let dir = tempfile::tempdir().expect("tempdir");
     let server = TmuxServer::pin(SOCKET);
-    thurbox::paths::set_test_dir(dir.path());
+    talos::paths::set_test_dir(dir.path());
 
     let started = start_session(&server);
     if !started.status.success() {

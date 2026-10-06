@@ -1,18 +1,18 @@
 # The built-in "hooks" extension.
 #
-# Wires each coding agent's lifecycle hooks to `thurbox-cli session signal` so
-# every session reports its state (working / blocked / done) back to thurbox.
+# Wires each coding agent's lifecycle hooks to `talos-cli session signal` so
+# every session reports its state (working / blocked / done) back to talos.
 # Unlike user extensions this one ships embedded in the binary and is
 # auto-activated on first run. Opt out with:
 #
-#     thurbox-cli extension deactivate hooks
+#     talos-cli extension deactivate hooks
 #
-# Identity is the injected $THURBOX_SESSION env var (no ids passed by hand), and
-# every hook command is `… || true` so a missing thurbox-cli or a hook firing
-# outside a thurbox session can never break the agent.
+# Identity is the injected $TALOS_SESSION env var (no ids passed by hand), and
+# every hook command is `… || true` so a missing talos-cli or a hook firing
+# outside a talos session can never break the agent.
 #
 # Every command also redirects its own output away (`>/dev/null 2>&1`). A hook's
-# stdout is a pipe, and down a pipe `thurbox-cli` answers in TOON
+# stdout is a pipe, and down a pipe `talos-cli` answers in TOON
 # (`output::Format::resolve`) — which the agents that read hook stdout then take
 # as something they were told. codex *fails* a `Stop` hook whose stdout is not
 # JSON; claude, codex, grok and antigravity fold plain-text stdout into the
@@ -20,13 +20,13 @@
 # signal's receipt belongs in. Pinned by `tests/hook_stdout_contract.rs`.
 
 name = "hooks"
-description = "Report each agent's lifecycle state (working/blocked/done) to thurbox via agent hooks."
+description = "Report each agent's lifecycle state (working/blocked/done) to talos via agent hooks."
 config_version = 1
 version = "1.12.0"  # v1.12: codex reports `blocked` while it waits on a `request_user_input` question (plan mode's questions), via a matcher-gated `PreToolUse` — which replaces the unmatched one that read every tool call as `working`, fired before `PermissionRequest` anyway, and could not have coexisted with the new group because codex runs an event's hooks concurrently; v1.11: the JSON config-merge identifies its own entries by an ownership stamp in the command (as TOML already did) rather than by the `session signal` call, so install can prune-before-merge every tick without deleting a hook the user wired themselves; v1.10: every hook command redirects its own stdout (a hook's stdout is a pipe, so `session signal` answered in TOON — codex refused every turn with "invalid stop hook JSON output", the rest billed the receipt to the model's context) + codex gains PostToolUse/PermissionRequest and a `{}` Stop decision; v1.9: claude/antigravity/grok match the *message* of a Notification rather than the whole payload — a checkout path carrying "permission" signalled a permanent `blocked` on the idle notification that ends every turn; v1.8: grok (global ~/.grok/hooks drop) + kimi (TOML merge into ~/.kimi-code/config.toml) status hooks; v1.7: omp (Oh My Pi) status extension (ask/ask_user_question → blocked); v1.6: vibe hooks rewritten to vibe 2.21.0's real schema (pre_tool/post_agent); v1.5: pi (pi.dev) status extension
 # Default home; the auto-activation path overrides this with *this build's*
-# resolved config dir (`~/.config/thurbox` or `~/.config/thurbox-dev`) so dev and
+# resolved config dir (`~/.config/talos` or `~/.config/talos-dev`) so dev and
 # release installs stay isolated. See `session_ops::builtin_hooks::hooks_home`.
-home = "~/.config/thurbox/hooks"
+home = "~/.config/talos/hooks"
 
 # claude reads hooks from a settings file we pass via --settings (merged with the
 # user's own settings, never clobbering them). The file lives under the home dir.
@@ -55,13 +55,13 @@ name = "aider"
 append_args = [
   "--notifications",
   "--notifications-command",
-  "thurbox-cli session signal --state blocked",
+  "talos-cli session signal --state blocked",
 ]
 
 # opencode loads plugins from its own config dir; drop one in (only when opencode
 # is actually installed, guarded by requires_dir).
 [[external_files]]
-path = "~/.config/opencode/plugin/thurbox-status.js"
+path = "~/.config/opencode/plugin/talos-status.js"
 source = "opencode-status.js"
 requires_dir = "~/.config/opencode"
 
@@ -103,7 +103,7 @@ requires_dir = "~/.config/opencode"
 # the moment it is granted; and a `request_user_input` question reports
 # `blocked` until it is answered. Note `codex exec` pins its approval policy to
 # `never`, so the block edge only appears in an interactive session — which is
-# the only kind thurbox runs.
+# the only kind talos runs.
 #
 # One thing about codex is nobody else's: silencing the Stop hook is not enough,
 # because `Stop` (and `Interrupt`) must write **JSON** to stdout on a zero exit
@@ -155,7 +155,7 @@ requires_dir = "~/.vibe"
 # shipped into the host's ~/.pi/agent/extensions/); the one carve-out is a
 # psmux/Windows host, which shows `Hooks: degraded` instead.
 [[external_files]]
-path = "~/.pi/agent/extensions/thurbox-status.ts"
+path = "~/.pi/agent/extensions/talos-status.ts"
 source = "pi-status.ts"
 requires_dir = "~/.pi/agent"
 
@@ -174,7 +174,7 @@ requires_dir = "~/.pi/agent"
 # payload is shipped into the host's ~/.omp/agent/extensions/); the one carve-out
 # is a psmux/Windows host, which shows `Hooks: degraded` instead.
 [[external_files]]
-path = "~/.omp/agent/extensions/thurbox-status.ts"
+path = "~/.omp/agent/extensions/talos-status.ts"
 source = "omp-status.ts"
 requires_dir = "~/.omp/agent"
 
@@ -192,7 +192,7 @@ requires_dir = "~/.omp/agent"
 # preToolUse/agentStop fail-open flow. If a future copilot changes the schema,
 # edit copilot-hooks.json (no code change).
 [[external_files]]
-path = "~/.copilot/hooks/thurbox-status.json"
+path = "~/.copilot/hooks/talos-status.json"
 source = "copilot-hooks.json"
 requires_dir = "~/.copilot"
 
@@ -210,7 +210,7 @@ requires_dir = "~/.copilot"
 # flip the dot red). It has
 # no UserPromptSubmit, so working is signaled at the first tool call. If a future
 # agy changes the schema, fix antigravity-hooks.json (no code change needed).
-# Identity needs $THURBOX_SESSION to reach the hook process; if agy sanitizes the
+# Identity needs $TALOS_SESSION to reach the hook process; if agy sanitizes the
 # hook env the signal is a fail-open no-op (`|| true`).
 [[config_merges]]
 path = "~/.gemini/settings.json"
@@ -224,7 +224,7 @@ requires_dir = "~/.gemini"
 # why this is the global dir and not <project>/.grok/hooks — the project scope
 # additionally needs the folder granted trust in grok's own
 # ~/.grok/trusted_folders.toml (or a `--trust` launch flag, which would only
-# cover sessions thurbox itself launches).
+# cover sessions talos itself launches).
 #
 # Grok is Claude-Code-compatible, so the mapping mirrors claude.json:
 # SessionStart → idle, UserPromptSubmit/PreToolUse/PostToolUse → working,
@@ -238,7 +238,7 @@ requires_dir = "~/.gemini"
 # EXPERIMENTAL: the event names are grok's documented set; if a future grok
 # renames them, edit grok-hooks.json (no code change).
 [[external_files]]
-path = "~/.grok/hooks/thurbox-status.json"
+path = "~/.grok/hooks/talos-status.json"
 source = "grok-hooks.json"
 requires_dir = "~/.grok"
 

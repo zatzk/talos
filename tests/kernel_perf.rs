@@ -7,17 +7,17 @@
 
 use std::time::{Duration, Instant};
 
-use thurbox::kernel::command::{Args, Command, CommandBus};
-use thurbox::kernel::events::Event;
-use thurbox::kernel::host::{Epoch, LuaHost, Published, RenderContext};
-use thurbox::kernel::perf::{
+use talos::kernel::command::{Args, Command, CommandBus};
+use talos::kernel::events::Event;
+use talos::kernel::host::{Epoch, LuaHost, Published, RenderContext};
+use talos::kernel::perf::{
     snapshot_json, Counters, Hint, PluginReport, PluginRow, Snapshot as Perf, Startup, Timings,
 };
-use thurbox::kernel::registry::Registry;
-use thurbox::kernel::runs::RunEvent;
-use thurbox::kernel::snapshot::{Snapshot, SnapshotStore};
-use thurbox::kernel::theme::Themes;
-use thurbox::storage::Database;
+use talos::kernel::registry::Registry;
+use talos::kernel::runs::RunEvent;
+use talos::kernel::snapshot::{Snapshot, SnapshotStore};
+use talos::kernel::theme::Themes;
+use talos::storage::Database;
 
 fn ctx(width: u16, height: u16) -> RenderContext {
     RenderContext {
@@ -117,7 +117,7 @@ fn a_snapshot_read_never_touches_the_database() {
     // structural — reads come from the snapshot, and refresh is the only thing
     // that queries.
     let db = Database::open_in_memory().expect("db");
-    let store = SnapshotStore::with_database(db, &thurbox::backend::wiring::configured().0);
+    let store = SnapshotStore::with_database(db, &talos::backend::wiring::configured().0);
 
     let started = std::time::Instant::now();
     for _ in 0..10_000 {
@@ -136,7 +136,7 @@ fn dispatching_a_command_never_blocks_the_caller() {
     // deliberately. Here it falls out of the bus — there is no blocking form to
     // accidentally use.
     let bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let started = std::time::Instant::now();
 
@@ -222,7 +222,7 @@ fn the_published_snapshot_is_what_the_cli_renders() {
 
     let db = Database::open_in_memory().expect("db");
     db.set_perf_snapshot(&json.to_string()).expect("publish");
-    let out = thurbox::cli::perf::run(&db, false).expect("render");
+    let out = talos::cli::perf::run(&db, false).expect("render");
 
     assert!(
         out.failure.is_none(),
@@ -349,8 +349,8 @@ fn publish(host: &LuaHost) {
     let mut registry = Registry::default();
     let (bindings, settings) = host.declarations();
     registry.declare(bindings, settings);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     host.publish(&Published {
         epoch: Epoch::default(),
         snapshot: &Snapshot::default(),
@@ -561,7 +561,7 @@ fn a_run_is_counted_only_in_the_window_it_started_in() {
     assert_eq!((runs.started, runs.finished), (0, 0), "{runs:?}");
 }
 
-/// The key set an agent scripting `thurbox-cli perf --plugins --json` relies on.
+/// The key set an agent scripting `talos-cli perf --plugins --json` relies on.
 const ROW_KEYS: [&str; 19] = [
     "closed_renders",
     "failures",
@@ -617,7 +617,7 @@ fn the_cli_prints_the_plugin_table_sorted_with_a_stable_json_shape() {
     let db = Database::open_in_memory().expect("db");
     db.set_perf_snapshot(&json.to_string()).expect("publish");
 
-    let out = thurbox::cli::perf::run(&db, true).expect("render");
+    let out = talos::cli::perf::run(&db, true).expect("render");
     assert!(out.failure.is_none());
     let rows = out.json["plugins"].as_array().expect("plugins array");
     assert_eq!(rows.len(), 4);
@@ -671,6 +671,6 @@ fn the_cli_prints_the_plugin_table_sorted_with_a_stable_json_shape() {
 
     // Without --plugins the aggregate view is unchanged, and says where the
     // per-pane view lives.
-    let plain = thurbox::cli::perf::run(&db, false).expect("render");
+    let plain = talos::cli::perf::run(&db, false).expect("render");
     assert!(plain.human.contains("--plugins"), "{}", plain.human);
 }

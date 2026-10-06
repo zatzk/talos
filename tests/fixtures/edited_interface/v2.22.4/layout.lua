@@ -53,7 +53,7 @@ local panels = require("lib.panels")
 local TWO_PANEL_MIN_COLS_DEFAULT = 80
 
 local function two_panel_min_cols()
-  local settings = thurbox and thurbox.settings
+  local settings = talos and talos.settings
   return (settings and settings.two_panel_min_cols) or TWO_PANEL_MIN_COLS_DEFAULT
 end
 
@@ -74,7 +74,7 @@ local SEARCH_ROWS = 12
 --- The kernel publishes this rather than the message itself: what a band shows
 --- is not the arrangement's business, but whether it needs a row is.
 local function status_rows()
-  return (thurbox and thurbox.chrome and thurbox.chrome.status_rows) or 0
+  return (talos and talos.chrome and talos.chrome.status_rows) or 0
 end
 
 --- Will a loaded plugin actually paint into `slot`?

@@ -209,12 +209,12 @@ pub fn admit_banner<M: TmuxCompatible>(
     }
 }
 
-/// The tmux session name grouping every thurbox window. Dev builds use
-/// "thurbox-dev" to avoid interfering with an installed release binary.
+/// The tmux session name grouping every talos window. Dev builds use
+/// "talos-dev" to avoid interfering with an installed release binary.
 pub const TMUX_SESSION: &str = if cfg!(dev_build) {
-    "thurbox-dev"
+    "talos-dev"
 } else {
-    "thurbox"
+    "talos"
 };
 
 /// The `list-windows` format `discover` reads: pane, name, liveness, and the
@@ -226,7 +226,7 @@ pub const TMUX_SESSION: &str = if cfg!(dev_build) {
 /// The two option names are spelled out because a `const` cannot interpolate
 /// another; `the_discover_format_reads_both_stamps` pins them to the constants.
 const DISCOVER_FORMAT: &str =
-    "#{pane_id}|#{window_name}|#{pane_dead}|#{@thurbox_session}|#{@thurbox_role}";
+    "#{pane_id}|#{window_name}|#{pane_dead}|#{@talos_session}|#{@talos_role}";
 
 /// What `new-window -P -F` is asked to answer with: the pane to attach to, and
 /// the window whose close will be that pane's death notice.
@@ -237,9 +237,9 @@ const DISCOVER_FORMAT: &str =
 /// pins it.
 const SPAWN_FORMAT: &str = "#{pane_id} #{window_id}";
 
-/// One `list-windows` line, or `None` for a window that is not thurbox's.
+/// One `list-windows` line, or `None` for a window that is not talos's.
 ///
-/// Every thurbox prefix is discovered, not just the agent's: a `tbs-` shell and
+/// Every talos prefix is discovered, not just the agent's: a `tbs-` shell and
 /// a `tbp-` program are windows an ownership question can be asked about too,
 /// and leaving them out of the listing is what made a name look unambiguous
 /// when it was not.
@@ -284,7 +284,7 @@ fn parse_discovered(line: &str, stamps: bool) -> Option<DiscoveredSession> {
     })
 }
 
-/// Build the `session:=window` tmux target for a thurbox agent session.
+/// Build the `session:=window` tmux target for a talos agent session.
 ///
 /// The `=` prefix forces tmux to match the window name exactly. Without
 /// it tmux falls back to FNMATCH-style prefix matching, so a target of
@@ -304,13 +304,13 @@ fn window_target(window_name: &str) -> String {
 /// reissues pane ids from `%0` every time its server starts. A window option
 /// survives both, stored once on the thing it describes — the same channel
 /// [`SessionBackend::record_hook_state`] uses for hook state. See ADR-25.
-pub const WINDOW_SESSION_OPTION: &str = "@thurbox_session";
+pub const WINDOW_SESSION_OPTION: &str = "@talos_session";
 
 /// The tmux window option saying what a stamped window is *for*.
 ///
 /// Part of the address rather than decoration: a session owns an agent window
 /// and a companion shell window, and both carry its id.
-pub const WINDOW_ROLE_OPTION: &str = "@thurbox_role";
+pub const WINDOW_ROLE_OPTION: &str = "@talos_role";
 
 /// Should a window of this name keep its pane's frame after the pane dies?
 ///
@@ -340,7 +340,7 @@ pub const WINDOW_ROLE_OPTION: &str = "@thurbox_role";
 ///
 /// Stated per window because `remain-on-exit` is a window option that cannot be
 /// set for a session (see [`SESSION_OPTS`]) — and stated even when the answer is
-/// tmux's own default, because the user's `~/.tmux.conf` is read on thurbox's
+/// tmux's own default, because the user's `~/.tmux.conf` is read on talos's
 /// socket too and may have turned it on globally.
 fn keeps_dead_pane(window_name: &str) -> bool {
     matches!(
@@ -349,7 +349,7 @@ fn keeps_dead_pane(window_name: &str) -> bool {
     )
 }
 
-/// The window options a window thurbox creates is given **in the same command
+/// The window options a window talos creates is given **in the same command
 /// list as its creation**, in order.
 ///
 /// Both are window options that cannot be waited for. A window is born with the
@@ -427,7 +427,7 @@ fn birth_option_commands<M: TmuxCompatible>(window_name: &str) -> Vec<String> {
 /// `#{window_id}` is what tmux issued the window, and the order it issued them
 /// in; the pane a `WindowIndex` holds is the window's *active* one, which a
 /// split would move.
-const RETIRE_FORMAT: &str = "#{window_id}|#{@thurbox_session}|#{@thurbox_role}";
+const RETIRE_FORMAT: &str = "#{window_id}|#{@talos_session}|#{@talos_role}";
 
 /// The windows a listing puts `session_id`'s `role` stamp on, oldest first.
 ///
@@ -603,10 +603,10 @@ const MAX_TITLE_SEED_BYTES: usize = 512;
 pub struct Server<M: TmuxCompatible> {
     /// How the binary is launched (local `Command` vs `ssh <dest> <mux> …`).
     pub(in crate::backend) transport: TmuxTransport,
-    /// Socket name passed via `-L` (e.g. `thurbox`) as configured; read
+    /// Socket name passed via `-L` (e.g. `talos`) as configured; read
     /// through [`Self::socket`], which prefers what the host's own CLI said.
     pub(in crate::backend) socket: String,
-    /// Session name grouping all thurbox windows.
+    /// Session name grouping all talos windows.
     pub(in crate::backend) session: String,
     /// The route this backend serves, as the registry and a persisted
     /// `backend_type` spell it (`local:tmux`, `ssh:<host>:psmux`).
@@ -623,7 +623,7 @@ pub struct Server<M: TmuxCompatible> {
     pub(in crate::backend) host: Option<HostDef>,
     /// The OS of the machine the multiplexer runs on — this one's, or the
     /// host's ([`HostDef::platform`]). What decides the shells a pane and the
-    /// server get, independently of the multiplexer and of the OS thurbox was
+    /// server get, independently of the multiplexer and of the OS talos was
     /// built for.
     pub(in crate::backend) platform: Platform,
     multiplexer: PhantomData<M>,
@@ -752,7 +752,7 @@ impl<M: TmuxCompatible> Server<M> {
         Ok(())
     }
 
-    /// The thurbox session on this server, created when it is not there — as
+    /// The talos session on this server, created when it is not there — as
     /// the backend would create it, peers racing to included, and only once
     /// the backend agrees its binary may start one. No session config: the
     /// keeper needs none, and every spawn or attach applies it.
@@ -1043,7 +1043,7 @@ impl<M: TmuxCompatible> Server<M> {
     ///
     /// The teardown path's kill on a host. Opening control mode needs
     /// [`ensure_ready`](SessionBackend::ensure_ready) — and that *creates* the
-    /// server and the thurbox session when they are absent, so tearing a
+    /// server and the talos session when they are absent, so tearing a
     /// session down on a host would leave an empty server behind. The window
     /// rather than the pane, so a window somebody split does not keep a
     /// process running in its other pane. One already gone is not an error:
@@ -1055,7 +1055,7 @@ impl<M: TmuxCompatible> Server<M> {
         }
     }
 
-    /// Execute a tmux command on the thurbox socket and check for errors.
+    /// Execute a tmux command on the talos socket and check for errors.
     fn run_tmux(&self, args: &[&str]) -> Result<std::process::Output> {
         let output = self
             .transport
@@ -1076,7 +1076,7 @@ impl<M: TmuxCompatible> Server<M> {
         Ok(output)
     }
 
-    /// Check if the thurbox tmux session exists.
+    /// Check if the talos tmux session exists.
     fn session_exists(&self) -> bool {
         self.tmux_run(&[M::SESSION_PROBE_COMMAND, "-t", &self.session])
             .is_ok()
@@ -1131,8 +1131,8 @@ impl<M: TmuxCompatible> Server<M> {
         // `$SHELL` and `/bin/sh` don't exist there, and forcing a Windows shell
         // would have to match the multiplexer's own command-execution model, so
         // its native default shell is the safe choice. Decided by the platform
-        // of the machine the server runs on — not by the OS thurbox was built
-        // for (a Windows thurbox driving a WSL distro left its tmux on the
+        // of the machine the server runs on — not by the OS talos was built
+        // for (a Windows talos driving a WSL distro left its tmux on the
         // login shell) and not by the multiplexer's name.
         if self.platform == Platform::Posix {
             set(&[scope, "default-command", &self.config_shell()], true);
@@ -1145,8 +1145,8 @@ impl<M: TmuxCompatible> Server<M> {
         set(&[scope, "extended-keys", "on"], true);
 
         // `extended-keys-format csi-u` is best-effort: the option landed in tmux
-        // 3.5, but thurbox's floor is 3.2, so an older tmux rejects it ("invalid
-        // option"). It is advisory only — thurbox injects keystroke bytes directly
+        // 3.5, but talos's floor is 3.2, so an older tmux rejects it ("invalid
+        // option"). It is advisory only — talos injects keystroke bytes directly
         // via `send-keys` (not through tmux's key forwarder), so it never
         // re-encodes what an agent receives; it just sets what `tmux show-options`
         // reports, which some agents (notably `pi`) probe at startup and warn about
@@ -1171,7 +1171,7 @@ impl<M: TmuxCompatible> Server<M> {
         config
     }
 
-    /// Ensure the thurbox tmux session exists and its options are applied,
+    /// Ensure the talos tmux session exists and its options are applied,
     /// **without** starting control mode.
     ///
     /// Shared by [`ensure_ready`](Self::ensure_ready) (which then starts control
@@ -1281,7 +1281,7 @@ impl<M: TmuxCompatible> Server<M> {
             }
             // Cheap defensiveness: poll until the freshly-created session
             // answers the session probe before applying options. (The `no server
-            // running on 'thurbox__thurbox'` failure that originally motivated
+            // running on 'talos__talos'` failure that originally motivated
             // this on psmux was session *nesting*, now fixed at the root by
             // `strip_mux_nesting_env`; this poll is a harmless belt against any
             // genuinely-async `new-session -d`, and one session probe when the
@@ -1330,7 +1330,7 @@ impl<M: TmuxCompatible> Server<M> {
     }
 
     /// The program a **local** window should launch: the agent's command,
-    /// resolved against thurbox's own `PATH` — see [`resolve_local_program`].
+    /// resolved against talos's own `PATH` — see [`resolve_local_program`].
     /// A remote/WSL backend passes through: its `PATH` is the *host's*, and its
     /// window command is login-wrapped instead
     /// ([`login_wrap_for_remote`](Self::login_wrap_for_remote)).
@@ -1370,7 +1370,7 @@ impl<M: TmuxCompatible> Server<M> {
     /// Local backends pass through too, but **not** because they inherit the
     /// user's interactive `PATH` — that claim used to stand here and was wrong
     /// (see [`resolve_local_program`], which is what makes them safe now). They
-    /// are not wrapped because thurbox can resolve a local command itself, and
+    /// are not wrapped because talos can resolve a local command itself, and
     /// an absolute path needs no shell's `PATH` at all; a wrap would only add a
     /// second shell whose own quoting rules could differ.
     ///
@@ -1859,7 +1859,7 @@ impl<M: TmuxCompatible> Server<M> {
     /// the capture nor a repaint brings back.
     ///
     /// Agents use the window title as their activity line — Claude Code writes
-    /// the task it is on — and thurbox reads it off the PTY, so a restart that
+    /// the task it is on — and talos reads it off the PTY, so a restart that
     /// joins the stream mid-flight shows nothing until the agent next repaints
     /// it. tmux kept the value: `#{pane_title}` *is* the last OSC the pane
     /// emitted. Replaying it puts it back through the same callback a live
@@ -1924,7 +1924,7 @@ impl<M: TmuxCompatible> SessionBackend for Server<M> {
     /// (`%window-close`) ends the pane's stream with it; one that does not is
     /// polled. What the multiplexer can report decides it
     /// ([`TmuxCompatible::WINDOW_EVENTS`]) — not the machine's OS, nor
-    /// thurbox's.
+    /// talos's.
     fn needs_liveness_poll(&self) -> bool {
         !M::WINDOW_EVENTS
     }
@@ -2070,7 +2070,7 @@ impl<M: TmuxCompatible> SessionBackend for Server<M> {
         if !control_mode::is_valid_pane_id(backend_id) {
             bail!("refusing to adopt invalid pane id: {backend_id:?}");
         }
-        // Opt-in split timing (THURBOX_PERF_LOG): the history capture is an
+        // Opt-in split timing (TALOS_PERF_LOG): the history capture is an
         // independent `tmux capture-pane` subprocess, while `connect_pane`
         // drives the serialized control-mode connection. Restore prefetches
         // the captures in parallel and passes them in (ADR-P9), so
@@ -2078,7 +2078,7 @@ impl<M: TmuxCompatible> SessionBackend for Server<M> {
         // adopt) still captures inline, before connecting so seeded history
         // can't duplicate live output. Best-effort: adoption must survive a
         // failed capture.
-        let perf_log = std::env::var_os("THURBOX_PERF_LOG").is_some();
+        let perf_log = std::env::var_os("TALOS_PERF_LOG").is_some();
 
         let capture_start = perf_log.then(std::time::Instant::now);
         let seed = seed.unwrap_or_else(|| {
@@ -2565,7 +2565,7 @@ impl<M: TmuxCompatible> SessionBackend for Server<M> {
     fn kill(&self, backend_id: &str) -> Result<()> {
         if !self.attached() {
             // The teardown path's kill: one-shot, because opening control mode
-            // to kill a window would *create* the server and the thurbox
+            // to kill a window would *create* the server and the talos
             // session where they are absent — how tearing a session down came
             // to leave empty servers on other people's machines.
             self.known_socket()?;
@@ -3185,7 +3185,7 @@ fn history_seed_bytes(mut raw: Vec<u8>) -> Vec<u8> {
     seed
 }
 
-/// Session-level tmux options applied to the thurbox tmux session.
+/// Session-level tmux options applied to the talos tmux session.
 ///
 /// Single source of truth for both the TUI and headless paths — applied
 /// (alongside the server-wide options + `default-command`) by
@@ -3204,24 +3204,24 @@ fn history_seed_bytes(mut raw: Vec<u8>) -> Vec<u8> {
 /// server-wide default.
 const SESSION_OPTS: &[(&str, &str)] = &[("status", "off"), ("history-limit", "5000")];
 
-/// Window options applied to **every** window on thurbox's own tmux server.
+/// Window options applied to **every** window on talos's own tmux server.
 ///
 /// Set with `-w -g` rather than per session: a window option has no session
 /// scope to be set at (see [`SESSION_OPTS`]), and the alternative — setting it
-/// on each window as it is born — would miss any window thurbox did not create.
-/// The blast radius is thurbox's own socket, which holds nothing else.
+/// on each window as it is born — would miss any window talos did not create.
+/// The blast radius is talos's own socket, which holds nothing else.
 ///
 /// `window-size` is **not** here, and must not be: made the server-wide default
 /// it kills the server on every window creation from an unattached client (see
 /// [`birth_options`], where it is said per window instead). Best-effort either
 /// way — `resize-window -x/-y` already flips a window to `manual` when it
-/// resizes it (measured, tmux 3.2a), and thurbox resizes every pane it paints.
+/// resizes it (measured, tmux 3.2a), and talos resizes every pane it paints.
 const WINDOW_OPTS: &[(&str, &str)] = &[
     // The default a window is BORN with, so the one role that wants a corpse
     // asks for it (in the same command list as its creation — see
     // `birth_options`) and nothing else inherits one. Said here rather than
     // left to tmux's own default because the user's `~/.tmux.conf` is read on
-    // thurbox's socket too, and `set -g remain-on-exit on` there would have
+    // talos's socket too, and `set -g remain-on-exit on` there would have
     // every window born keeping its corpse — a program pane whose death is
     // then never announced, since tmux reports a pane's death only by closing
     // its window.
@@ -3233,21 +3233,21 @@ const WINDOW_OPTS: &[(&str, &str)] = &[
     ("remain-on-exit", "off"),
 ];
 
-/// The agent's command as an **absolute path**, resolved against thurbox's own
+/// The agent's command as an **absolute path**, resolved against talos's own
 /// `PATH`, so the multiplexer never has to resolve it.
 ///
-/// thurbox used to hand tmux a bare name (`claude`) and let tmux find it. Which
-/// resolver ran, and with which `PATH`, was not thurbox's to choose:
+/// talos used to hand tmux a bare name (`claude`) and let tmux find it. Which
+/// resolver ran, and with which `PATH`, was not talos's to choose:
 ///
 /// - tmux copies the *client's* `PATH` into the new pane only for an
 ///   **unattached** client (`spawn.c`: "the session one is replaced from the
-///   client … only unattached clients"). thurbox's control-mode client is
+///   client … only unattached clients"). talos's control-mode client is
 ///   attached, so [`Server::spawn`](SessionBackend::spawn) — a restart, a plugin program, the
 ///   shell pane — got the `PATH` of whatever first started the tmux **server**.
 /// - tmux runs a window command given as a **single** argument through its
 ///   `default-shell` (`spawn.c`: `execl(shell, argv0, "-c", cmd)`), and only a
 ///   multi-argument one through `execvp`. So an agent with no args was launched
-///   by a shell thurbox never chose, under that shell's quoting and `PATH`.
+///   by a shell talos never chose, under that shell's quoting and `PATH`.
 ///
 /// Both are why a fish user saw a spawn fail where a zsh user did not. zsh and
 /// bash put their `PATH` additions in `~/.zshenv` / `~/.profile`, which any
@@ -3408,7 +3408,7 @@ impl<M: TmuxCompatible> Server<M> {
             }
             warn!(
                 "tmux answered {} for window {} and created it anyway ({}): a hook \
-                 on thurbox's own server failed, which is what an uninstalled \
+                 on talos's own server failed, which is what an uninstalled \
                  plugin's leftover hook does for the life of that server. `{} -L {} \
                  show-hooks -g` names it. Unset the hook rather than killing that \
                  server — it holds every live session",
@@ -3598,7 +3598,7 @@ pub(in crate::backend) fn push_posix_window_program(
     // Pass the command + args as a single argv list. tmux treats trailing args
     // as the command to run inside the window. Resolved here for the same
     // reason the control-mode path resolves it (see `resolve_local_program`):
-    // this path happens to get thurbox's own `PATH` because its client is
+    // this path happens to get talos's own `PATH` because its client is
     // unattached, but a session must not launch differently depending on which
     // of the two created it — a session created here and later restarted
     // through control mode would otherwise resolve against two different
@@ -3650,15 +3650,15 @@ pub(in crate::backend) fn push_posix_window_program(
 
 /// `env PATH=<…>` in front of a window's program, or nothing.
 ///
-/// A pane runs with the `PATH` of the thurbox that spawned it — tmux replaces
+/// A pane runs with the `PATH` of the talos that spawned it — tmux replaces
 /// the session environment's from an **unattached** client, which both local
 /// spawn paths are. Usually that is the right answer and there is nothing to
-/// do. It is not the right answer when the spawning thurbox is a `thurbox-cli`
+/// do. It is not the right answer when the spawning talos is a `talos-cli`
 /// invoked over ssh by a TUI delegating `session create` to this host
 /// (ADR-24): sshd hands a non-interactive command its own `PATH`
 /// (`/usr/local/bin:/usr/bin:/bin:/usr/games`), which has no `~/.local/bin` on
-/// it — where `thurbox-cli` installs. The status hooks are a **bare** name
-/// (`thurbox-cli session signal --state <s> || true`), so on such a host every
+/// it — where `talos-cli` installs. The status hooks are a **bare** name
+/// (`talos-cli session signal --state <s> || true`), so on such a host every
 /// one of them resolved nothing and the `|| true` swallowed it: the host's own
 /// rows never gained a `hook_state`, and every session on it read as
 /// statusless on the TUI mirroring them.
@@ -3708,7 +3708,7 @@ fn shell_prefix_tokens() -> Option<Vec<String>> {
         .collect()
 }
 
-/// This process's `PATH` with the directory holding this build's `thurbox-cli`
+/// This process's `PATH` with the directory holding this build's `talos-cli`
 /// in front. `None` when [`crate::paths::resolve_cli_binary`] fell back to a bare name —
 /// there is no directory to add, and pinning a `PATH` with nothing to add to it
 /// would only restate what the pane was going to inherit anyway.
@@ -3865,7 +3865,7 @@ mod tests {
         const HOOK_STATUS: bool = true;
 
         fn hook_signal_command(_: &Server<Self>) -> String {
-            "tmux set-option -p @thurbox_state ".to_string()
+            "tmux set-option -p @talos_state ".to_string()
         }
     }
 
@@ -3986,7 +3986,7 @@ mod tests {
     #[cfg(unix)]
     fn a_local_window_command_is_an_absolute_path() {
         let dir = tempfile::TempDir::new().unwrap();
-        let expected = agent_only_thurbox_can_see(dir.path(), "tbx-spawn-probe");
+        let expected = agent_only_talos_can_see(dir.path(), "tbx-spawn-probe");
 
         // Through the shared helper: `PATH` is process state, and the unit
         // tests that set it run concurrently under plain `cargo test`.
@@ -4070,7 +4070,7 @@ mod tests {
         assert_eq!(backend.session, TMUX_SESSION);
     }
 
-    /// A socket a host's thurbox reported is that instance's address, so every
+    /// A socket a host's talos reported is that instance's address, so every
     /// multiplexer on the host reaches it — one learned while driving tmux is
     /// the one its psmux backend uses too.
     #[test]
@@ -4080,12 +4080,12 @@ mod tests {
             destination: "me@learned".into(),
             ..Default::default()
         };
-        learn_host_socket(&host, "thurbox-elsewhere");
-        assert_eq!(TestBackend::for_host(&host).socket(), "thurbox-elsewhere");
+        learn_host_socket(&host, "talos-elsewhere");
+        assert_eq!(TestBackend::for_host(&host).socket(), "talos-elsewhere");
         let mut served = host.clone();
         served.multiplexer = Some("psmux".into());
-        assert_eq!(host_socket(&served), "thurbox-elsewhere");
-        assert_eq!(known_host_socket(&served).unwrap(), "thurbox-elsewhere");
+        assert_eq!(host_socket(&served), "talos-elsewhere");
+        assert_eq!(known_host_socket(&served).unwrap(), "talos-elsewhere");
     }
 
     #[test]
@@ -4162,17 +4162,17 @@ mod tests {
     }
 
     /// A WSL distro is Linux whatever machine drives it, so its server gets
-    /// `/bin/sh` as `default-command` from a Windows thurbox as from a Linux
+    /// `/bin/sh` as `default-command` from a Windows talos as from a Linux
     /// one. Simulated: the build OS is replaced by `Platform::local`'s test
     /// override, which is the only way a Linux run reaches the Windows branch.
     #[test]
-    fn a_windows_thurbox_pins_posix_default_command_on_a_wsl_host() {
+    fn a_windows_talos_pins_posix_default_command_on_a_wsl_host() {
         use crate::session::{platform::simulate_local, HostDef, Platform};
         for local in Platform::ALL {
             let pinned = simulate_local(local, || {
                 pinned_default_command(&TestBackend::for_host(&HostDef::wsl("Ubuntu")))
             });
-            assert_eq!(pinned.as_deref(), Some("/bin/sh"), "thurbox on {local:?}");
+            assert_eq!(pinned.as_deref(), Some("/bin/sh"), "talos on {local:?}");
         }
     }
 
@@ -4221,7 +4221,7 @@ mod tests {
 
     /// The backend a route builds keeps the host's platform, the host's
     /// launcher and the route's multiplexer, each unaffected by the others and
-    /// by the OS thurbox is built for.
+    /// by the OS talos is built for.
     #[test]
     fn a_backend_keeps_platform_launcher_and_multiplexer_apart() {
         use crate::session::{platform::simulate_local, HostDef, HostKind, Multiplexer, Platform};
@@ -4402,10 +4402,10 @@ mod tests {
     #[test]
     fn only_the_multiplexers_own_refusal_counts_as_an_empty_answer() {
         let answers = [
-            "error connecting to /tmp/tmux-0/thurbox (No such file or directory)",
-            "no server running on /tmp/tmux-0/thurbox",
-            "can't find session: thurbox",
-            "session not found: thurbox",
+            "error connecting to /tmp/tmux-0/talos (No such file or directory)",
+            "no server running on /tmp/tmux-0/talos",
+            "can't find session: talos",
+            "session not found: talos",
         ];
         for answer in answers {
             assert!(
@@ -4436,14 +4436,14 @@ mod tests {
     fn a_socket_that_cannot_be_opened_is_not_a_server_that_is_not_there() {
         assert!(
             mux_answered_absent(
-                "error connecting to /tmp/tmux-0/thurbox (No such file or directory)"
+                "error connecting to /tmp/tmux-0/talos (No such file or directory)"
             ),
             "no socket at all is the one reason that means absence"
         );
         for live in [
-            "error connecting to /tmp/tmux-1000/thurbox (Permission denied)",
-            "error connecting to /tmp/tmux-1000/thurbox (Connection refused)",
-            "error connecting to /tmp/tmux-1000/thurbox (Connection reset by peer)",
+            "error connecting to /tmp/tmux-1000/talos (Permission denied)",
+            "error connecting to /tmp/tmux-1000/talos (Connection refused)",
+            "error connecting to /tmp/tmux-1000/talos (Connection reset by peer)",
         ] {
             assert!(
                 !mux_answered_absent(live),
@@ -4459,7 +4459,7 @@ mod tests {
     /// can get right on its own.
     #[test]
     fn ssh_failing_on_its_own_account_is_never_absence() {
-        let tmux_said_absent = "no server running on /tmp/tmux-0/thurbox";
+        let tmux_said_absent = "no server running on /tmp/tmux-0/talos";
 
         assert!(
             listing_is_absence(true, Some(1), tmux_said_absent),
@@ -4506,10 +4506,10 @@ mod tests {
     #[test]
     fn the_cli_directory_leads_the_path_it_was_missing_from() {
         let inherited = std::ffi::OsString::from("/usr/bin:/bin");
-        let led = path_led_by(Path::new("/opt/thurbox/bin"), &inherited).expect("joinable");
+        let led = path_led_by(Path::new("/opt/talos/bin"), &inherited).expect("joinable");
         assert_eq!(
             led,
-            std::ffi::OsString::from("/opt/thurbox/bin:/usr/bin:/bin")
+            std::ffi::OsString::from("/opt/talos/bin:/usr/bin:/bin")
         );
     }
 
@@ -4518,11 +4518,11 @@ mod tests {
     #[cfg(not(windows))]
     #[test]
     fn a_directory_already_on_the_path_is_moved_not_duplicated() {
-        let inherited = std::ffi::OsString::from("/usr/bin:/opt/thurbox/bin:/bin");
-        let led = path_led_by(Path::new("/opt/thurbox/bin"), &inherited).expect("joinable");
+        let inherited = std::ffi::OsString::from("/usr/bin:/opt/talos/bin:/bin");
+        let led = path_led_by(Path::new("/opt/talos/bin"), &inherited).expect("joinable");
         assert_eq!(
             led,
-            std::ffi::OsString::from("/opt/thurbox/bin:/usr/bin:/bin")
+            std::ffi::OsString::from("/opt/talos/bin:/usr/bin:/bin")
         );
     }
 
@@ -4532,8 +4532,8 @@ mod tests {
     #[test]
     fn an_empty_path_becomes_the_cli_directory_alone() {
         let led =
-            path_led_by(Path::new("/opt/thurbox/bin"), std::ffi::OsStr::new("")).expect("joinable");
-        assert_eq!(led, std::ffi::OsString::from("/opt/thurbox/bin"));
+            path_led_by(Path::new("/opt/talos/bin"), std::ffi::OsStr::new("")).expect("joinable");
+        assert_eq!(led, std::ffi::OsString::from("/opt/talos/bin"));
     }
 
     // --- path_from_prefix (reading a pane's PATH back) ---
@@ -4582,7 +4582,7 @@ mod tests {
     /// An executable on a directory only *this process* has on `PATH` — the
     /// shape an agent installed by `fish_add_path` is in.
     #[cfg(unix)]
-    fn agent_only_thurbox_can_see(dir: &std::path::Path, name: &str) -> std::path::PathBuf {
+    fn agent_only_talos_can_see(dir: &std::path::Path, name: &str) -> std::path::PathBuf {
         use std::os::unix::fs::PermissionsExt;
         let p = dir.join(name);
         std::fs::write(&p, b"#!/bin/sh\n").unwrap();
@@ -4628,16 +4628,16 @@ mod tests {
         // the client's current pane.
         assert!(!answered_for("%3", None, None));
         assert!(!answered_for("%3", Some("tb-y"), Some("%0")));
-        assert!(answered_for("thurbox:=tb-x", Some("tb-x"), Some("%9")));
-        assert!(!answered_for("thurbox:=tb-x", Some("tb-y"), Some("%9")));
+        assert!(answered_for("talos:=tb-x", Some("tb-x"), Some("%9")));
+        assert!(!answered_for("talos:=tb-x", Some("tb-y"), Some("%9")));
     }
 
     #[test]
     fn a_shareable_host_that_has_not_said_which_socket_it_uses_is_refused() {
         // A remote teardown used to fall back on this build's own socket name.
-        // On a host running its own thurbox that is a guess about somebody
-        // else's machine — a dev build aims at `thurbox-dev` while the host's
-        // release binary runs `thurbox`, and a relocated data dir derives a
+        // On a host running its own talos that is a guess about somebody
+        // else's machine — a dev build aims at `talos-dev` while the host's
+        // release binary runs `talos`, and a relocated data dir derives a
         // name of its own — so the teardown acted on an empty server, and
         // `ensure_ready` created one there while it was at it.
         let host = crate::session::HostDef {
@@ -4651,7 +4651,7 @@ mod tests {
             "{refusal}"
         );
 
-        // Sharing off: nothing but this thurbox writes there, so its own socket
+        // Sharing off: nothing but this talos writes there, so its own socket
         // is the host's by construction.
         let solo = crate::session::HostDef {
             share_sessions: false,
@@ -4661,10 +4661,10 @@ mod tests {
 
         // And a pinned socket answers without asking anyone.
         let pinned = crate::session::HostDef {
-            socket: Some("thurbox".into()),
+            socket: Some("talos".into()),
             ..host
         };
-        assert_eq!(known_host_socket(&pinned).unwrap(), "thurbox");
+        assert_eq!(known_host_socket(&pinned).unwrap(), "talos");
     }
 
     /// A pane is placed in its own window, whichever pane of it is selected.
@@ -4712,7 +4712,7 @@ mod tests {
         assert!(keeps_dead_pane(&agent_window_name("Foo Bar")));
         assert!(!keeps_dead_pane(&shell_window_name("Foo Bar")));
         assert!(!keeps_dead_pane(&program_window_name("abcd1234", "watch")));
-        // A window thurbox did not create is not thurbox's to keep open either.
+        // A window talos did not create is not talos's to keep open either.
         assert!(!keeps_dead_pane("zsh"));
     }
 
@@ -4765,9 +4765,9 @@ mod tests {
     #[test]
     fn an_unanswered_status_listing_is_an_error() {
         let backend = TestBackend::with_transport(
-            TmuxTransport::local("thurbox-test-no-such-multiplexer"),
-            "thurbox-test",
-            "thurbox-test",
+            TmuxTransport::local("talos-test-no-such-multiplexer"),
+            "talos-test",
+            "talos-test",
             "local:tmux",
         );
         assert!(backend.hook_states().is_err());
@@ -4786,8 +4786,8 @@ mod tests {
         std::fs::set_permissions(&mux, std::fs::Permissions::from_mode(0o700)).unwrap();
         TestBackend::with_transport(
             TmuxTransport::local(mux.to_string_lossy().into_owned()),
-            "thurbox-test",
-            "thurbox-test",
+            "talos-test",
+            "talos-test",
             "local:tmux",
         )
     }
@@ -4801,8 +4801,8 @@ mod tests {
     fn a_socket_that_cannot_be_opened_is_no_answer() {
         let dir = tempfile::tempdir().unwrap();
         for refused in [
-            "error connecting to /tmp/tmux-1/thurbox-test (Permission denied)",
-            "error connecting to /tmp/tmux-1/thurbox-test (Connection refused)",
+            "error connecting to /tmp/tmux-1/talos-test (Permission denied)",
+            "error connecting to /tmp/tmux-1/talos-test (Connection refused)",
         ] {
             let backend = answering_mux(dir.path(), "", refused);
             assert!(backend.hook_states().is_err(), "hook_states: {refused}");
@@ -4812,8 +4812,8 @@ mod tests {
             );
         }
         for absent in [
-            "error connecting to /tmp/tmux-1/thurbox-test (No such file or directory)",
-            "can't find session: thurbox-test",
+            "error connecting to /tmp/tmux-1/talos-test (No such file or directory)",
+            "can't find session: talos-test",
         ] {
             let backend = answering_mux(dir.path(), "", absent);
             assert_eq!(backend.hook_states().unwrap(), Vec::new(), "{absent}");
@@ -4829,7 +4829,7 @@ mod tests {
         let backend = answering_mux(
             dir.path(),
             HEARTBEAT_WINDOW,
-            "error connecting to /tmp/tmux-1/thurbox-test (Permission denied)",
+            "error connecting to /tmp/tmux-1/talos-test (Permission denied)",
         );
         assert!(backend.heartbeat_running().unwrap());
         assert!(backend.stop_heartbeat().is_err());
@@ -4840,16 +4840,16 @@ mod tests {
     #[test]
     fn only_the_server_saying_no_session_is_an_empty_status_answer() {
         for absent in [
-            "tmux has-session -t thurbox failed: can't find session: thurbox",
-            "tmux has-session -t thurbox failed: no server running on /tmp/tmux-1/thurbox",
-            "tmux has-session -t thurbox failed: error connecting to /tmp/tmux-1/thurbox (No such file or directory)",
+            "tmux has-session -t talos failed: can't find session: talos",
+            "tmux has-session -t talos failed: no server running on /tmp/tmux-1/talos",
+            "tmux has-session -t talos failed: error connecting to /tmp/tmux-1/talos (No such file or directory)",
         ] {
             assert!(mux_answered_absent(absent), "{absent}");
         }
         for unanswered in [
-            "tmux has-session -t thurbox failed: ssh: connect to host box port 22: Connection refused",
+            "tmux has-session -t talos failed: ssh: connect to host box port 22: Connection refused",
             "Failed to run tmux command: No such file or directory (os error 2)",
-            "tmux has-session -t thurbox failed: error connecting to /tmp/tmux-1/thurbox (Permission denied)",
+            "tmux has-session -t talos failed: error connecting to /tmp/tmux-1/talos (Permission denied)",
         ] {
             assert!(!mux_answered_absent(unanswered), "{unanswered}");
         }
@@ -4956,7 +4956,7 @@ mod tests {
     #[test]
     fn only_a_session_id_counts_as_a_stamp() {
         let parsed =
-            parse_discovered("%1|tb-fleet|0|#{@thurbox_session}|agent", true).expect("parsed");
+            parse_discovered("%1|tb-fleet|0|#{@talos_session}|agent", true).expect("parsed");
         assert_eq!(parsed.session, "");
         assert_eq!(parsed.role, WindowRole::Agent);
         assert_eq!(
@@ -4982,7 +4982,7 @@ mod tests {
 
     /// psmux has **no per-window options**: `set-option -w -t <pane> @k v`
     /// writes a *global* one, and `#{@k}` then expands to it on every window
-    /// (measured on a Windows host, psmux 3.3.6 — ADR-13). So the stamp thurbox
+    /// (measured on a Windows host, psmux 3.3.6 — ADR-13). So the stamp talos
     /// wrote for one session is handed back as every window's, and both readings
     /// of that lose the pane: the session it names sees several windows claiming
     /// it, and every *other* session sees its own window claiming somebody else.

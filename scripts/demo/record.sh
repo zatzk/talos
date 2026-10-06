@@ -1,23 +1,23 @@
 #!/usr/bin/env sh
-# Regenerate ALL Thurbox demo media in one pass, using REAL coding-agent CLIs.
+# Regenerate ALL Talos demo media in one pass, using REAL coding-agent CLIs.
 #
 # This single script records every feature clip under media/:
 #
-#   * thurbox-interface.{gif,mp4}       (interface.tape       — panes are files)
-#   * thurbox-theme.{gif,mp4}           (theme.tape)
-#   * thurbox-session-creation.{gif,mp4}(session-creation.tape)
-#   * thurbox-fork.{gif,mp4}            (fork.tape)
+#   * talos-interface.{gif,mp4}       (interface.tape       — panes are files)
+#   * talos-theme.{gif,mp4}           (theme.tape)
+#   * talos-session-creation.{gif,mp4}(session-creation.tape)
+#   * talos-fork.{gif,mp4}            (fork.tape)
 #   * search-demo.{gif,mp4}             (search.tape)
 #
-# The hero demo (thurbox-demo.*) is not a tape: scripts/demo/record-hero.sh
+# The hero demo (talos-demo.*) is not a tape: scripts/demo/record-hero.sh
 # records it, because it needs a right press and a remote host, neither of
 # which VHS can drive.
 #
 # Every clip drives the actual `claude`, `opencode`, `codex` and `antigravity` CLIs —
-# one per thurbox session — to showcase real multi-agent orchestration. No prompt
+# one per talos session — to showcase real multi-agent orchestration. No prompt
 # is sent to any agent; they are launched and left on their start screens.
 #
-# Isolation (so this never touches your real thurbox, tmux, or agent accounts):
+# Isolation (so this never touches your real talos, tmux, or agent accounts):
 #   * HOME points at a throwaway dir  -> agents boot with NO chat history (no past
 #     conversations leak into the video). To avoid login/trust dialogs on screen,
 #     each CLI's auth *token* is copied into the throwaway HOME and every demo repo
@@ -28,7 +28,7 @@
 #     both featured LOGGED OUT on purpose, because each prints your account email
 #     in its welcome box when signed in (agy fetches it from the server via its
 #     keyring auth; claude prints the org name) — see their notes below.
-#   * TMUX_TMPDIR points at a throwaway dir -> the `thurbox-dev` tmux server lives
+#   * TMUX_TMPDIR points at a throwaway dir -> the `talos-dev` tmux server lives
 #     in its own socket directory, so cleanup can't kill dev sessions you already
 #     have running.
 #   * XDG_{DATA,CONFIG,STATE,CACHE}_HOME point at a throwaway dir.
@@ -45,11 +45,11 @@
 set -eu
 
 # Tapes to record (stems of scripts/demo/<stem>.tape): `search` ->
-# search-demo.*, others -> thurbox-<stem>.*.
+# search-demo.*, others -> talos-<stem>.*.
 ALL_TAPES="interface theme session-creation fork search"
 TAPES="${*:-$ALL_TAPES}"
 
-# thurbox TUI theme every clip starts in (persisted string in metadata.active_theme,
+# talos TUI theme every clip starts in (persisted string in metadata.active_theme,
 # see src/session/theme_config.rs). The `theme` clip switches away from it to show
 # the picker, so we re-apply this before EVERY tape to keep all videos on-brand.
 DEMO_THEME="${DEMO_THEME:-doom}"
@@ -106,12 +106,12 @@ fi
 
 # --- Build the dev binaries (version 0.0.0-dev => dev_build cfg) -------------
 # Build BEFORE the HOME override so cargo still finds ~/.cargo.
-echo "==> Building thurbox (dev) ..."
-cargo build --bin thurbox --bin thurbox-cli
+echo "==> Building talos (dev) ..."
+cargo build --bin talos --bin talos-cli
 
-THURBOX_BIN="$REPO_ROOT/target/debug/thurbox"
-CLI_BIN="$REPO_ROOT/target/debug/thurbox-cli"
-export THURBOX_BIN   # consumed by the tapes (they `exec "$THURBOX_BIN"`)
+TALOS_BIN="$REPO_ROOT/target/debug/talos"
+CLI_BIN="$REPO_ROOT/target/debug/talos-cli"
+export TALOS_BIN   # consumed by the tapes (they `exec "$TALOS_BIN"`)
 
 # --- Isolated environment (shared dev-sandbox helper) ------------------------
 REAL_HOME="$HOME"                        # captured before the override below
@@ -120,8 +120,8 @@ REAL_HOME="$HOME"                        # captured before the override below
 . "$REPO_ROOT/scripts/dev/lib/sandbox-env.sh"
 tbx_sandbox_init_full fresh              # throwaway temp HOME/XDG/TMUX_TMPDIR
 DEMO_HOME="$TBX_SANDBOX_ROOT"            # fresh agent auth (no real creds/history)
-CFG_DIR="$XDG_CONFIG_HOME/thurbox-dev"   # dev_build subdir
-DB_FILE="$XDG_DATA_HOME/thurbox-dev/thurbox.db"  # SQLite db (dev_build subdir)
+CFG_DIR="$XDG_CONFIG_HOME/talos-dev"   # dev_build subdir
+DB_FILE="$XDG_DATA_HOME/talos-dev/talos.db"  # SQLite db (dev_build subdir)
 mkdir -p "$CFG_DIR"
 
 # Hide `wsl.exe` from the demo's PATH. WSL distros are AUTO-discovered (no config
@@ -192,7 +192,7 @@ trap cleanup EXIT INT TERM
 #
 # --- The example plugins, so the clips show them ----------------------------
 # `examples/` is not bundled, and the demo it forms is the clearest thing
-# thurbox has to show: two panes nobody shipped, stacked beside the agent by an
+# talos has to show: two panes nobody shipped, stacked beside the agent by an
 # arrangement anybody can copy. Installed here so the recording is of the real
 # files rather than a mock-up of them — if an example stops loading, the clip
 # breaks and somebody notices.
@@ -241,11 +241,11 @@ json.dump(
 )
 PYUI
 
-# --- The demo repo: a vendored snapshot of thurbox's own tree ----------------
+# --- The demo repo: a vendored snapshot of talos's own tree ----------------
 # The demo repo is a fixed subset of THIS repository, copied into the throwaway
 # HOME and `git init`ed there.
 #
-# Why thurbox's own code rather than a synthetic "sample-project" (or a cloned
+# Why talos's own code rather than a synthetic "sample-project" (or a cloned
 # third-party repo):
 #   * It shows real work. The old stub was four toy files (`fn add(a, b)`), so
 #     every clip was a UI tour — nothing on screen told a viewer WHY you would
@@ -254,7 +254,7 @@ PYUI
 #   * It is already on the recording machine, so recordings stay hermetic and
 #     offline (no clone step to slow down or break a re-record), which is the
 #     same property the throwaway HOME/XDG isolation buys elsewhere.
-#   * Licensing is a non-question: thurbox is MIT and we own it. A GPL engine or
+#   * Licensing is a non-question: talos is MIT and we own it. A GPL engine or
 #     any third-party tree would put a license notice into the release pipeline's
 #     demo assets for no benefit.
 #   * It is self-demonstrating — the tool built with the tool.
@@ -262,7 +262,7 @@ PYUI
 # COPIED, not symlinked, and never the live checkout: the recording must not be
 # able to mutate your working tree, and a fixed file list keeps successive recordings visually stable
 # even as the real repo moves on.
-DEMO_REPO="$DEMO_HOME/thurbox"
+DEMO_REPO="$DEMO_HOME/talos"
 mkdir -p "$DEMO_REPO"
 
 # A curated file list: small enough to render legibly at the tapes' font size,
@@ -291,7 +291,7 @@ done
 # be noise on screen.
 cat > "$DEMO_REPO/Cargo.toml" <<'EOF'
 [package]
-name = "thurbox"
+name = "talos"
 version = "0.0.0-dev"
 edition = "2021"
 license = "MIT"
@@ -305,9 +305,9 @@ tokio = { version = "1", features = ["full"] }
 EOF
 
 git init -q "$DEMO_REPO"
-git -C "$DEMO_REPO" -c user.email=demo@thurbox -c user.name=demo add -A
-git -C "$DEMO_REPO" -c user.email=demo@thurbox -c user.name=demo \
-    commit -q -m "chore: import thurbox tree"
+git -C "$DEMO_REPO" -c user.email=demo@talos -c user.name=demo add -A
+git -C "$DEMO_REPO" -c user.email=demo@talos -c user.name=demo \
+    commit -q -m "chore: import talos tree"
 
 # --- A parent folder of several repos, for the "import as parent" demo --------
 # Lives under $HOME so the session-creation tape can type `~/projects` and have
@@ -319,8 +319,8 @@ for r in api-server shared-lib web-app; do
     mkdir -p "$repo"
     printf '# %s\n' "$r" > "$repo/README.md"
     git init -q "$repo"
-    git -C "$repo" -c user.email=demo@thurbox -c user.name=demo add -A
-    git -C "$repo" -c user.email=demo@thurbox -c user.name=demo \
+    git -C "$repo" -c user.email=demo@talos -c user.name=demo add -A
+    git -C "$repo" -c user.email=demo@talos -c user.name=demo \
         commit -q -m "init $r"
 done
 
@@ -348,7 +348,7 @@ set -- "$DEMO_REPO" "$PROJECTS_DIR" "$PROJECTS_DIR/api-server" \
 
 # Suppress every agent's "a new version is available" first-run prompt. These are
 # MODAL in some CLIs (opencode renders a centered Update Available box that
-# swallows arrow keys), so a tape's navigation never reaches thurbox and the
+# swallows arrow keys), so a tape's navigation never reaches talos and the
 # following keystrokes are typed into the agent instead — a broken clip that still
 # exits 0. They also date the recording. Env vars are set here rather than in
 # agents.toml so they cover every launch path; opencode's `autoupdate` config key
@@ -423,7 +423,7 @@ claude_bin=$(command -v claude 2>/dev/null || true)
 # backlog with four branches in flight, which is the actual use case. The agent is
 # still visible per session (info panel, tab title), so nothing is lost.
 #
-# Each name is a real item from thurbox's own history, matching the vendored tree.
+# Each name is a real item from talos's own history, matching the vendored tree.
 demo_session_name() {
     case "$1" in
         claude)      echo "fix-osc52-tmux" ;;
@@ -462,7 +462,7 @@ done
 # which is how the main demo came to be recorded with an empty tasks pane reading
 # "nothing on the list" — the pane was working and had simply been given nothing.
 echo "==> Seeding demo tasks + an automation"
-# Real backlog items from thurbox's own tracker, matching the vendored tree
+# Real backlog items from talos's own tracker, matching the vendored tree
 # and the session names — so the tasks panel reads as the same sprint the
 # sessions are working, not as generic filler.
 #
@@ -518,10 +518,10 @@ set_theme() {
 # Put the demo repo in the repo picker's remembered list.
 #
 # Bookmarks are written when a repository is chosen THROUGH THE FLOW, so seeding
-# sessions with `thurbox-cli session create` leaves the picker with nothing
+# sessions with `talos-cli session create` leaves the picker with nothing
 # remembered. The only row it then offers is the interface directory, which it
 # always offers — and that is what session-creation.tape selected for who knows how
-# long: the clip created a session in `~/.config/thurbox-dev/ui`, its `w` and its
+# long: the clip created a session in `~/.config/talos-dev/ui`, its `w` and its
 # typed name went to the agent's PTY, and the wreckage was still on screen when the
 # next tape recorded.
 #
@@ -567,6 +567,6 @@ for tape in $TAPES; do
         tasks)       echo "    tasks-demo.{gif,mp4}" ;;
         search)      echo "    search-demo.{gif,mp4}" ;;
         code-review) echo "    code-review-demo.{gif,mp4}" ;;
-        *)           echo "    thurbox-$tape.{gif,mp4}" ;;
+        *)           echo "    talos-$tape.{gif,mp4}" ;;
     esac
 done

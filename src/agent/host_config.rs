@@ -1,7 +1,7 @@
 //! Loading and seeding of the remote-host config file.
 //!
 //! Remote SSH hosts are defined declaratively in
-//! `~/.config/thurbox/hosts.toml`. Each entry becomes a selectable session
+//! `~/.config/talos/hosts.toml`. Each entry becomes a selectable session
 //! backend named `ssh:<name>`. On first run the file is seeded with a
 //! commented-out example so a fresh install registers *zero* remote backends
 //! and behaves exactly as before. If the file exists but cannot be read or
@@ -14,18 +14,18 @@ use crate::session::{HostDef, HostRegistry, WslRepairPlan};
 
 /// Seed contents for `hosts.toml` on first run: full field documentation plus a
 /// commented-out example, but no active hosts.
-pub const SEED_HOSTS_TOML: &str = r#"# Thurbox hosts  —  ~/.config/thurbox/hosts.toml
+pub const SEED_HOSTS_TOML: &str = r#"# Talos hosts  —  ~/.config/talos/hosts.toml
 #
-# Each [[hosts]] entry describes an off-local target thurbox can run agent
+# Each [[hosts]] entry describes an off-local target talos can run agent
 # sessions on: a remote machine over SSH, or a local WSL distro. A host named
 # "<name>" registers a session backend ("ssh:<name>" or "wsl:<name>"), offered
 # in the new-session host picker (TUI) and selectable with
-# `thurbox-cli session create --host <name>`. The agent process, its tmux
+# `talos-cli session create --host <name>`. The agent process, its tmux
 # window, and any git worktrees all live on the host (or inside the distro);
 # only the TUI runs locally.
 #
-# SSH hosts: thurbox shells out to the system `ssh` binary, so authentication,
-# keys, and connection details all come from your ~/.ssh/config — thurbox never
+# SSH hosts: talos shells out to the system `ssh` binary, so authentication,
+# keys, and connection details all come from your ~/.ssh/config — talos never
 # handles credentials itself. The remote host needs `tmux` >= 3.2 and `git`.
 #
 # WSL distros are AUTO-DISCOVERED (via `wsl.exe -l -q`) and appear in the host
@@ -34,12 +34,12 @@ pub const SEED_HOSTS_TOML: &str = r#"# Thurbox hosts  —  ~/.config/thurbox/hos
 # `tmux` >= 3.2 and `git` installed inside it; worktrees live in the distro's
 # own Linux filesystem (fast), not on /mnt/c.
 #
-# Running thurbox INSIDE a distro discovers its siblings, but never the distro
+# Running talos INSIDE a distro discovers its siblings, but never the distro
 # itself: that one is this machine, and a session on it is a plain local
 # session (no --host). An entry whose `distro` is that one is ignored with a
 # startup warning. An entry merely *named* after it works as written, but it
-# records its sessions under the very name an older thurbox mislabelled local
-# sessions with, so thurbox warns and leaves every row under that name alone.
+# records its sessions under the very name an older talos mislabelled local
+# sessions with, so talos warns and leaves every row under that name alone.
 # Name a NEW entry after the distro it reaches and there is nothing to warn
 # about; renaming an EXISTING one moves no row, and leaves its recorded
 # sessions behind under a name no host registers.
@@ -48,7 +48,7 @@ pub const SEED_HOSTS_TOML: &str = r#"# Thurbox hosts  —  ~/.config/thurbox/hos
 # registers zero SSH hosts (WSL distros still auto-discover) and otherwise
 # behaves like a local-only setup. Uncomment and edit an entry to add one.
 #
-# Unknown keys are reported on startup (and fail `thurbox-cli config
+# Unknown keys are reported on startup (and fail `talos-cli config
 # validate`) but don't break the load.
 #
 # Fields per [[hosts]] entry:
@@ -71,20 +71,20 @@ pub const SEED_HOSTS_TOML: &str = r#"# Thurbox hosts  —  ~/.config/thurbox/hos
 #
 #   ssh_opts       (array of strings, optional, default: []; ssh only)
 #       Extra flags inserted before the destination, one token per array
-#       element (e.g. "-p" then "2222"). thurbox does NOT expand `~`, so use
+#       element (e.g. "-p" then "2222"). talos does NOT expand `~`, so use
 #       absolute paths for things like `-i <keyfile>`.
 #
-#   socket         (string, optional, default: "thurbox")
+#   socket         (string, optional, default: "talos")
 #       Host `tmux -L` socket name. Override only to avoid colliding with
-#       another thurbox/tmux server on the same host.
+#       another talos/tmux server on the same host.
 #
-#   session        (string, optional, default: "thurbox")
-#       Host tmux session name that groups thurbox's windows.
+#   session        (string, optional, default: "talos")
+#       Host tmux session name that groups talos's windows.
 #
 #   worktrees_dir  (string, optional)
 #       Absolute directory (on the host / inside the distro) under which git
-#       worktrees are created. When unset, thurbox uses
-#       $HOME/.local/share/thurbox/worktrees there ($HOME resolved on first use).
+#       worktrees are created. When unset, talos uses
+#       $HOME/.local/share/talos/worktrees there ($HOME resolved on first use).
 #
 #   multiplexer    (string, optional, default: "tmux")
 #       Multiplexer binary on the host. Set to "psmux" when an SSH host is a
@@ -99,19 +99,19 @@ pub const SEED_HOSTS_TOML: &str = r#"# Thurbox hosts  —  ~/.config/thurbox/hos
 #       A WSL distro is always POSIX, whatever this says.
 #
 #   share_sessions (bool, optional, default: true)
-#       The host's own thurbox database is the record of the sessions on it:
-#       thurbox mirrors that database into this one (a session made on the
-#       host, or by another thurbox reaching it, shows up here) and creates,
+#       The host's own talos database is the record of the sessions on it:
+#       talos mirrors that database into this one (a session made on the
+#       host, or by another talos reaching it, shows up here) and creates,
 #       deletes, restarts and restores sessions there by running the host's
-#       own `thurbox-cli` — which it provisions under
-#       ~/.local/share/thurbox/bin/ on the host when the host has none
-#       (a release archive of this thurbox's version, checksum-verified;
-#       a dev build ships its own binary under thurbox-dev/bin/ instead).
+#       own `talos-cli` — which it provisions under
+#       ~/.local/share/talos/bin/ on the host when the host has none
+#       (a release archive of this talos's version, checksum-verified;
+#       a dev build ships its own binary under talos-dev/bin/ instead).
 #       Set to false to use the host exactly as before: worktrees and hooks
 #       driven from here, nothing mirrored, nothing installed there.
 #
 #   path_prepend   (array of strings, optional, default: [])
-#       Directories put first on the agent's PATH on the host. thurbox reads
+#       Directories put first on the agent's PATH on the host. talos reads
 #       the host's login-shell PATH once (`$SHELL -lc`, then `/bin/sh -lc`,
 #       non-interactive, 5s timeout) and puts it ahead of the bare PATH that
 #       ssh / `wsl.exe` hand a command, so `~/.local/bin`, `~/.cargo/bin` and
@@ -142,13 +142,13 @@ config_version = 1
 #
 # # ControlMaster reuses one SSH connection so reconnects are instant;
 # # ControlPersist keeps it warm; ServerAliveInterval drops half-open links.
-# # One token per array element; thurbox does NOT expand `~` (use abs paths).
+# # One token per array element; talos does NOT expand `~` (use abs paths).
 # ssh_opts = ["-o", "ControlMaster=auto", "-o", "ControlPersist=10m", "-o", "ServerAliveInterval=15"]
 #
 # # Optional overrides, shown with their defaults:
-# # socket = "thurbox"          # remote `tmux -L` socket; change to avoid a clash
-# # session = "thurbox"         # remote tmux session grouping thurbox windows
-# # worktrees_dir = "/home/me/.local/share/thurbox/worktrees"  # abs remote path
+# # socket = "talos"          # remote `tmux -L` socket; change to avoid a clash
+# # session = "talos"         # remote tmux session grouping talos windows
+# # worktrees_dir = "/home/me/.local/share/talos/worktrees"  # abs remote path
 # # multiplexer = "tmux"        # set to "psmux" for a Windows remote host
 # # platform = "posix"          # "windows" for a Windows host (unset: psmux ⇒ windows)
 # # path_prepend = []           # e.g. ["~/.local/bin"]: first on the agent's PATH
@@ -162,10 +162,10 @@ config_version = 1
 # name = "ubuntu"               # → backend "wsl:ubuntu", value for --host
 # kind = "wsl"
 # distro = "Ubuntu-22.04"       # the wsl.exe distro name (defaults to `name`)
-# # worktrees_dir = "/home/me/.local/share/thurbox/worktrees"  # abs path in WSL
+# # worktrees_dir = "/home/me/.local/share/talos/worktrees"  # abs path in WSL
 "#;
 
-/// Path to the remote-host config file: `~/.config/thurbox/hosts.toml`
+/// Path to the remote-host config file: `~/.config/talos/hosts.toml`
 /// (sibling of `config.toml`).
 pub fn hosts_config_path() -> Option<PathBuf> {
     crate::paths::config_file().map(|p| p.with_file_name("hosts.toml"))
@@ -225,7 +225,7 @@ fn load_or_seed_result() -> Result<(HostRegistry, Vec<String>), String> {
     parse_hosts(&contents).map_err(|e| format!("{e}; no remote hosts"))
 }
 
-/// `hosts.toml`'s contents as the registry thurbox serves, and every warning
+/// `hosts.toml`'s contents as the registry talos serves, and every warning
 /// owed about them: unknown keys, and any entry refused outright. `Err` is a
 /// file that does not parse.
 pub fn parse_hosts(contents: &str) -> Result<(HostRegistry, Vec<String>), String> {
@@ -247,7 +247,7 @@ pub fn parse_hosts(contents: &str) -> Result<(HostRegistry, Vec<String>), String
 /// config; the discovered set never overrides an explicitly configured host of
 /// the same name.
 ///
-/// Neither half may claim the WSL distro thurbox is running inside as a
+/// Neither half may claim the WSL distro talos is running inside as a
 /// **loopback** ([`HostDef::is_wsl_loopback`]): that one is this machine, so
 /// it is dropped. This is the one chokepoint every caller shares, so settling
 /// it here (`settle_wsl_self_hosts`) is what keeps a local session local — and
@@ -283,7 +283,7 @@ pub fn load_all() -> HostRegistry {
 /// repointing a host already requires a restart, and this cache can never be
 /// staler than the registry it feeds.
 ///
-/// Cold callers stay on the uncached loaders **deliberately**: `thurbox-cli
+/// Cold callers stay on the uncached loaders **deliberately**: `talos-cli
 /// config validate`/`show` must report the file as it is now, and the
 /// short-lived headless paths (`session_ops::spawn`/`delete`/`remote_hooks`,
 /// one load per invocation) gain nothing from a process-lifetime pin.
@@ -292,7 +292,7 @@ pub fn cached_registry() -> &'static (HostRegistry, Vec<String>) {
     CACHE.get_or_init(load_all_with_warnings)
 }
 
-/// Settle every configured entry that claims the WSL distro thurbox runs
+/// Settle every configured entry that claims the WSL distro talos runs
 /// inside, in place, returning the warnings it owes the user and the backend
 /// names the loopback bug can have written.
 ///
@@ -324,7 +324,7 @@ fn settle_wsl_self_hosts(reg: &mut HostRegistry) -> (Vec<String>, Vec<String>) {
     for host in std::mem::take(&mut reg.hosts) {
         if host.is_wsl_loopback() {
             warnings.push(format!(
-                "hosts.toml: ignoring host '{}' — it names the WSL distro thurbox \
+                "hosts.toml: ignoring host '{}' — it names the WSL distro talos \
                  is running in ('{}'), so sessions on it are local, not remote. \
                  Create them with no --host.",
                 host.name,
@@ -335,10 +335,10 @@ fn settle_wsl_self_hosts(reg: &mut HostRegistry) -> (Vec<String>, Vec<String>) {
         }
         if host.shadows_current_wsl_distro() {
             warnings.push(format!(
-                "hosts.toml: host '{}' is named after the WSL distro thurbox runs in, \
+                "hosts.toml: host '{}' is named after the WSL distro talos runs in, \
                  so it records its sessions on '{}' — the same name an older \
-                 thurbox wrote onto local sessions by mistake. The host works as \
-                 written and keeps its own sessions; but thurbox cannot tell a \
+                 talos wrote onto local sessions by mistake. The host works as \
+                 written and keeps its own sessions; but talos cannot tell a \
                  mislabelled local session under that name from one of this host's, \
                  so it has left every row recorded there exactly as it found it.",
                 host.name,
@@ -371,7 +371,7 @@ fn settle_wsl_self_hosts(reg: &mut HostRegistry) -> (Vec<String>, Vec<String>) {
 /// resolves against cannot disagree about who owns a spelling.
 pub fn wsl_repair_plan() -> Result<WslRepairPlan, String> {
     // Asked first, because it decides the answer on its own: only a loopback
-    // can have written one of these rows, and only a thurbox running *inside*
+    // can have written one of these rows, and only a talos running *inside*
     // a distro can have a loopback. So off WSL there is nothing to repair
     // whatever `hosts.toml` says — and a failure only defers when the answer
     // depends on what failed, or an unrelated typo in that file would defer
@@ -499,10 +499,10 @@ pub(crate) fn with_discovered_wsl<T>(
 /// [`HostKind::Wsl`](crate::session::HostKind::Wsl)), separating "there are
 /// none" from "could not say".
 ///
-/// The distro thurbox is itself running inside is **not** among them:
+/// The distro talos is itself running inside is **not** among them:
 /// `wsl.exe` lists it like any other, but it is this machine
 /// ([`HostDef::is_wsl_loopback`] argues what registering it cost). Its
-/// siblings are still discovered, so a thurbox inside one distro reaches the
+/// siblings are still discovered, so a talos inside one distro reaches the
 /// rest.
 ///
 /// No `wsl.exe` at all (not Windows, nothing on `PATH`) is an **answer**:
@@ -546,7 +546,7 @@ fn wsl_hosts_from(distros: Vec<String>) -> Vec<HostDef> {
 
 /// Whether `wsl.exe` can be invoked: always attempted on Windows; elsewhere
 /// only when it resolves on `PATH` (WSL interop exposes it inside a distro, so
-/// thurbox running in one WSL distro can still reach its siblings).
+/// talos running in one WSL distro can still reach its siblings).
 fn wsl_exe_available() -> bool {
     cfg!(windows) || crate::paths::which_on_path("wsl.exe")
 }

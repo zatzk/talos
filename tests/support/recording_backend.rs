@@ -21,15 +21,15 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use anyhow::{bail, Result};
-use thurbox::backend::identity::{window_name_for, WindowIndex};
-use thurbox::backend::{
+use talos::backend::identity::{window_name_for, WindowIndex};
+use talos::backend::{
     AdoptedSession, DiscoveredSession, Key, Located, Owner, PaneState, Placed, SessionBackend,
     SpawnedSession, WindowRole, WindowSpec,
 };
-use thurbox::session::Route;
+use talos::session::Route;
 
 /// What the fake hands a hook to report through, the state word to follow.
-pub const SIGNAL_COMMAND: &str = "thurbox-probe-signal";
+pub const SIGNAL_COMMAND: &str = "talos-probe-signal";
 
 /// One window, as the fake multiplexer holds it.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -138,7 +138,7 @@ impl RecordingBackend {
         }
     }
 
-    /// Open a window directly, as something other than thurbox would — the
+    /// Open a window directly, as something other than talos would — the
     /// state a test starts from.
     pub fn open(&self, name: &str, session: &str, role: WindowRole) -> String {
         let mut state = self.state.lock().unwrap();

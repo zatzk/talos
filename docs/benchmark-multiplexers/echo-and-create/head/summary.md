@@ -14,7 +14,7 @@ Run 20260925T085213Z · reps 5 (+1 warm-up discarded)
   },
   "versions": {
     "herdr": "herdr 0.9.1",
-    "thurbox": "0.0.0-dev (schema v47)",
+    "talos": "0.0.0-dev (schema v47)",
     "python": "3.13.15"
   }
 }
@@ -22,7 +22,7 @@ Run 20260925T085213Z · reps 5 (+1 warm-up discarded)
 
 ## latency
 
-| variant | metric | herdr median | herdr p95 | thurbox median | thurbox p95 |
+| variant | metric | herdr median | herdr p95 | talos median | talos p95 |
 |---|---|---|---|---|---|
 | idle | echo_ms | 2.14 | 2.32 | 4.18 | 5.38 |
 | idle | timeouts | 0.00 | 0.00 | 0.00 | 0.00 |

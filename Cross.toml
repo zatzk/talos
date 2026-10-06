@@ -1,2 +1,2 @@
 [build.env]
-passthrough = ["THURBOX_RELEASE_VERSION"]
+passthrough = ["TALOS_RELEASE_VERSION"]

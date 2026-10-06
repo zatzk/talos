@@ -1,11 +1,11 @@
-//! `thurbox-cli runtime` — the processes thurbox runs that are *not* sessions.
+//! `talos-cli runtime` — the processes talos runs that are *not* sessions.
 //!
 //! One exists today: the automation heartbeat, which this machine's backend
 //! (the registry's default) keeps running — `automation tick` on a loop, so
 //! schedules fire with no interface attached. It
 //! is created implicitly by anything that arms an automation, and until this
 //! command it appeared in no listing and no teardown reclaimed it — a session
-//! delete cannot, because it is not a session. Anything thurbox puts on a
+//! delete cannot, because it is not a session. Anything talos puts on a
 //! multiplexer server should be visible and stoppable from the CLI; this is
 //! that noun.
 
@@ -16,7 +16,7 @@ use super::output::CommandOutput;
 
 #[derive(Subcommand, Debug)]
 pub enum Action {
-    /// What thurbox is running besides sessions, and on which server.
+    /// What talos is running besides sessions, and on which server.
     Status,
     /// Stop the automation heartbeat keeper.
     ///
@@ -65,8 +65,8 @@ pub fn run(action: Action, backends: &super::Backends<'_>) -> CommandOutput {
                 ),
             )
             .help([
-                "thurbox-cli runtime stop   stop the heartbeat keeper",
-                "thurbox-cli automation tick   fire what is due, once",
+                "talos-cli runtime stop   stop the heartbeat keeper",
+                "talos-cli automation tick   fire what is due, once",
             ])
         }
         Action::Stop => match here.stop_heartbeat() {

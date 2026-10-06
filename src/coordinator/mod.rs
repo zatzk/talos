@@ -34,8 +34,8 @@ use std::time::{Duration, Instant};
 
 use ratatui::DefaultTerminal;
 
-use thurbox::kernel::bands::Level;
-use thurbox::kernel::perf::Counters;
+use talos::kernel::bands::Level;
+use talos::kernel::perf::Counters;
 
 use crate::{
     App, DEBOUNCE, ECHO_HOLD, ECHO_POLL, ECHO_WINDOW, IDLE_TICK, PERF_PUBLISH_INTERVAL,
@@ -135,17 +135,17 @@ impl App {
         let Some(text) = requests
             .iter()
             .rev()
-            .find_map(|request| thurbox::clipboard::app_copy_text(&request.target, &request.data))
+            .find_map(|request| talos::clipboard::app_copy_text(&request.target, &request.data))
         else {
             if !requests.is_empty() {
                 tracing::debug!("ignored an app's OSC 52 write that is not a copy");
             }
             return;
         };
-        let message = match thurbox::clipboard::copy(
+        let message = match talos::clipboard::copy(
             &text,
             self.clipboard.as_mut(),
-            thurbox::session::settings::global().clipboard.provider,
+            talos::session::settings::global().clipboard.provider,
         ) {
             Ok(route) => format!(
                 "app copied {} line(s){}",
@@ -166,15 +166,15 @@ impl App {
         // force by the time this returns; the other two outcomes are the ones
         // worth saying out loud.
         match self.config.poll() {
-            Some(thurbox::kernel::config::Reloaded::Live) => {
+            Some(talos::kernel::config::Reloaded::Live) => {
                 self.toast("settings reloaded".to_string());
                 self.dirty = true;
             }
-            Some(thurbox::kernel::config::Reloaded::NeedsRestart) => {
+            Some(talos::kernel::config::Reloaded::NeedsRestart) => {
                 self.toast("settings reloaded — some changes apply on restart".to_string());
                 self.dirty = true;
             }
-            Some(thurbox::kernel::config::Reloaded::Failed(error)) => {
+            Some(talos::kernel::config::Reloaded::Failed(error)) => {
                 self.report(format!("settings: {error}"), Level::Error);
             }
             None => {}
@@ -255,7 +255,7 @@ impl App {
             .echo
             .front()
             .and_then(|echo| self.terminals.output_seq_cell(&echo.surface));
-        thurbox::backend::output_wake::arm(seq);
+        talos::backend::output_wake::arm(seq);
     }
 
     /// Owe the next frame to an echo that has arrived, or stop waiting for one
@@ -321,7 +321,7 @@ impl App {
         // any other descriptor would be polling the wrong thing.
         // SAFETY: `isatty` only inspects a descriptor number.
         let tty = unsafe { libc::isatty(libc::STDIN_FILENO) } == 1;
-        let Some(wake) = thurbox::backend::output_wake::read_fd().filter(|_| tty) else {
+        let Some(wake) = talos::backend::output_wake::read_fd().filter(|_| tty) else {
             return next_event(left.min(ECHO_POLL));
         };
         // An event crossterm has already read and queued would not make stdin
@@ -346,7 +346,7 @@ impl App {
         // SAFETY: `fds` is a valid array of two pollfds for the duration of the
         // call.
         unsafe { libc::poll(fds.as_mut_ptr(), fds.len() as libc::nfds_t, ms) };
-        thurbox::backend::output_wake::drain();
+        talos::backend::output_wake::drain();
         next_event(Duration::ZERO)
     }
 
@@ -367,10 +367,10 @@ impl App {
     }
 
     /// The reporting half of ADR-P11: the periodic `perf_window` log line and
-    /// the JSON snapshot `thurbox-cli perf` reads.
+    /// the JSON snapshot `talos-cli perf` reads.
     ///
     /// Both are gated on timing being active. Publishing especially: each write
-    /// bumps every other thurbox connection's `data_version`, which costs them a
+    /// bumps every other talos connection's `data_version`, which costs them a
     /// full shared-state reload on their next poll — an idle default instance
     /// must never churn that row.
     pub(crate) fn report_perf(&mut self) {
@@ -440,7 +440,7 @@ impl App {
             return;
         }
         self.perf_published_at = Some(Instant::now());
-        let json = thurbox::kernel::perf::snapshot_json(
+        let json = talos::kernel::perf::snapshot_json(
             &counters,
             &self.timings,
             &self.startup,
@@ -493,11 +493,11 @@ impl App {
             .sessions
             .iter()
             .any(|row| {
-                row.status == thurbox::session::SessionState::Working
+                row.status == talos::session::SessionState::Working
                     // A `running` session animates only while its pane is
                     // printing, so the clock has to run for that case too —
                     // otherwise the spinner it gates freezes mid-turn.
-                    || (row.status == thurbox::session::SessionState::Running
+                    || (row.status == talos::session::SessionState::Running
                         && printing.contains(&row.id))
             })
             || self.commands.has_inflight()
@@ -509,7 +509,7 @@ impl App {
             return;
         }
         let step =
-            (self.started.elapsed().as_secs_f64() * thurbox::kernel::host::ANIMATION_HZ) as u64;
+            (self.started.elapsed().as_secs_f64() * talos::kernel::host::ANIMATION_HZ) as u64;
         if step != self.animation_step {
             self.animation_step = step;
             self.animation_tick = self.animation_tick.wrapping_add(1);
@@ -606,7 +606,7 @@ impl App {
         if self.last_reap.elapsed() >= REAP_INTERVAL {
             self.last_reap = Instant::now();
             self.commands
-                .dispatch(thurbox::kernel::command::Command::Reap);
+                .dispatch(talos::kernel::command::Command::Reap);
         }
 
         // What Windows said about its clipboard, for a paste press that could
@@ -635,7 +635,7 @@ impl App {
     /// follow from it.
     pub(crate) fn apply_external_requests(&mut self) {
         // A focus request from another process: a clicked notification's
-        // action callback, or `thurbox-cli session focus`, both of which
+        // action callback, or `talos-cli session focus`, both of which
         // leave a row in the database for whoever is running the interface.
         // Taken atomically, so two instances cannot both claim it.
         if let Some(id) = self.snapshots.take_focus_request() {
@@ -711,7 +711,7 @@ impl App {
         // session to a directory and a machine is the loop's knowledge, not
         // a store's — the store owns the bounds and the queue.
         self.serve_runs();
-        // A remote agent's hooks cannot call `thurbox-cli` — they set a tmux pane
+        // A remote agent's hooks cannot call `talos-cli` — they set a tmux pane
         // option, which arrives here over the control-mode subscription. Draining
         // it into the same columns a local signal writes is the whole of remote
         // status: the dot, the acknowledgment and the notification are all
@@ -753,7 +753,7 @@ impl App {
             self.host.note_run(&event);
         }
         // Answers, per plugin, for the next render to read.
-        let mut answers = thurbox::kernel::host::RunAnswers::new();
+        let mut answers = talos::kernel::host::RunAnswers::new();
         for plugin in &self.host.plugins {
             if plugin.capabilities.is_empty() {
                 continue;
@@ -772,7 +772,7 @@ impl App {
     }
 
     /// How one ask becomes a program on the right machine.
-    pub(crate) fn runner(&self) -> std::sync::Arc<thurbox::kernel::runs::Runner> {
+    pub(crate) fn runner(&self) -> std::sync::Arc<talos::kernel::runs::Runner> {
         let sessions: std::collections::HashMap<String, (std::path::PathBuf, String)> = self
             .snapshots
             .current()
@@ -783,20 +783,20 @@ impl App {
                 Some((row.id.clone(), (cwd, row.backend.clone())))
             })
             .collect();
-        std::sync::Arc::new(move |ask: &thurbox::kernel::runs::Ask| {
+        std::sync::Arc::new(move |ask: &talos::kernel::runs::Ask| {
             let Some((cwd, backend)) = sessions.get(&ask.session) else {
-                return thurbox::kernel::runs::Run::Failed(format!(
+                return talos::kernel::runs::Run::Failed(format!(
                     "no session {} to run it in",
                     ask.session
                 ));
             };
-            let Some(host) = thurbox::session_ops::resolve_host(backend) else {
-                return thurbox::kernel::runs::Run::Failed(format!(
+            let Some(host) = talos::session_ops::resolve_host(backend) else {
+                return talos::kernel::runs::Run::Failed(format!(
                     "'{backend}' is not in hosts.toml — cannot reach the machine it runs on"
                 ));
             };
-            let command = thurbox::kernel::runs::command_for(&ask.program, cwd, host.as_ref());
-            thurbox::kernel::runs::capture(command, ask.timeout)
+            let command = talos::kernel::runs::command_for(&ask.program, cwd, host.as_ref());
+            talos::kernel::runs::capture(command, ask.timeout)
         })
     }
 
@@ -825,7 +825,7 @@ impl App {
                 .session(&id)
                 .map(|row| row.name.clone())
                 .unwrap_or_else(|| id.clone());
-            self.dispatch_tracked(thurbox::kernel::command::Command::Restart {
+            self.dispatch_tracked(talos::kernel::command::Command::Restart {
                 session: id.clone(),
                 if_missing: true,
             });
@@ -864,7 +864,7 @@ impl App {
             if self.terminals.readopt_shell(&session, &pane, rows, cols) {
                 self.dirty = true;
             } else {
-                // The window is gone — closed outside thurbox, or its server
+                // The window is gone — closed outside talos, or its server
                 // restarted. Forget it, or this is retried on every iteration
                 // forever against a pane that will never answer.
                 let _ = self.snapshots.forget_shell(&session);

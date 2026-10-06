@@ -44,34 +44,34 @@ local widgets = require("lib.widgets")
 -- ── Reads, with their absences handled once ─────────────────────────────────
 
 local function bookmarks()
-  return (thurbox and thurbox.bookmarks) or {}
+  return (talos and talos.bookmarks) or {}
 end
 
 local function browse()
-  return (thurbox and thurbox.browse) or {}
+  return (talos and talos.browse) or {}
 end
 
 local function branches()
-  return (thurbox and thurbox.branches) or {}
+  return (talos and talos.branches) or {}
 end
 
 local function worktrees_read()
-  return (thurbox and thurbox.worktrees) or {}
+  return (talos and talos.worktrees) or {}
 end
 
 local function hosts()
-  return (thurbox and thurbox.hosts) or {}
+  return (talos and talos.hosts) or {}
 end
 
 local function agents()
-  return (thurbox and thurbox.agents) or {}
+  return (talos and talos.agents) or {}
 end
 
 --- Whether the binaries this session needs are installed, as the kernel last
 --- looked. Already an answer — the kernel probes on its own schedule behind a
 --- TTL, so reading it here costs a table lookup, never a `which`.
 local function preflight()
-  return (thurbox and thurbox.preflight) or {}
+  return (talos and talos.preflight) or {}
 end
 
 --- The spinner frame for this paint, from the flow's own clock.
@@ -84,7 +84,7 @@ end
 --- v1 renders `Add Repo Path ⠋ checking…` while it validates a typed path on a
 --- host. The same state is readable here: the command is in flight.
 local function bookmark_pending()
-  for _, item in ipairs((thurbox and thurbox.commands) or {}) do
+  for _, item in ipairs((talos and talos.commands) or {}) do
     if item.kind == "bookmark" and item.phase ~= "failed" then
       return true
     end
@@ -97,7 +97,7 @@ end
 --- string.
 local function bookmark_failures()
   local failed = {}
-  for _, item in ipairs((thurbox and thurbox.commands) or {}) do
+  for _, item in ipairs((talos and talos.commands) or {}) do
     if item.kind == "bookmark" and item.phase == "failed" then
       failed[tostring(item.id)] = item.subject or ""
     end
@@ -660,7 +660,7 @@ end
 --- colour to draw it in, or nothing when there is nothing to say.
 ---
 --- Only ever about the local machine. A remote host's binaries live on the
---- host, and thurbox has not looked there — `unknown` is not `missing`, and
+--- host, and talos has not looked there — `unknown` is not `missing`, and
 --- reporting one as the other is a claim it has not earned.
 preflight_warning = function(flow)
   if (flow.host or "") ~= "" then
@@ -676,7 +676,7 @@ preflight_warning = function(flow)
     -- "install tmux 3.2 or newer — the p" is worse than one that ends.
     local sentence = "⚠ " .. mux.binary .. " is not installed — " .. (mux.advice or "")
     if widgets.len(sentence) > ROW_COLS then
-      sentence = "⚠ " .. mux.binary .. " is not installed — run: thurbox-cli doctor"
+      sentence = "⚠ " .. mux.binary .. " is not installed — run: talos-cli doctor"
     end
     return sentence, theme.bad
   end
@@ -1107,7 +1107,7 @@ local function render_agent(flow)
   -- (command)`, so two entries wrapping the same CLI are distinguishable.
   --
   -- Local presence only, same as preflight_warning above: a remote host's
-  -- binaries live on the host and thurbox has not looked there.
+  -- binaries live on the host and talos has not looked there.
   local local_host = (flow.host or "") == ""
   local labels = {}
   for _, agent in ipairs(agents()) do
@@ -1159,8 +1159,8 @@ end
 --- Shown as a PLACEHOLDER rather than written into the field. Prefilling the value
 --- would have been worse than the empty field it replaced: `{ value, cursor }` has
 --- no selection, so there is no "typing replaces the suggestion" — the first
---- keystroke would have appended, and picking `thurbox` then typing `fix` would
---- have produced `thurboxfix`. As a placeholder the field is genuinely empty, so
+--- keystroke would have appended, and picking `talos` then typing `fix` would
+--- have produced `talosfix`. As a placeholder the field is genuinely empty, so
 --- typing behaves normally, and `Enter` on an untouched field is a valid answer
 --- with the answer visible before you press it.
 local function suggested_name(flow)
@@ -1280,7 +1280,7 @@ local function after_name(flow)
   flow.step = "agent"
   flow.agent_index = 1
   for index, agent in ipairs(list) do
-    if agent.name == (thurbox and thurbox.agent_default) then
+    if agent.name == (talos and talos.agent_default) then
       flow.agent_index = index
     end
   end

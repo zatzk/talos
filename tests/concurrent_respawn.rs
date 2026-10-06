@@ -1,9 +1,9 @@
 //! Relaunching every session at once, onto a tmux server that is not there yet.
 //!
-//! This is the first thing thurbox does on a machine that has just rebooted:
+//! This is the first thing talos does on a machine that has just rebooted:
 //! `missing_agents` finds every session unplaced and `respawn_missing_agents`
 //! hands each one to its own worker, so N spawns arrive together at a server
-//! with no thurbox session on it. `ensure_session_configured` used to check
+//! with no talos session on it. `ensure_session_configured` used to check
 //! `session_exists()` and then create — which is not a lock, so every worker
 //! saw "no session", every worker ran `new-session`, one won and the rest were
 //! told `duplicate session`. A loser's whole respawn aborted: no window, and a
@@ -26,7 +26,7 @@ mod tmux_server;
 use tmux_server::TmuxServer;
 
 /// A socket of this test's own, so it can never see — or kill — a real session.
-const SOCKET: &str = "thurbox-respawn-test";
+const SOCKET: &str = "talos-respawn-test";
 
 /// How many sessions come back at once. Six is the shape the defect was found
 /// in and enough for every thread to reach `new-session` together; the loser
@@ -70,11 +70,11 @@ fn every_session_relaunching_at_once_gets_its_own_window() {
                 // Released together, so the `session_exists()` checks overlap
                 // instead of being serialised by thread startup.
                 barrier.wait();
-                thurbox::backend::SessionBackend::create_window(
-                    &thurbox::backend::tmux::TmuxBackend::new(),
-                    &thurbox::backend::WindowSpec {
-                        owner: thurbox::backend::Owner::new(&id, &name),
-                        role: thurbox::backend::WindowRole::Agent,
+                talos::backend::SessionBackend::create_window(
+                    &talos::backend::tmux::TmuxBackend::new(),
+                    &talos::backend::WindowSpec {
+                        owner: talos::backend::Owner::new(&id, &name),
+                        role: talos::backend::WindowRole::Agent,
                         command: "sh",
                         args: &["-c".to_string(), "while :; do sleep 1; done".to_string()],
                         cwd: None,

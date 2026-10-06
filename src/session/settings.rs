@@ -1,4 +1,4 @@
-//! User-tunable settings (`~/.config/thurbox/settings.toml`): scalar knobs
+//! User-tunable settings (`~/.config/talos/settings.toml`): scalar knobs
 //! plus the `[features]` whole-feature switches.
 //!
 //! Pure data + parsing, per the `session/` architecture rule; the file IO and
@@ -52,12 +52,12 @@ pub struct Settings {
     /// How often each session's git working tree is re-examined, in seconds.
     /// `0` turns the polling off: no diffstat, no ahead/behind, no `git`.
     ///
-    /// The one number that governs how much `git` thurbox runs, because the
+    /// The one number that governs how much `git` talos runs, because the
     /// work is per session: every session costs a `git status` plus, while its
     /// branch is ahead and unlanded, the merge check's handful of subprocesses,
     /// all of it repeated on this interval. Worth raising on an instance
     /// holding many sessions, and worth turning off where a subprocess is
-    /// expensive for reasons outside thurbox — an endpoint-protection agent
+    /// expensive for reasons outside talos — an endpoint-protection agent
     /// that scans every process launch (issue #1167).
     #[serde(default = "default_git_poll_secs")]
     pub git_poll_secs: u64,
@@ -102,7 +102,7 @@ impl Default for RemoteSettings {
 /// Whole-feature switches (`[features]` in settings.toml). Each flag hides the
 /// feature's UI and blocks its keybinding; disabling `automations` also stops
 /// the TUI firing schedules and arming the heartbeat. Data and
-/// `thurbox-cli` surfaces stay fully functional regardless, so re-enabling a
+/// `talos-cli` surfaces stay fully functional regardless, so re-enabling a
 /// flag is lossless.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FeatureFlags {
@@ -148,19 +148,19 @@ pub struct FeatureFlags {
     /// offer Ctrl+Z undo, leaving the tmux window + worktrees intact. Disabled
     /// = the TUI **hard-deletes** (kills the tmux window, removes worktrees +
     /// symlink workspace, disables send automations) after a confirmation
-    /// prompt. `thurbox-cli session delete` is unaffected (always soft unless
+    /// prompt. `talos-cli session delete` is unaffected (always soft unless
     /// `--force`).
     #[serde(default = "default_true")]
     pub soft_delete: bool,
     /// Version-update check: the TUI header "update available" badge and the
-    /// `thurbox-cli version --check` command. **On by default for 1.0** — it
+    /// `talos-cli version --check` command. **On by default for 1.0** — it
     /// makes a network call to GitHub to learn when a newer release is
     /// available. Turn it off with `[features] version_check = false`.
     #[serde(default = "default_true")]
     pub version_check: bool,
     /// Silent auto-update: the TUI silently downloads, verifies, and replaces
     /// the installed binaries on startup when a newer release exists, and the
-    /// `thurbox-cli update` command does the same on demand. Also keeps installed
+    /// `talos-cli update` command does the same on demand. Also keeps installed
     /// extensions fresh — once the binary upgrades, the self-heal pass (TUI
     /// startup + headless tick) refreshes any extension that is now stale instead
     /// of merely nudging. **On by default for 1.0** — opt out with `[features]
@@ -240,9 +240,9 @@ impl Default for ClipboardSettings {
 }
 
 /// How `Ctrl+O` launches the editor (the DB `editor_mode` key, set via
-/// `thurbox-cli editor mode`). `Auto` (the default) detects terminal vs GUI
+/// `talos-cli editor mode`). `Auto` (the default) detects terminal vs GUI
 /// editors from the command name and gives terminal editors (vim, nano,
-/// `ttt`, helix, …) a real TTY — a floating `tmux display-popup` when thurbox
+/// `ttt`, helix, …) a real TTY — a floating `tmux display-popup` when talos
 /// runs inside tmux, or a TUI-suspend-and-resume when it does not — while GUI
 /// editors (`code`, `zed`, …) stay detached (the classic behavior). `Terminal`
 /// forces the TTY path for every editor; `Gui` forces the detached spawn.
@@ -297,7 +297,7 @@ pub struct NotificationSettings {
     #[serde(default)]
     pub also_on_waiting: bool,
     /// Skip notifications for the session currently in focus (you're already
-    /// looking at it). Defaults on; flip off if you run thurbox in a
+    /// looking at it). Defaults on; flip off if you run talos in a
     /// background window and want every transition surfaced.
     #[serde(default = "default_true")]
     pub suppress_for_active: bool,

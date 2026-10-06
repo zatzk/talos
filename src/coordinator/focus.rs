@@ -7,7 +7,7 @@
 //! focus a frame before the slot exists, so the request is held for exactly one
 //! layout and re-asked there.
 
-use thurbox::kernel::layout::SlotMode;
+use talos::kernel::layout::SlotMode;
 
 use crate::App;
 
@@ -18,7 +18,7 @@ impl App {
     /// see `kernel::focus::defer_until_placed` for why, and `apply_pending_focus`,
     /// which re-asks it once the arrangement has run.
     pub(crate) fn focus_plugin(&mut self, index: usize) {
-        if thurbox::kernel::focus::defer_until_placed(self.placement(index)) {
+        if talos::kernel::focus::defer_until_placed(self.placement(index)) {
             self.pending_focus = Some(index);
             return;
         }
@@ -60,14 +60,14 @@ impl App {
                 .then_some(plugin.slot.as_str());
                 let default_in_slot =
                     switch_slot.is_some_and(|slot| self.host.switch_default(slot) == Some(index));
-                thurbox::kernel::focus::CycleEntry {
+                talos::kernel::focus::CycleEntry {
                     placement: self.placement(index),
                     switch_slot,
                     default_in_slot,
                 }
             })
             .collect();
-        if let Some(next) = thurbox::kernel::focus::next_in_cycle(&ring, self.focus, step) {
+        if let Some(next) = talos::kernel::focus::next_in_cycle(&ring, self.focus, step) {
             self.focus = next;
         }
     }
@@ -83,19 +83,19 @@ impl App {
     /// **not** the same question, since focusing it is what brings it forward.
     /// See `kernel::focus`.
     pub(crate) fn can_focus_plugin(&self, index: usize) -> bool {
-        thurbox::kernel::focus::can_focus(self.placement(index))
+        talos::kernel::focus::can_focus(self.placement(index))
     }
 
     /// Whether a plugin would be drawn right now: its slot was placed on the
     /// last frame, or it floats above the arrangement and so needs no slot.
     pub(crate) fn is_visible_plugin(&self, index: usize) -> bool {
-        thurbox::kernel::focus::is_drawn(self.placement(index))
+        talos::kernel::focus::is_drawn(self.placement(index))
     }
 
     /// Where a plugin sits, as the two focus rules need to see it.
-    pub(crate) fn placement(&self, index: usize) -> thurbox::kernel::focus::Placement {
+    pub(crate) fn placement(&self, index: usize) -> talos::kernel::focus::Placement {
         let Some(plugin) = self.host.plugins.get(index) else {
-            return thurbox::kernel::focus::Placement {
+            return talos::kernel::focus::Placement {
                 floats: false,
                 float_open: false,
                 slot_placed: false,
@@ -112,7 +112,7 @@ impl App {
                 let chosen = self.slot_selection.get(&plugin.slot).copied().unwrap_or(0);
                 members.get(chosen) == Some(&index)
             });
-        thurbox::kernel::focus::Placement {
+        talos::kernel::focus::Placement {
             floats: plugin.floats,
             float_open: self.drawn_floats.contains(&index),
             slot_placed: self.visible_slots.contains(&plugin.slot),
@@ -123,7 +123,7 @@ impl App {
     /// Select a session and put the input focus on the pane that shows it.
     ///
     /// Only for a request made *now*: a clicked notification,
-    /// `thurbox-cli session focus`, or an instance-scoped UI action.
+    /// `talos-cli session focus`, or an instance-scoped UI action.
     /// A session this instance just created is
     /// deliberately not one — creation finishes on a worker seconds after the
     /// wizard closed, so steering the view then lands at a moment the user did

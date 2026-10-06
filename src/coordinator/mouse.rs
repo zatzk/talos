@@ -10,11 +10,11 @@ use std::time::{Duration, Instant};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::layout::Rect;
 
-use thurbox::kernel::host::{Click, Scroll};
-use thurbox::kernel::node::{ClickVerb, Identity};
-use thurbox::kernel::selection::{PaneBounds, Selection, TermPos};
+use talos::kernel::host::{Click, Scroll};
+use talos::kernel::node::{ClickVerb, Identity};
+use talos::kernel::selection::{PaneBounds, Selection, TermPos};
 
-use thurbox::session::settings::ClipboardProvider;
+use talos::session::settings::ClipboardProvider;
 
 use super::{key_event_from_chord, open_url};
 use crate::{App, ClickTarget, PointerGrab};
@@ -249,7 +249,7 @@ impl App {
             .map(|hit| hit.identity.clone())
             .or_else(|| self.target_at(x, y).map(|target| target.identity))
             .filter(|identity| !identity.is_empty());
-        // `thurbox.hover` is published, so its change has to move the epoch a
+        // `talos.hover` is published, so its change has to move the epoch a
         // pure pane's cached tree is keyed on — a repaint alone would hand the
         // pane its old tree, and the affordance under the pointer would light
         // only once something unrelated moved. Once per affordance crossed,
@@ -335,10 +335,10 @@ impl App {
             }
         }
         // A program that tracks the mouse hears the press itself — Claude
-        // Code selects and copies with its own handling, and thurbox drawing
+        // Code selects and copies with its own handling, and talos drawing
         // a selection over it would be two answers to one gesture. The click
         // has already focused the pane above; only the selection leg is
-        // ceded. `Ctrl+Click` stays thurbox's (the link leg, earlier), the
+        // ceded. `Ctrl+Click` stays talos's (the link leg, earlier), the
         // way modified presses conventionally bypass an application's mouse.
         if let Some(surface) = self.terminals.forward_press(x, y) {
             // Whatever selection was armed elsewhere is over: this gesture is
@@ -539,7 +539,7 @@ impl App {
     /// Scanned in reverse for the same reason the pane targets are: the last
     /// recorded hit is the topmost, so overlapping entries resolve to the one
     /// actually visible.
-    pub(crate) fn band_target_at(&self, x: u16, y: u16) -> Option<thurbox::kernel::bands::Hit> {
+    pub(crate) fn band_target_at(&self, x: u16, y: u16) -> Option<talos::kernel::bands::Hit> {
         let position = ratatui::layout::Position::new(x, y);
         self.band_targets
             .iter()
@@ -564,7 +564,7 @@ impl App {
             .flat_map(|row| {
                 [
                     row.id.clone(),
-                    thurbox::kernel::terminal::shell_surface(&row.id),
+                    talos::kernel::terminal::shell_surface(&row.id),
                 ]
             })
             .filter_map(|surface| {
@@ -699,10 +699,10 @@ impl App {
     /// copied. Silent when there is nothing to copy or `provider = "none"` turned
     /// copying off: a drag is not a request for a toast the way a key is.
     /// The selection stays highlighted — it shows what was copied, and a pane
-    /// reading `thurbox.selection` still sees it — until the next key, click
+    /// reading `talos.selection` still sees it — until the next key, click
     /// or wheel tick drops it; `on_key` keeps `Ctrl+C` from copying it twice.
     pub(crate) fn copy_on_select(&mut self) {
-        let settings = thurbox::session::settings::global().clipboard;
+        let settings = talos::session::settings::global().clipboard;
         if !settings.copy_on_select || settings.provider == ClipboardProvider::None {
             return;
         }
@@ -711,7 +711,7 @@ impl App {
         };
         let message = copy_message(
             &text,
-            thurbox::clipboard::copy(&text, self.clipboard.as_mut(), settings.provider),
+            talos::clipboard::copy(&text, self.clipboard.as_mut(), settings.provider),
         );
         self.toast(message);
     }
@@ -729,10 +729,10 @@ impl App {
         // that was.
         let message = match self.selected_text.clone() {
             Some(text) if !text.trim().is_empty() => {
-                let outcome = thurbox::clipboard::copy(
+                let outcome = talos::clipboard::copy(
                     &text,
                     self.clipboard.as_mut(),
-                    thurbox::session::settings::global().clipboard.provider,
+                    talos::session::settings::global().clipboard.provider,
                 );
                 copy_message(&text, outcome)
             }
@@ -808,10 +808,10 @@ impl App {
         let message = match opened {
             Ok(()) => format!("Opening {url}"),
             Err(reason) => {
-                let outcome = thurbox::clipboard::copy(
+                let outcome = talos::clipboard::copy(
                     url,
                     self.clipboard.as_mut(),
-                    thurbox::session::settings::global().clipboard.provider,
+                    talos::session::settings::global().clipboard.provider,
                 );
                 match outcome {
                     Ok(route) => format!(
@@ -825,7 +825,7 @@ impl App {
         self.toast(message);
     }
 
-    /// Hand every visible link back to the terminal thurbox runs in.
+    /// Hand every visible link back to the terminal talos runs in.
     ///
     /// The only route to a browser when the agent is on a remote host: the
     /// outer terminal opens the link, so it has to be told the runs are links.
@@ -838,7 +838,7 @@ impl App {
     /// escape of its own, so this is the only place its content can become a
     /// link the outer terminal knows about.
     ///
-    /// `self.links` — already maintained for `thurbox.links`, and paced by its
+    /// `self.links` — already maintained for `talos.links`, and paced by its
     /// own stamp and age — is handed over so a **plain-text** URL is offered
     /// too, not only an OSC 8 run. Nothing rescans here: the list is the one
     /// [`Self::refresh_links`] built before this frame was drawn.
@@ -851,7 +851,7 @@ impl App {
             // `refresh_links` scans both, so each gets its own scanned list.
             for surface in [
                 row.id.clone(),
-                thurbox::kernel::terminal::shell_surface(&row.id),
+                talos::kernel::terminal::shell_surface(&row.id),
             ] {
                 let scanned = self.links.get(&surface).map_or(&[][..], Vec::as_slice);
                 paints.extend(self.terminals.hyperlink_paints(&surface, buf, scanned));
@@ -874,7 +874,7 @@ impl App {
             if self.link_paint_obscured(plugin, rect) {
                 continue;
             }
-            paints.extend(thurbox::kernel::terminal::drawn_link_paints(
+            paints.extend(talos::kernel::terminal::drawn_link_paints(
                 buf, rect, &url,
             ));
         }
@@ -886,7 +886,7 @@ impl App {
         // identical paints must still be sent.
         if paints != self.last_link_paints {
             if !paints.is_empty() {
-                let _ = thurbox::kernel::terminal::paint_hyperlinks(&paints);
+                let _ = talos::kernel::terminal::paint_hyperlinks(&paints);
             }
             self.last_link_paints = paints;
         }
@@ -1053,7 +1053,7 @@ impl ClickTrain {
 /// The toast a selection copy reports.
 fn copy_message(
     text: &str,
-    outcome: Result<thurbox::clipboard::CopyRoute, thurbox::clipboard::CopyError>,
+    outcome: Result<talos::clipboard::CopyRoute, talos::clipboard::CopyError>,
 ) -> String {
     match outcome {
         Ok(route) => format!(

@@ -1,21 +1,21 @@
 ---
 layout: docs.njk
-title: 'Built-in agents — Thurbox Docs'
-description: 'Every built-in coding agent Thurbox ships (claude, codex, antigravity, opencode, aider, copilot, vibe, pi, omp) plus the shell entry, with recommended agents.toml configuration, resume/fork behavior, and status-hook support.'
+title: 'Built-in agents — Talos Docs'
+description: 'Every built-in coding agent Talos ships (claude, codex, antigravity, opencode, aider, copilot, vibe, pi, omp) plus the shell entry, with recommended agents.toml configuration, resume/fork behavior, and status-hook support.'
 currentPage: 'agents'
 breadcrumb: 'Built-in agents'
 ---
 <h1>Built-in agents</h1>
           <p>
-            Thurbox is
+            Talos is
             <strong>agent-neutral</strong>
             : it knows nothing about a coding agent's model, prompts, permissions, or tools &mdash;
             only how to launch the CLI and how that CLI resumes, forks, and reports status. Every
             agent is
             <strong>data</strong>
             , declared in
-            <a href="configuration.html#agents-toml"><code>~/.config/thurbox/agents.toml</code></a>
-            . The ten entries below are what Thurbox
+            <a href="configuration.html#agents-toml"><code>~/.config/talos/agents.toml</code></a>
+            . The ten entries below are what Talos
             <strong>seeds on first run</strong>
             ; each block is the recommended configuration, ready to copy.
           </p>
@@ -43,9 +43,9 @@ breadcrumb: 'Built-in agents'
             <code>[[agents]]</code>
             entry carries a
             <code>command</code>
-            plus optional argument-template groups that Thurbox appends
+            plus optional argument-template groups that Talos appends
             <strong>only when their driving value is present</strong>
-            , substituting the thurbox-generated session id for
+            , substituting the talos-generated session id for
             <code>{id}</code>
             :
           </p>
@@ -84,13 +84,13 @@ breadcrumb: 'Built-in agents'
             <code>args</code>
             always follow. ID models matter: agents that
             <strong>pin</strong>
-            a thurbox id (<code>claude</code>, <code>pi</code>) resume/fork
+            a talos id (<code>claude</code>, <code>pi</code>) resume/fork
             <em>that exact session</em>
             ,
             <code>omp</code>
             is
             <strong>path-pinned</strong>
-            (thurbox maps its id to a fixed session file), and the rest are
+            (talos maps its id to a fixed session file), and the rest are
             <strong>id-less</strong>
             and resolve "the last session in this directory" themselves. Status reporting is wired
             separately by the built-in
@@ -215,7 +215,7 @@ breadcrumb: 'Built-in agents'
           <p>
             Anthropic's
             <a href="https://github.com/anthropics/claude-code" target="_blank" rel="noopener">Claude Code</a>
-            . Accepts a thurbox-generated session id at creation, so it resumes and forks
+            . Accepts a talos-generated session id at creation, so it resumes and forks
             <strong>that exact session</strong>
             by id.
           </p>
@@ -239,7 +239,7 @@ new_session_args = ["--session-id", "{id}"]</code></pre>
             OpenAI's
             <a href="https://github.com/openai/codex" target="_blank" rel="noopener">Codex CLI</a>
             . It can't pin or report a session id, so resume/fork target the most recent session in
-            the launch directory (<code>resume_latest = true</code>). Thurbox keeps that directory
+            the launch directory (<code>resume_latest = true</code>). Talos keeps that directory
             stable across restart (same cwd) and single-repo fork (child reuses the parent cwd).
           </p>
           <p>
@@ -375,7 +375,7 @@ command = "vibe"</code></pre>
           <p>
             The
             <a href="https://pi.dev" target="_blank" rel="noopener">pi.dev</a>
-            CLI. Like claude, it accepts a thurbox-generated session id at creation, so it
+            CLI. Like claude, it accepts a talos-generated session id at creation, so it
             resumes/forks by that exact id. Sessions live under
             <code>~/.pi/agent/</code>
             , organized by working directory.
@@ -402,15 +402,15 @@ new_session_args = ["--session-id", "{id}"]</code></pre>
             <code>omp</code>
             command) is Pi-compatible but generates its
             <strong>own</strong>
-            internal session id, so it can't accept thurbox's. Instead it takes a session
+            internal session id, so it can't accept talos's. Instead it takes a session
             <strong>file path</strong>
-            : thurbox maps its UUID to a deterministic JSONL under OMP's default root
+            : talos maps its UUID to a deterministic JSONL under OMP's default root
             (<code>--session &lt;file&gt;</code>
             on create,
             <code>--resume</code>
             on the same path to restore), so restart reattaches the exact session. The
             <code>{home}</code>
-            token expands to the resolved home dir at spawn time (thurbox, not the shell &mdash;
+            token expands to the resolved home dir at spawn time (talos, not the shell &mdash;
             args are POSIX-quoted, so a literal
             <code>~</code>
             never expands), and it translates onto a remote/WSL home too. No fork &mdash; OMP can't
@@ -426,8 +426,8 @@ new_session_args = ["--session-id", "{id}"]</code></pre>
           <pre data-title="agents.toml"><code class="language-toml">[[agents]]
 name = "omp"
 command = "omp"
-resume_args = ["--resume", "{home}/.omp/agent/sessions/thurbox-{id}.jsonl"]
-new_session_args = ["--session", "{home}/.omp/agent/sessions/thurbox-{id}.jsonl"]</code></pre>
+resume_args = ["--resume", "{home}/.omp/agent/sessions/talos-{id}.jsonl"]
+new_session_args = ["--session", "{home}/.omp/agent/sessions/talos-{id}.jsonl"]</code></pre>
 
           <h2 id="shell">
             shell
@@ -438,9 +438,9 @@ new_session_args = ["--session", "{home}/.omp/agent/sessions/thurbox-{id}.jsonl"
             shell. It exists so a session can be
             <strong>anything</strong>
             &mdash; you run whatever you like in it, and an external driver can start its own
-            tool with its own flags rather than asking Thurbox to model them. It is the
+            tool with its own flags rather than asking Talos to model them. It is the
             ready-made form of
-            <code>thurbox-cli session create --command</code>
+            <code>talos-cli session create --command</code>
             , and the only built-in whose
             <code>command</code>
             differs by platform: native Windows runs psmux and PowerShell rather than tmux and
@@ -474,9 +474,9 @@ new_session_args = ["--session", "{home}/.omp/agent/sessions/thurbox-{id}.jsonl"
             outright). Nothing wires status hooks for it either, so a
             <code>shell</code>
             session reports no state until something in it calls
-            <code>thurbox-cli session signal</code>
+            <code>talos-cli session signal</code>
             &mdash; which anything in the pane can, since
-            <code>THURBOX_SESSION</code>
+            <code>TALOS_SESSION</code>
             is in its environment.
           </p>
           <p>

@@ -181,7 +181,7 @@ impl LuaHost {
         // `ui::status_bar::render_header` at compile time; a plugin cannot read
         // an env var, and hardcoding it in Lua would leave every shipped copy
         // claiming whatever version it was written against.
-        set(&table, "version", env!("THURBOX_VERSION"))?;
+        set(&table, "version", env!("TALOS_VERSION"))?;
         // What the pointer is over, as `id` and `role`, so a plugin can match
         // whichever it used to mark the affordance. The common case is nothing
         // hovered, which is one shared empty table (a constant key never
@@ -357,7 +357,7 @@ impl LuaHost {
         )?;
 
         *self.epoch.borrow_mut() = Some(*epoch);
-        set(&self.lua.globals(), "thurbox", table)
+        set(&self.lua.globals(), "talos", table)
     }
 
     /// Publish the settings in force.
@@ -821,7 +821,7 @@ fn build_agents(lua: &Lua, snapshot: &Snapshot) -> Result<Value, String> {
         // being made instead of letting the user find out from a pane that
         // died. Three words rather than a boolean: a remote host's binaries
         // were never looked at, and saying "missing" about them would be a
-        // claim thurbox has not earned.
+        // claim talos has not earned.
         set(&item, "presence", agent.presence.as_str())?;
         agents.raw_set(index + 1, item).map_err(|e| e.to_string())?;
     }

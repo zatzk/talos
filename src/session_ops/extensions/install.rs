@@ -48,7 +48,7 @@ pub struct InstallReport {
     /// `0.9.0 → 1.0.0` move). `None` on a first install.
     pub previous_version: Option<String>,
     /// A compatibility warning if the running binary is older than the
-    /// extension's declared `min_thurbox_version`.
+    /// extension's declared `min_talos_version`.
     pub compat_warning: Option<String>,
 }
 
@@ -304,15 +304,15 @@ fn install_external_file(
     Ok(())
 }
 
-/// Marker present in every hook command we ship (`thurbox-cli session signal
+/// Marker present in every hook command we ship (`talos-cli session signal
 /// …`). [`crate::agent::json_merge::prune_marked`] uses it to remove exactly our
 /// merged entries on uninstall — robust across payload schema changes. The
 /// remote provisioning (`remote_hooks`) prunes on it too, paired with the
 /// rewritten form's marker: the row's backend's hook command.
-pub(crate) const HOOK_SIGNAL_MARKER: &str = "thurbox-cli session signal";
+pub(crate) const HOOK_SIGNAL_MARKER: &str = "talos-cli session signal";
 
 /// Whether this document already carries an ownership stamp of ours — i.e.
-/// thurbox has merged into it since it began stamping what it writes.
+/// talos has merged into it since it began stamping what it writes.
 ///
 /// The gate on the one-time legacy sweep in [`merged_config`]: a stamped file
 /// has nothing left that can only be identified by its command text.
@@ -403,7 +403,7 @@ fn install_config_merge(
 
 /// The full text `dest` should hold once `source_text` is merged into it, in
 /// whichever encoding this merge declares. A parse failure of the *source* is a
-/// hard error (thurbox shipped it); one of the *target* is the user's file and
+/// hard error (talos shipped it); one of the *target* is the user's file and
 /// is reported for the soft-skip above.
 fn merged_config(
     format: crate::session::ConfigMergeFormat,
@@ -418,7 +418,7 @@ fn merged_config(
             let mut doc = read_json_or_empty(dest)?;
             // Asked before anything is pruned: the prune below takes every
             // stamp out of the document, so reading it afterwards would say
-            // "never stamped" about a file thurbox has owned for months, and
+            // "never stamped" about a file talos has owned for months, and
             // the one-time migration would run on every tick forever.
             let was_stamped = stamped(&doc);
             // Prune, then merge, for the reason the TOML arm does it below:
@@ -436,7 +436,7 @@ fn merged_config(
             // it back. Document-wide, so an event a later payload renames or
             // drops still has our entry taken out of it.
             crate::agent::json_merge::prune_marked(&mut doc, MANAGED_MARKER);
-            // One-time migration. Entries written before thurbox stamped
+            // One-time migration. Entries written before talos stamped
             // ownership (hooks extension < 1.11) carry no stamp, so the sweep
             // above cannot see them — and leaving one behind leaves the broken
             // command it holds firing beside the fixed one, which is the whole
@@ -565,7 +565,7 @@ pub struct UpdateReport {
 
 /// Re-install an already-installed extension from its **recorded source**,
 /// refreshing its payload + manifest to match the running binary. This is the
-/// mechanism that keeps extensions in sync after a thurbox upgrade: a bare-name
+/// mechanism that keeps extensions in sync after a talos upgrade: a bare-name
 /// source re-resolves against the new binary's release tag, so the matching
 /// extension version is fetched.
 ///
@@ -582,8 +582,8 @@ pub fn update_extension(
         .ok_or_else(|| format!("extension '{name}' is not installed (no manifest found)"))?;
     let source = installed.source.clone().ok_or_else(|| {
         format!(
-            "extension '{name}' has no recorded install source (installed by an older thurbox); \
-             reinstall it with `thurbox-cli extension install {name}`"
+            "extension '{name}' has no recorded install source (installed by an older talos); \
+             reinstall it with `talos-cli extension install {name}`"
         )
     })?;
     // Keep it in its existing home, regardless of what the new manifest defaults to.
@@ -646,9 +646,9 @@ pub fn reinstall_extension(
         .ok_or_else(|| format!("extension '{name}' is not installed (no manifest found)"))?;
     let source = installed.source.clone().ok_or_else(|| {
         format!(
-            "extension '{name}' has no recorded install source (installed by an older thurbox); \
-             reinstall it by hand: `thurbox-cli extension uninstall {name}` then \
-             `thurbox-cli extension install {name}`"
+            "extension '{name}' has no recorded install source (installed by an older talos); \
+             reinstall it by hand: `talos-cli extension uninstall {name}` then \
+             `talos-cli extension install {name}`"
         )
     })?;
     // Keep the extension in its existing home unless the caller purges it.

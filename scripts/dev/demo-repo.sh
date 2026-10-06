@@ -2,7 +2,7 @@
 #
 # Seed a sandbox with a repository that has something to look at.
 #
-# `just sandbox` gives you a working thurbox with NOTHING in it — no repos, no
+# `just sandbox` gives you a working talos with NOTHING in it — no repos, no
 # sessions, no changes. Every feature that is about a repository (the review
 # pane, the file viewer, sync, fork, the creation flow's branch list) is
 # therefore untestable there until you hand-build a git repo, create a session,
@@ -20,7 +20,7 @@
 # from is left alone.
 #
 # It never touches your real config: everything lands under the sandbox root
-# (`repos/` beside `thurbox-config/`), so `--clean` takes it with the profile and
+# (`repos/` beside `talos-config/`), so `--clean` takes it with the profile and
 # `--fresh` gets a new one. Deliberately NOT under the config dir, where the
 # interface's own inventory would find it.
 
@@ -54,8 +54,8 @@ if [ -z "${TBX_SANDBOX_ROOT:-}" ]; then
     source "$SCRIPT_DIR/lib/sandbox-env.sh"
     tbx_sandbox_init "$mode" "$profile"
 fi
-CLI="$TBX_REPO_ROOT/target/debug/thurbox-cli"
-[ -x "$CLI" ] || die "no thurbox-cli at $CLI — \`cargo build --bin thurbox-cli\` first"
+CLI="$TBX_REPO_ROOT/target/debug/talos-cli"
+[ -x "$CLI" ] || die "no talos-cli at $CLI — \`cargo build --bin talos-cli\` first"
 
 REPOS="$TBX_SANDBOX_ROOT/repos"
 mkdir -p "$REPOS"
@@ -70,29 +70,29 @@ mkdir -p "$REPOS"
 # every hand-made session gets is worse than a slow demo. `sh` is registered and
 # named per session with `--agent sh`.
 #
-# Getting the file to exist at all is the awkward part: thurbox seeds
-# `agents.toml` on first run and `thurbox-cli` has no verb that does it (only
+# Getting the file to exist at all is the awkward part: talos seeds
+# `agents.toml` on first run and `talos-cli` has no verb that does it (only
 # `session create` loads the agent registry, so only it seeds). So on a sandbox
 # that has never been opened we force the seed with one throwaway session and
 # delete it again. Worth knowing: an UNREGISTERED `--agent` silently falls back
 # to the default, so skipping this step does not fail loudly — it quietly starts
 # claude.
 ensure_agent() {
-    local agents="$THURBOX_CONFIG_DIR/agents.toml"
+    local agents="$TALOS_CONFIG_DIR/agents.toml"
     if [ ! -f "$agents" ]; then
-        log "seeding agents.toml (thurbox writes it on first run; the CLI has no verb for it)"
+        log "seeding agents.toml (talos writes it on first run; the CLI has no verb for it)"
         local seed_repo="$REPOS/.seed"
         if [ ! -d "$seed_repo/.git" ]; then
             mkdir -p "$seed_repo"
             git -C "$seed_repo" init -q -b main
-            git -C "$seed_repo" config user.email demo@thurbox.invalid
-            git -C "$seed_repo" config user.name "thurbox demo"
+            git -C "$seed_repo" config user.email demo@talos.invalid
+            git -C "$seed_repo" config user.name "talos demo"
             : > "$seed_repo/.keep"
             git -C "$seed_repo" add -A
             git -C "$seed_repo" commit -qm "seed"
         fi
         local id
-        id="$("$CLI" session create --name thurbox-demo-seed --repo-path "$seed_repo" --json \
+        id="$("$CLI" session create --name talos-demo-seed --repo-path "$seed_repo" --json \
               | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')" || true
         [ -n "${id:-}" ] && "$CLI" session delete "$id" --force >/dev/null 2>&1 || true
         rm -rf "$seed_repo"
@@ -224,8 +224,8 @@ PY
 
 git_init() {  # <dir>
     git -C "$1" init -q -b main
-    git -C "$1" config user.email demo@thurbox.invalid
-    git -C "$1" config user.name "thurbox demo"
+    git -C "$1" config user.email demo@talos.invalid
+    git -C "$1" config user.name "talos demo"
 }
 
 commit_all() {  # <dir> <message>
@@ -303,8 +303,8 @@ else
     log "creating session 'demo-changes' on demo/changes"
     wt="$(create_session demo-changes "$DEMO" demo/changes)"
     [ -n "$wt" ] || die "no worktree came back for demo-changes"
-    git -C "$wt" config user.email demo@thurbox.invalid
-    git -C "$wt" config user.name "thurbox demo"
+    git -C "$wt" config user.email demo@talos.invalid
+    git -C "$wt" config user.name "talos demo"
     seed_changes "$wt"
     commit_all "$wt" "the changes under review"
     log "  $(git -C "$wt" diff --stat main..HEAD | tail -1)"
@@ -342,8 +342,8 @@ if [ "$want_big" = "1" ]; then
         log "creating session 'demo-big' on demo/big"
         wt="$(create_session demo-big "$BIG" demo/big)"
         [ -n "$wt" ] || die "no worktree came back for demo-big"
-        git -C "$wt" config user.email demo@thurbox.invalid
-        git -C "$wt" config user.name "thurbox demo"
+        git -C "$wt" config user.email demo@talos.invalid
+        git -C "$wt" config user.name "talos demo"
         seed_big "$wt" REWRITTEN
         commit_all "$wt" "rewrite everything"
         log "  $(git -C "$wt" diff --no-color main..HEAD | wc -c) bytes of diff"

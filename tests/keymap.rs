@@ -14,12 +14,12 @@ use std::path::PathBuf;
 
 use ratatui::layout::Rect;
 
-use thurbox::kernel::host::{KeyPress, LuaHost, Published, RenderContext};
-use thurbox::kernel::layout::resolve;
-use thurbox::kernel::registry::{is_ctrl_letter_chord, normalise_chord, Registry, Scope, RESERVED};
-use thurbox::kernel::snapshot::{SessionRow, Snapshot};
-use thurbox::kernel::theme::Themes;
-use thurbox::session::SessionState;
+use talos::kernel::host::{KeyPress, LuaHost, Published, RenderContext};
+use talos::kernel::layout::resolve;
+use talos::kernel::registry::{is_ctrl_letter_chord, normalise_chord, Registry, Scope, RESERVED};
+use talos::kernel::snapshot::{SessionRow, Snapshot};
+use talos::kernel::theme::Themes;
+use talos::session::SessionState;
 /// v1's keymap tables, compiled into this test crate only — see the module's
 /// own doc for why the oracle lives here rather than in `src/`.
 #[path = "support/v1_keymap.rs"]
@@ -43,8 +43,8 @@ fn registry(host: &LuaHost) -> Registry {
     // As the binary does: the kernel's own chords — the ones that open a system
     // modal, and the clipboard pair — are declared alongside the plugins', so
     // they are listed, routed and conflict-checked with everything else.
-    bindings.extend(thurbox::kernel::modals::bindings());
-    bindings.extend(thurbox::kernel::clipboard::bindings());
+    bindings.extend(talos::kernel::modals::bindings());
+    bindings.extend(talos::kernel::clipboard::bindings());
     registry.declare(bindings, settings);
     registry
 }
@@ -55,8 +55,8 @@ fn row(name: &str) -> SessionRow {
         name: name.to_string(),
         agent: "claude".to_string(),
         status: SessionState::Idle,
-        cwd: Some(PathBuf::from("/src/thurbox")),
-        repo: Some("thurbox".to_string()),
+        cwd: Some(PathBuf::from("/src/talos")),
+        repo: Some("talos".to_string()),
         repos: Vec::new(),
         branch: Some(format!("feat/{name}")),
         base_branch: None,
@@ -80,10 +80,10 @@ fn row(name: &str) -> SessionRow {
 fn publish(host: &LuaHost, snapshot: &Snapshot) {
     let themes = Themes::load(None);
     let registry = registry(host);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     host.publish(&Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot,
         attach_errors: &Default::default(),
         inflight: &[],
@@ -455,7 +455,7 @@ fn the_chords_v1_leaves_to_the_agent_are_marked_and_no_others_are() {
 #[test]
 fn a_bare_ctrl_letter_is_the_only_chord_that_defers() {
     // The gate v1 applies before handing a key to the pty. Anything else — an
-    // F-key alternate, Ctrl+, , Ctrl+/ — reaches thurbox from the terminal too.
+    // F-key alternate, Ctrl+, , Ctrl+/ — reaches talos from the terminal too.
     for chord in ["ctrl+d", "ctrl+x", "ctrl+w"] {
         assert!(is_ctrl_letter_chord(chord), "{chord}");
     }
@@ -499,7 +499,7 @@ fn the_bundled_plugins_agree_on_who_owns_which_chord() {
 /// reaches for it (issue #1024).
 #[test]
 fn copy_and_paste_resolve_through_the_registry_and_can_be_rebound() {
-    use thurbox::kernel::clipboard::{COPY_ACTION, PASTE_ACTION};
+    use talos::kernel::clipboard::{COPY_ACTION, PASTE_ACTION};
 
     let host = host();
     let mut registry = registry(&host);
@@ -533,7 +533,7 @@ fn copy_and_paste_resolve_through_the_registry_and_can_be_rebound() {
 /// modifier was dropped before any chord was built.
 #[test]
 fn a_cmd_chord_canonicalises_and_resolves() {
-    use thurbox::kernel::registry::{canonical_chord, normalise_chord};
+    use talos::kernel::registry::{canonical_chord, normalise_chord};
 
     assert_eq!(canonical_chord(&press("cmd+c")), "cmd+c");
     // Both spellings have to agree, or a declared chord never matches its press.
@@ -543,13 +543,13 @@ fn a_cmd_chord_canonicalises_and_resolves() {
     let host = host();
     let mut registry = registry(&host);
     registry
-        .rebind(thurbox::kernel::clipboard::COPY_ACTION, Some("cmd+c"))
+        .rebind(talos::kernel::clipboard::COPY_ACTION, Some("cmd+c"))
         .expect("cmd+c must be bindable");
     assert_eq!(
         registry
             .resolve(&press("cmd+c"), None)
             .map(|b| b.action.clone()),
-        Some(thurbox::kernel::clipboard::COPY_ACTION.to_string()),
+        Some(talos::kernel::clipboard::COPY_ACTION.to_string()),
         "a Cmd chord that resolves to nothing is issue #1024"
     );
 }

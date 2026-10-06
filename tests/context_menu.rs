@@ -10,14 +10,14 @@ use std::path::{Path, PathBuf};
 use ratatui::backend::TestBackend;
 use ratatui::Terminal;
 
-use thurbox::kernel::command::Command;
-use thurbox::kernel::host::{Click, KeyPress, LuaHost, Published, RenderContext};
-use thurbox::kernel::node::Identity;
-use thurbox::kernel::paint::{render_recording, PlaceholderSurfaces};
-use thurbox::kernel::registry::Registry;
-use thurbox::kernel::snapshot::{SessionRow, Snapshot};
-use thurbox::kernel::theme::Themes;
-use thurbox::session::SessionState;
+use talos::kernel::command::Command;
+use talos::kernel::host::{Click, KeyPress, LuaHost, Published, RenderContext};
+use talos::kernel::node::Identity;
+use talos::kernel::paint::{render_recording, PlaceholderSurfaces};
+use talos::kernel::registry::Registry;
+use talos::kernel::snapshot::{SessionRow, Snapshot};
+use talos::kernel::theme::Themes;
+use talos::session::SessionState;
 
 /// Opens a menu of three entries and a rule at its right press.
 const OPENER: &str = r#"
@@ -80,7 +80,7 @@ fn publish(host: &LuaHost, snapshot: &Snapshot) {
 fn publish_with(
     host: &LuaHost,
     snapshot: &Snapshot,
-    inflight: &[thurbox::kernel::command::InFlight],
+    inflight: &[talos::kernel::command::InFlight],
 ) {
     publish_hovered(host, snapshot, inflight, None);
 }
@@ -88,7 +88,7 @@ fn publish_with(
 fn publish_hovered(
     host: &LuaHost,
     snapshot: &Snapshot,
-    inflight: &[thurbox::kernel::command::InFlight],
+    inflight: &[talos::kernel::command::InFlight],
     hovered: Option<&Identity>,
 ) {
     let themes = Themes::load(None);
@@ -96,10 +96,10 @@ fn publish_hovered(
     let (bindings, settings) = host.declarations();
     registry.declare(bindings, settings);
     registry.declare_commands(host.commands());
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     host.publish(&Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot,
         attach_errors: &Default::default(),
         inflight,
@@ -421,7 +421,7 @@ fn row(name: &str, repo: &str) -> SessionRow {
 
 fn two_sessions() -> Snapshot {
     Snapshot {
-        sessions: vec![row("alpha", "thurbox"), row("beta", "website")],
+        sessions: vec![row("alpha", "talos"), row("beta", "website")],
         ..Snapshot::default()
     }
 }
@@ -591,7 +591,7 @@ fn right_click_folds_and_unfolds_every_host_and_repo() {
             .iter()
             .find(|(name, _)| name == key)
             .and_then(|(_, value)| match value {
-                Some(thurbox::kernel::registry::Value::Text(value)) => Some(value.as_str()),
+                Some(talos::kernel::registry::Value::Text(value)) => Some(value.as_str()),
                 _ => None,
             })
             .unwrap_or_else(|| panic!("missing {key} in {settings:?}"))
@@ -602,7 +602,7 @@ fn right_click_folds_and_unfolds_every_host_and_repo() {
         "{hosts}"
     );
     let repos = saved("sessions.folded_repos");
-    for repo in ["thurbox", "website", "infra"] {
+    for repo in ["talos", "website", "infra"] {
         assert!(repos.contains(repo), "{repo} missing from {repos}");
     }
     let folded = format!(
@@ -633,7 +633,7 @@ fn right_click_folds_and_unfolds_every_host_and_repo() {
     assert_eq!(cleared.len(), 2);
     assert!(cleared.iter().all(|(_, value)| matches!(
         value,
-        Some(thurbox::kernel::registry::Value::Text(text)) if text.is_empty()
+        Some(talos::kernel::registry::Value::Text(text)) if text.is_empty()
     )));
     let expanded = format!(
         "{:?}",
@@ -725,10 +725,10 @@ fn a_right_press_on_an_empty_list_opens_nothing() {
 
 /// The node carrying `id`, anywhere in the tree.
 fn node_with_id<'a>(
-    node: &'a thurbox::kernel::node::Node,
+    node: &'a talos::kernel::node::Node,
     id: &str,
-) -> Option<&'a thurbox::kernel::node::Node> {
-    use thurbox::kernel::node::Node;
+) -> Option<&'a talos::kernel::node::Node> {
+    use talos::kernel::node::Node;
     match node {
         Node::Text { identity, .. } if identity.id.as_deref() == Some(id) => Some(node),
         Node::Box { children, .. } => children.iter().find_map(|child| node_with_id(child, id)),
@@ -740,7 +740,7 @@ fn node_with_id<'a>(
 /// run that names its own colour (the chord hint) keeps it.
 #[test]
 fn the_highlight_is_the_row_nodes_style_not_its_runs() {
-    use thurbox::kernel::node::Node;
+    use talos::kernel::node::Node;
     let (_home, host) = menu_host();
     open(&host);
     let rendered = host.render(index_of(&host, "menu"), ctx()).expect("render");
@@ -792,7 +792,7 @@ fn a_menu_entry_does_not_act_on_a_session_other_than_the_one_pressed() {
     publish(
         &host,
         &Snapshot {
-            sessions: vec![row("alpha", "thurbox")],
+            sessions: vec![row("alpha", "talos")],
             ..Snapshot::default()
         },
     );
@@ -825,7 +825,7 @@ fn a_clean_force_delete_still_asks_before_removing_the_worktree() {
     let sessions = index_of(&host, "sessions");
     let beta = two_sessions().sessions[1].id.clone();
     let mut snapshot = two_sessions();
-    snapshot.sessions[1].git = Some(thurbox::kernel::snapshot::GitState {
+    snapshot.sessions[1].git = Some(talos::kernel::snapshot::GitState {
         files_changed: 0,
         insertions: 0,
         deletions: 0,
@@ -1042,7 +1042,7 @@ fn a_preserved_confirmation_pane_keeps_soft_delete_undo() {
 /// session: there is still nothing to sort.
 #[test]
 fn a_creation_in_flight_is_not_something_to_sort() {
-    use thurbox::kernel::command::{InFlight, Phase};
+    use talos::kernel::command::{InFlight, Phase};
     let host = LuaHost::new(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui"));
     publish_with(
         &host,
@@ -1051,7 +1051,7 @@ fn a_creation_in_flight_is_not_something_to_sort() {
             id: 1,
             kind: "create",
             session: String::new(),
-            subject: Some("thurbox".to_string()),
+            subject: Some("talos".to_string()),
             host: None,
             phase: Phase::Running,
             error: None,

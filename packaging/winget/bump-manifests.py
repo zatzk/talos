@@ -6,7 +6,7 @@ Usage: bump-manifests.py <version> <manifests_dir> <checksums.txt>
 Sets PackageVersion across all three manifests, and InstallerUrl/InstallerSha256
 (installer manifest) + ReleaseNotesUrl (locale manifest) to match the freshly
 published release. The Windows artifact's sha256 is read from the release
-`checksums.txt` (`thurbox-v<version>-x86_64-pc-windows-msvc.zip`) and emitted
+`checksums.txt` (`talos-v<version>-x86_64-pc-windows-msvc.zip`) and emitted
 uppercase (winget-pkgs validation normalizes to uppercase). Exits non-zero if
 that checksum is missing or any template anchor is not found, so CI fails loudly
 rather than submitting a stale/partial manifest set.
@@ -41,19 +41,19 @@ def main() -> int:
         if len(parts) == 2:
             checks[parts[1]] = parts[0]
 
-    fname = f"thurbox-v{version}-{TARGET}.zip"
+    fname = f"talos-v{version}-{TARGET}.zip"
     sha = checks.get(fname)
     if sha is None:
         print(f"error: checksum missing for: {fname}", file=sys.stderr)
         return 1
     sha = sha.upper()
 
-    version_manifest = base / "Thurbeen.thurbox.yaml"
-    installer_manifest = base / "Thurbeen.thurbox.installer.yaml"
-    locale_manifest = base / "Thurbeen.thurbox.locale.en-US.yaml"
+    version_manifest = base / "Thurbeen.talos.yaml"
+    installer_manifest = base / "Thurbeen.talos.installer.yaml"
+    locale_manifest = base / "Thurbeen.talos.locale.en-US.yaml"
 
-    url = f"https://github.com/Thurbeen/thurbox/releases/download/v{version}/{fname}"
-    notes = f"https://github.com/Thurbeen/thurbox/releases/tag/v{version}"
+    url = f"https://github.com/zatzk/talos/releases/download/v{version}/{fname}"
+    notes = f"https://github.com/zatzk/talos/releases/tag/v{version}"
     pv = rf"(?m)^PackageVersion:\s*.*$"
 
     # Version manifest: PackageVersion only.

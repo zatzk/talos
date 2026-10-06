@@ -1,4 +1,4 @@
-//! The one-time WSL row repair runs from `thurbox-cli`, not only from the TUI.
+//! The one-time WSL row repair runs from `talos-cli`, not only from the TUI.
 //!
 //! Schema v47 marks the repair as owed on whichever binary opens the database
 //! first, and a headless-driven install (an automation, the heartbeat keeper,
@@ -16,7 +16,7 @@ use std::process::{Command, Output};
 
 use serde_json::Value;
 
-/// A throwaway thurbox instance, pretending to run inside WSL distro
+/// A throwaway talos instance, pretending to run inside WSL distro
 /// `MagicDebian`: its own config, data and home, so nothing here reads or
 /// writes the operator's.
 struct Env {
@@ -37,21 +37,21 @@ impl Env {
     }
 
     fn db_path(&self) -> PathBuf {
-        self.path("data").join("thurbox.db")
+        self.path("data").join("talos.db")
     }
 
     fn run(&self, args: &[&str]) -> Output {
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         cmd.args(args);
         cmd.env("HOME", self.path("home"));
         cmd.env("USERPROFILE", self.path("home"));
-        cmd.env("THURBOX_CONFIG_DIR", self.path("config"));
-        cmd.env("THURBOX_DATA_DIR", self.path("data"));
+        cmd.env("TALOS_CONFIG_DIR", self.path("config"));
+        cmd.env("TALOS_DATA_DIR", self.path("data"));
         cmd.env("WSL_DISTRO_NAME", "MagicDebian");
-        cmd.env_remove("THURBOX_SOCKET");
-        cmd.env_remove("THURBOX_SESSION");
-        cmd.env_remove("THURBOX_SESSION_ID");
-        cmd.output().expect("run thurbox-cli")
+        cmd.env_remove("TALOS_SOCKET");
+        cmd.env_remove("TALOS_SESSION");
+        cmd.env_remove("TALOS_SESSION_ID");
+        cmd.output().expect("run talos-cli")
     }
 }
 
@@ -111,7 +111,7 @@ fn a_cli_invocation_repairs_the_rows_a_loopback_host_relabelled() {
     assert_eq!(
         backend_of(&rows, "relabelled"),
         "local-tmux",
-        "a session on the distro thurbox runs in is local to it"
+        "a session on the distro talos runs in is local to it"
     );
     // The rewrite is one-shot and clears its own mark, so this notice is the
     // only record the user ever gets that persisted rows changed. The CLI
@@ -141,7 +141,7 @@ fn a_cli_invocation_leaves_a_sibling_distros_sessions_remote() {
 
 /// The rows under the name a host *named* after the current distro registers
 /// as are two populations at once — that host's own sibling sessions, and
-/// local ones an older thurbox mislabelled — so the repair leaves them alone
+/// local ones an older talos mislabelled — so the repair leaves them alone
 /// rather than rewriting half of them onto the wrong machine.
 #[test]
 fn a_cli_invocation_leaves_a_shadow_hosts_sessions_alone() {

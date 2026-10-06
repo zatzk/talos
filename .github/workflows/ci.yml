@@ -84,12 +84,12 @@ jobs:
             lua:
               - 'ui/**'
               # `examples/lua/` is Lua that ships — the starter is embedded in the
-              # binary and is what `thurbox-cli plugin new` writes. `examples/panes/`
+              # binary and is what `talos-cli plugin new` writes. `examples/panes/`
               # is Lua somebody installs into their interface. Both are subject to
               # the same sandbox as a bundled pane.
               - 'examples/**'
               - 'selene.toml'
-              - 'thurbox.yml'
+              - 'talos.yml'
               - 'stylua.toml'
               - '.luarc.json'
               # The probes that hold the type definitions and the standard
@@ -119,7 +119,7 @@ jobs:
               - '.github/workflows/ci.yml'
             # The Windows harness needs a VM, but its psmux hook-status gate
             # probes do not: they check what the VM measured against the gate
-            # thurbox-cli reports (`runtime status --json`), and that
+            # talos-cli reports (`runtime status --json`), and that
             # comparison runs here against a stand-in CLI.
             windows_e2e_probes:
               - 'scripts/dev/e2e/windows-vm.sh'
@@ -364,7 +364,7 @@ jobs:
       matrix:
         # The helpers are platform-independent (the tests set
         # PROCESSOR_ARCHITECTURE themselves), but updating over a running
-        # thurbox.exe is only reproducible on Windows, and the installer must
+        # talos.exe is only reproducible on Windows, and the installer must
         # keep working on the Windows PowerShell 5.1 that ships with it.
         include:
           - { os: ubuntu-latest, shell: pwsh }
@@ -447,7 +447,7 @@ jobs:
         with:
           tool: selene,stylua
       - name: Lint the plugin interface
-        # `selene.toml` points at `thurbox.yml`, the plugin VM's real standard
+        # `selene.toml` points at `talos.yml`, the plugin VM's real standard
         # library — so this also checks that no plugin reaches for a capability
         # the kernel withholds.
         run: selene ui examples
@@ -556,7 +556,7 @@ jobs:
             echo ""
             echo "| Binary | Size |"
             echo "| ------ | ---- |"
-            for bin in thurbox thurbox-cli; do
+            for bin in talos talos-cli; do
               path="target/release/$bin"
               [ -f "$path" ] || continue
               size=$(du -h "$path" | cut -f1)
@@ -569,8 +569,8 @@ jobs:
         with:
           name: release-binaries
           path: |
-            target/release/thurbox
-            target/release/thurbox-cli
+            target/release/talos
+            target/release/talos-cli
           if-no-files-found: warn
 
   nix:
@@ -591,7 +591,7 @@ jobs:
       # package. Nextest runs the unit and integration tests in its own job.
       - run: nix flake check --all-systems -L
       - run: nix build -L
-      - run: ./result/bin/thurbox-cli version
+      - run: ./result/bin/talos-cli version
 
   all-checks:
     name: All Checks

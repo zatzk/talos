@@ -1,4 +1,4 @@
-//! Every window thurbox creates carries the `remain-on-exit` its role wants.
+//! Every window talos creates carries the `remain-on-exit` its role wants.
 //!
 //! The option is a **window** option, so `set-option -t <session>` never set it
 //! for a session — tmux resolves that target down to the session's current
@@ -23,7 +23,7 @@
 use std::collections::HashMap;
 use std::process::Command;
 
-use thurbox::kernel::terminal::{ProgramKey, Terminals};
+use talos::kernel::terminal::{ProgramKey, Terminals};
 
 /// The guard every tmux server in this file is reaped by — see its own doc.
 #[path = "support/tmux_server.rs"]
@@ -31,7 +31,7 @@ mod tmux_server;
 
 use tmux_server::TmuxServer;
 
-const SOCKET: &str = "thurbox-remain-on-exit-e2e";
+const SOCKET: &str = "talos-remain-on-exit-e2e";
 
 fn have_tmux() -> bool {
     Command::new("tmux")
@@ -93,20 +93,20 @@ async fn an_agent_window_keeps_its_corpse_and_a_program_window_does_not() {
 
     let dir = tempfile::tempdir().expect("tempdir");
     let _server = TmuxServer::pin(SOCKET);
-    thurbox::paths::set_test_dir(dir.path());
+    talos::paths::set_test_dir(dir.path());
 
     // The agent, through the headless spawn path — which creates the session and
     // applies its options on the way, exactly as a restart does. A long-lived
     // program: one that exits before tmux finishes setting the window up turns a
     // real failure into a skip.
-    let spawned = thurbox::backend::SessionBackend::create_window(
-        &thurbox::backend::tmux::TmuxBackend::new(),
-        &thurbox::backend::WindowSpec {
-            owner: thurbox::backend::Owner::new(
+    let spawned = talos::backend::SessionBackend::create_window(
+        &talos::backend::tmux::TmuxBackend::new(),
+        &talos::backend::WindowSpec {
+            owner: talos::backend::Owner::new(
                 "11111111-1111-4111-8111-111111111111",
                 "remain-on-exit",
             ),
-            role: thurbox::backend::WindowRole::Agent,
+            role: talos::backend::WindowRole::Agent,
             command: "sh",
             args: &["-c".to_string(), "sleep 300".to_string()],
             cwd: Some(dir.path()),
@@ -127,7 +127,7 @@ async fn an_agent_window_keeps_its_corpse_and_a_program_window_does_not() {
     // The plugin's program, through the control-mode path.
     let key = ProgramKey::new("plugins/90_files.lua", "editor_opts");
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     if let Err(e) = terminals.start_program(
         &key,
@@ -178,12 +178,12 @@ async fn adopting_a_program_window_normalises_what_it_finds() {
 
     let dir = tempfile::tempdir().expect("tempdir");
     let _server = TmuxServer::pin(SOCKET);
-    thurbox::paths::set_test_dir(dir.path());
+    talos::paths::set_test_dir(dir.path());
 
     let key = ProgramKey::new("plugins/90_files.lua", "editor_opts");
     let args = ["-c".to_string(), "sleep 300".to_string()];
     let mut first = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     if let Err(e) = first.start_program(&key, "sh", &args, Some(dir.path()), 24, 80) {
         panic!("the program pane could not be started: {e}");
@@ -204,7 +204,7 @@ async fn adopting_a_program_window_normalises_what_it_finds() {
     // adopted, exactly as a restart does.
     drop(first);
     let mut second = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let started = second.start_program(&key, "sh", &args, Some(dir.path()), 24, 80);
     let after = remain_on_exit(&pane);
@@ -244,16 +244,16 @@ async fn an_agent_that_dies_at_once_still_leaves_its_window() {
 
     let dir = tempfile::tempdir().expect("tempdir");
     let _server = TmuxServer::pin(SOCKET);
-    thurbox::paths::set_test_dir(dir.path());
+    talos::paths::set_test_dir(dir.path());
 
-    let spawned = thurbox::backend::SessionBackend::create_window(
-        &thurbox::backend::tmux::TmuxBackend::new(),
-        &thurbox::backend::WindowSpec {
-            owner: thurbox::backend::Owner::new(
+    let spawned = talos::backend::SessionBackend::create_window(
+        &talos::backend::tmux::TmuxBackend::new(),
+        &talos::backend::WindowSpec {
+            owner: talos::backend::Owner::new(
                 "22222222-2222-4222-8222-222222222222",
                 "dies-at-once",
             ),
-            role: thurbox::backend::WindowRole::Agent,
+            role: talos::backend::WindowRole::Agent,
             command: "sh",
             args: &["-c".to_string(), "exit 7".to_string()],
             cwd: Some(dir.path()),
@@ -289,7 +289,7 @@ async fn an_agent_that_dies_at_once_still_leaves_its_window() {
 /// And it still leaves it when an older window already answers to its name.
 ///
 /// `tb-<session name>` is not unique — two sessions can share a name, which is
-/// what the `@thurbox_session` stamp exists for — and tmux resolves a duplicate
+/// what the `@talos_session` stamp exists for — and tmux resolves a duplicate
 /// name to the **lowest index**, which is the older window (measured, tmux
 /// 3.2a). A retention chained by name would therefore land on the wrong window
 /// and leave the new one with the server-wide `off`, which is the failure this
@@ -303,18 +303,18 @@ async fn an_older_namesake_does_not_take_the_new_windows_retention() {
 
     let dir = tempfile::tempdir().expect("tempdir");
     let _server = TmuxServer::pin(SOCKET);
-    thurbox::paths::set_test_dir(dir.path());
+    talos::paths::set_test_dir(dir.path());
 
     // The older namesake, from the other session that shares the name. Spawned
     // through the same path, so it is a real one rather than a hand-made window.
-    let first = thurbox::backend::SessionBackend::create_window(
-        &thurbox::backend::tmux::TmuxBackend::new(),
-        &thurbox::backend::WindowSpec {
-            owner: thurbox::backend::Owner::new(
+    let first = talos::backend::SessionBackend::create_window(
+        &talos::backend::tmux::TmuxBackend::new(),
+        &talos::backend::WindowSpec {
+            owner: talos::backend::Owner::new(
                 "33333333-3333-4333-8333-333333333333",
                 "same-name",
             ),
-            role: thurbox::backend::WindowRole::Agent,
+            role: talos::backend::WindowRole::Agent,
             command: "sh",
             args: &["-c".to_string(), "sleep 300".to_string()],
             cwd: Some(dir.path()),
@@ -325,14 +325,14 @@ async fn an_older_namesake_does_not_take_the_new_windows_retention() {
         panic!("the first window could not be spawned: {first:?}");
     }
 
-    let second = thurbox::backend::SessionBackend::create_window(
-        &thurbox::backend::tmux::TmuxBackend::new(),
-        &thurbox::backend::WindowSpec {
-            owner: thurbox::backend::Owner::new(
+    let second = talos::backend::SessionBackend::create_window(
+        &talos::backend::tmux::TmuxBackend::new(),
+        &talos::backend::WindowSpec {
+            owner: talos::backend::Owner::new(
                 "44444444-4444-4444-8444-444444444444",
                 "same-name",
             ),
-            role: thurbox::backend::WindowRole::Agent,
+            role: talos::backend::WindowRole::Agent,
             command: "sh",
             args: &["-c".to_string(), "exit 7".to_string()],
             cwd: Some(dir.path()),
@@ -364,7 +364,7 @@ async fn an_older_namesake_does_not_take_the_new_windows_retention() {
     );
 }
 
-/// A window thurbox creates sizes itself, and the **server** never does.
+/// A window talos creates sizes itself, and the **server** never does.
 ///
 /// `window-size manual` is what keeps a window from being resized to the
 /// smallest attached client. Said server-wide it is fatal: tmux works out a
@@ -393,16 +393,16 @@ async fn a_window_is_born_sized_by_hand_and_the_server_is_not() {
 
     let dir = tempfile::tempdir().expect("tempdir");
     let _server = TmuxServer::pin(SOCKET);
-    thurbox::paths::set_test_dir(dir.path());
+    talos::paths::set_test_dir(dir.path());
 
-    let spawned = thurbox::backend::SessionBackend::create_window(
-        &thurbox::backend::tmux::TmuxBackend::new(),
-        &thurbox::backend::WindowSpec {
-            owner: thurbox::backend::Owner::new(
+    let spawned = talos::backend::SessionBackend::create_window(
+        &talos::backend::tmux::TmuxBackend::new(),
+        &talos::backend::WindowSpec {
+            owner: talos::backend::Owner::new(
                 "55555555-5555-4555-8555-555555555555",
                 "hand-sized",
             ),
-            role: thurbox::backend::WindowRole::Agent,
+            role: talos::backend::WindowRole::Agent,
             command: "sh",
             args: &["-c".to_string(), "sleep 300".to_string()],
             cwd: Some(dir.path()),
@@ -421,7 +421,7 @@ async fn a_window_is_born_sized_by_hand_and_the_server_is_not() {
 
     assert_eq!(
         window, "manual",
-        "a window thurbox creates must size itself rather than follow the \
+        "a window talos creates must size itself rather than follow the \
          smallest attached client"
     );
     assert_ne!(

@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 #
-# Benchmark raw tmux vs Herdr vs thurbox — the one command.
+# Benchmark raw tmux vs Herdr vs talos — the one command.
 #
 #   scripts/bench/run.sh                       # fetch, build, run every scenario
 #   scripts/bench/run.sh --quick --reps 1      # try the harness end to end
 #   scripts/bench/run.sh --scenarios latency   # one scenario (see run.py --help)
 #
-# Everything it creates lives under ${BENCH_CACHE:-~/.cache/thurbox-bench}:
+# Everything it creates lives under ${BENCH_CACHE:-~/.cache/talos-bench}:
 # the pinned Herdr binary, the sandboxes, and results-<timestamp>/. Nothing is
 # installed system-wide, and no server it starts outlives the run.
 #
-# It builds thurbox in release from THIS checkout (nice -n 10), then runs the
+# It builds talos in release from THIS checkout (nice -n 10), then runs the
 # timed scenarios at the shell's own niceness — say `git switch --detach
 # origin/main` first to measure main. tmux is whatever is on PATH; under
 # `nix develop` that is the flake's.
@@ -21,8 +21,8 @@ set -euo pipefail
 # tests" means inside a validation step must not reach for it. run.py refuses
 # too, for the scenario scripts run on their own; this one refuses before the
 # download and the build.
-if [ -n "${THURBOX_GATE:-}" ] && [ -z "${THURBOX_PERF_ALLOW_IN_GATE:-}" ]; then
-    echo "run.sh: refusing to run inside a validation step (THURBOX_GATE is set)." >&2
+if [ -n "${TALOS_GATE:-}" ] && [ -z "${TALOS_PERF_ALLOW_IN_GATE:-}" ]; then
+    echo "run.sh: refusing to run inside a validation step (TALOS_GATE is set)." >&2
     echo "This is a benchmark, not a test; run it by hand on a quiet machine." >&2
     exit 2
 fi
@@ -30,12 +30,12 @@ fi
 HERDR_VERSION=v0.9.1
 
 repo=$(cd "$(dirname "$0")/../.." && pwd)
-cache=${BENCH_CACHE:-$HOME/.cache/thurbox-bench}
+cache=${BENCH_CACHE:-$HOME/.cache/talos-bench}
 herdr_dir=$cache/herdr-$HERDR_VERSION-$(uname -m)
 export BENCH_CACHE=$cache
 
 build=1
-hosts=tmux,herdr,thurbox
+hosts=tmux,herdr,talos
 args=()
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -89,8 +89,8 @@ case ",$hosts," in
         ;;
 esac
 
-if [ "$build" = 1 ] && [[ ",$hosts," == *,thurbox,* ]]; then
-    (cd "$repo" && nice -n 10 cargo build --release --bin thurbox --bin thurbox-cli)
+if [ "$build" = 1 ] && [[ ",$hosts," == *,talos,* ]]; then
+    (cd "$repo" && nice -n 10 cargo build --release --bin talos --bin talos-cli)
 fi
 
 command -v tmux >/dev/null || {

@@ -10,7 +10,7 @@
 //! - a relative Markdown link whose target does not exist;
 //! - a `docs/<NAME>.md` or `.agents/skills/<name>` path that does not exist,
 //!   in any text file — a doc comment, a skill, a workflow, the website;
-//! - a `github.com/Thurbeen/thurbox/blob/main/<path>` link whose path does not
+//! - a `github.com/zatzk/talos/blob/main/<path>` link whose path does not
 //!   exist here;
 //! - a name in [`RETIRED`], anywhere.
 //!
@@ -150,7 +150,7 @@ fn every_relative_markdown_link_resolves() {
 fn every_document_path_names_a_document() {
     let path = Regex::new(DOC_PATH).unwrap();
     let blob =
-        Regex::new(r"github\.com/Thurbeen/thurbox/(?:blob|tree)/main/([\w.][^\s\x22'<>)#`]+)")
+        Regex::new(r"github\.com/zatzk/talos/(?:blob|tree)/main/([\w.][^\s\x22'<>)#`]+)")
             .unwrap();
     let mut missing = Vec::new();
     for (rel, text) in texts() {
@@ -202,10 +202,10 @@ fn the_patterns_catch_what_they_are_for() {
     assert_eq!(hits("see `docs/V2-KERNEL.md`."), ["docs/V2-KERNEL.md"]);
     assert_eq!(hits("docs/KERNEL.md owns it"), ["docs/KERNEL.md"]);
     assert_eq!(
-        hits("the `.agents/skills/thurbox-kernel/` skill"),
-        [".agents/skills/thurbox-kernel"]
+        hits("the `.agents/skills/talos-kernel/` skill"),
+        [".agents/skills/talos-kernel"]
     );
-    assert!(hits("~/.agents/skills/thurbox-ui/SKILL.md").is_empty());
+    assert!(hits("~/.agents/skills/talos-ui/SKILL.md").is_empty());
     assert!(hits("website/docs/INDEX.md").is_empty());
     assert!(hits("a demo repo's docs/notes.md").is_empty());
 

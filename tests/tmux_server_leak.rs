@@ -1,11 +1,11 @@
 //! A test run leaves no tmux server behind.
 //!
-//! thurbox injects `THURBOX_SOCKET` **and** `THURBOX_SOCKET_FOR` into every
-//! pane it spawns, so a suite run from inside a thurbox session — which is how
+//! talos injects `TALOS_SOCKET` **and** `TALOS_SOCKET_FOR` into every
+//! pane it spawns, so a suite run from inside a talos session — which is how
 //! this repository is developed — inherits both. `backend::instance::socket_for`
 //! reads the pair: an override tagged for somebody else's data directory is an
 //! inherited one and is dropped, and an instance that also relocated
-//! `THURBOX_DATA_DIR` then lands on a socket *derived* from that directory.
+//! `TALOS_DATA_DIR` then lands on a socket *derived* from that directory.
 //!
 //! That rule is right — a harness that isolated its database but not its server
 //! would be spawning windows on the operator's tmux — but it means a harness
@@ -79,7 +79,7 @@ fn repo(under: &Path) -> PathBuf {
     std::fs::create_dir_all(&dir).expect("mkdir");
     git(&dir, &["init", "-q", "-b", "main"]);
     git(&dir, &["config", "user.email", "t@example.com"]);
-    git(&dir, &["config", "user.name", "thurbox-leak"]);
+    git(&dir, &["config", "user.name", "talos-leak"]);
     git(&dir, &["config", "commit.gpgsign", "false"]);
     std::fs::write(dir.join("README.md"), "# probe\n").expect("write");
     git(&dir, &["add", "."]);
@@ -116,7 +116,7 @@ impl Profile {
         .expect("seed agents");
         Self {
             root,
-            server: TmuxServer::private(&format!("thurbox-leak-{}", std::process::id())),
+            server: TmuxServer::private(&format!("talos-leak-{}", std::process::id())),
         }
     }
 
@@ -124,28 +124,28 @@ impl Profile {
         self.root.path().join(sub)
     }
 
-    /// Run `thurbox-cli` in this profile, scoped the way a harness must scope
+    /// Run `talos-cli` in this profile, scoped the way a harness must scope
     /// itself: pinned socket, cleared owner tag, private socket directory.
     fn cli(&self, args: &[&str]) -> std::process::Output {
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         cmd.args(args);
         cmd.current_dir(self.root.path());
         cmd.env("HOME", self.path("home"));
         cmd.env("USERPROFILE", self.path("home"));
-        cmd.env("THURBOX_CONFIG_DIR", self.path("config"));
-        cmd.env("THURBOX_DATA_DIR", self.path("data"));
+        cmd.env("TALOS_CONFIG_DIR", self.path("config"));
+        cmd.env("TALOS_DATA_DIR", self.path("data"));
         // Pinned socket, cleared owner tag, private socket directory. The tag
-        // is the one a suite run inside a thurbox pane inherits: left in place
+        // is the one a suite run inside a talos pane inherits: left in place
         // it would rule the pin inherited — `cli_socket_isolation` owns that
         // resolution and pins it; here it simply has to be gone.
         self.server.scope(&mut cmd);
         cmd.env_remove("TMUX");
-        cmd.env_remove("THURBOX_SESSION");
-        cmd.env_remove("THURBOX_SESSION_ID");
+        cmd.env_remove("TALOS_SESSION");
+        cmd.env_remove("TALOS_SESSION_ID");
         for var in GIT_LOCATION_ENV {
             cmd.env_remove(var);
         }
-        cmd.output().expect("run thurbox-cli")
+        cmd.output().expect("run talos-cli")
     }
 }
 
@@ -211,7 +211,7 @@ fn a_scoped_run_leaves_no_tmux_server_behind() {
 /// `cfg(unix)` with the pair of tests that use it: the process table is read
 /// through `ps`, and a constant nothing reads is `dead_code` on Windows.
 #[cfg(unix)]
-const PROBE_REPORT_ENV: &str = "THURBOX_PANIC_PROBE_REPORT";
+const PROBE_REPORT_ENV: &str = "TALOS_PANIC_PROBE_REPORT";
 
 /// The probe test's name, as the libtest harness spells it.
 #[cfg(unix)]
@@ -309,7 +309,7 @@ fn a_harness_that_panics_after_starting_a_server() {
         return;
     }
 
-    let server = TmuxServer::pin(&format!("thurbox-panic-probe-{}", std::process::id()));
+    let server = TmuxServer::pin(&format!("talos-panic-probe-{}", std::process::id()));
     // A pane that outlives the test: one that exits takes the server with it
     // and would turn this probe into a test of tmux's own idle shutdown.
     let started = server.tmux(&["new-session", "-d", "-s", "probe", "sleep", "300"]);
@@ -426,13 +426,13 @@ fn scope_failures(src: &str) -> (usize, Vec<String>) {
     let pinned = marks(
         &lines,
         Some("SOCKET_OVERRIDE_ENV"),
-        "\"THURBOX_SOCKET\"",
+        "\"TALOS_SOCKET\"",
         &SET,
     );
     let mut clears = marks(
         &lines,
         Some("SOCKET_OWNER_ENV"),
-        "\"THURBOX_SOCKET_FOR\"",
+        "\"TALOS_SOCKET_FOR\"",
         &CLEAR,
     );
     // No crate constant for this one: tmux's own variable, set by name.
@@ -442,7 +442,7 @@ fn scope_failures(src: &str) -> (usize, Vec<String>) {
     for at in &pinned {
         let mut missing = Vec::new();
         if !claim_nearest(&mut clears, *at) {
-            missing.push("clear THURBOX_SOCKET_FOR");
+            missing.push("clear TALOS_SOCKET_FOR");
         }
         if !claim_nearest(&mut scopes, *at) {
             missing.push("set TMUX_TMPDIR to a directory of its own");
@@ -470,7 +470,7 @@ const GUARD_TYPE: &str = "TmuxServer";
 /// every harness's mistake. So the rule did not go away, it moved.
 ///
 /// Read off the source rather than by running it: the leak only shows up on a
-/// machine where the suite runs inside a thurbox pane, and a run that does leak
+/// machine where the suite runs inside a talos pane, and a run that does leak
 /// still passes every assertion it makes. Comments are stripped first, the way
 /// `tests/architecture_rules.rs` strips them before extracting references — a
 /// rule read off raw text is satisfied by prose.
@@ -490,7 +490,7 @@ fn the_guard_scopes_every_socket_it_pins() {
     assert!(
         failures.is_empty(),
         "these pins in {GUARD} leak a tmux server when the suite runs inside a \
-         thurbox pane:\n  {}",
+         talos pane:\n  {}",
         failures.join("\n  ")
     );
 }
@@ -532,7 +532,7 @@ fn no_harness_pins_a_socket_outside_the_guard() {
         for at in marks(
             &lines,
             Some("SOCKET_OVERRIDE_ENV"),
-            "\"THURBOX_SOCKET\"",
+            "\"TALOS_SOCKET\"",
             &SET,
         ) {
             offenders.push(format!(

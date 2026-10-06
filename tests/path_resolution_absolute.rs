@@ -36,7 +36,7 @@ fn an_empty_path_component_never_resolves_to_a_relative_program() {
     let saved_path = std::env::var_os("PATH");
     std::env::set_var("PATH", format!(":{}", dir.path().to_string_lossy()));
 
-    let found = thurbox::paths::resolve_on_path(marker);
+    let found = talos::paths::resolve_on_path(marker);
 
     match saved_path {
         Some(v) => std::env::set_var("PATH", v),
@@ -48,7 +48,7 @@ fn an_empty_path_component_never_resolves_to_a_relative_program() {
     assert!(
         found.is_absolute(),
         "resolved to {found:?}, which the consumer would resolve from its own \
-         working directory rather than thurbox's"
+         working directory rather than talos's"
     );
     assert_eq!(found.file_name().unwrap(), marker);
 }

@@ -1,4 +1,4 @@
-//! SQLite-backed persistent storage for Thurbox state.
+//! SQLite-backed persistent storage for Talos state.
 //!
 //! Replaces `state.toml` and `shared_state.toml` with a single SQLite database.
 //! Provides soft delete with `deleted_at` columns and a full audit trail.
@@ -134,7 +134,7 @@ pub(super) fn action_from_columns(kind: &str, cols: ActionColumns) -> Automation
 /// SQLite-backed database for application state.
 pub struct Database {
     conn: Connection,
-    /// Unique ID for this thurbox instance (used in audit trail).
+    /// Unique ID for this talos instance (used in audit trail).
     instance_id: String,
 }
 
@@ -197,7 +197,7 @@ impl Database {
     /// another connection has already overtaken fails with `SQLITE_BUSY`
     /// **without consulting `busy_timeout`** — immediately, however long
     /// [`schema::BUSY_TIMEOUT`] is. The database is shared by the TUI,
-    /// `thurbox-cli` and every agent hook, so that is not a rare interleaving:
+    /// `talos-cli` and every agent hook, so that is not a rare interleaving:
     /// it is what a restart recording its new pane hits while a hook reports a
     /// state change.
     ///
@@ -244,7 +244,7 @@ mod tests {
     #[test]
     fn open_creates_parent_dirs() {
         let temp_dir = tempfile::TempDir::new().unwrap();
-        let path = temp_dir.path().join("sub").join("dir").join("thurbox.db");
+        let path = temp_dir.path().join("sub").join("dir").join("talos.db");
 
         let db = Database::open(&path);
         assert!(db.is_ok());
@@ -301,7 +301,7 @@ mod tests {
         use std::time::{Duration, Instant};
 
         let dir = tempfile::TempDir::new().unwrap();
-        let path = dir.path().join("thurbox.db");
+        let path = dir.path().join("talos.db");
         let db = Database::open(&path).unwrap();
         let subject = session_row("restarting");
         let peer_row = session_row("peer");
@@ -377,7 +377,7 @@ mod tests {
         use std::sync::Arc;
 
         let dir = tempfile::TempDir::new().unwrap();
-        let path = dir.path().join("thurbox.db");
+        let path = dir.path().join("talos.db");
         let db = Database::open(&path).unwrap();
         let subject = session_row("restarting");
         let peer_row = session_row("chatty");
@@ -388,7 +388,7 @@ mod tests {
         let peer_stop = Arc::clone(&stop);
         let peer_path = path.clone();
         let peer_id = peer_row.id;
-        // What every agent hook does: `thurbox-cli session signal`, on its own
+        // What every agent hook does: `talos-cli session signal`, on its own
         // connection, as often as the agent changes state.
         let peer = std::thread::spawn(move || {
             let db = Database::open_existing(&peer_path).unwrap();

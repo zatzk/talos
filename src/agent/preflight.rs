@@ -1,11 +1,11 @@
 //! Whether the binaries a session needs are actually installed.
 //!
-//! thurbox deliberately starts with no multiplexer and no coding agent on the
+//! talos deliberately starts with no multiplexer and no coding agent on the
 //! machine (`docs/CONSTITUTION.md`) — browsing, reading and configuring must
 //! work on a fresh box. The cost is that the check used to happen at the worst
 //! possible moment: the user committed to creating a session and got a number
 //! back (`tmux new-window exited exit status: 127`), which names neither the
-//! binary, nor where thurbox looked, nor what to install.
+//! binary, nor where talos looked, nor what to install.
 //!
 //! This module is the one answer to "is the thing that would run this actually
 //! there?", asked in three places:
@@ -15,7 +15,7 @@
 //!   frame);
 //! - the spawn error, so a failure names the binary, the directories searched
 //!   and the fix ([`crate::backend::tmux`]);
-//! - `thurbox-cli doctor`, so it can be asked directly.
+//! - `talos-cli doctor`, so it can be asked directly.
 //!
 //! It never blocks anything. A `Missing` answer is a warning on the choice
 //! being made, not a refusal: an agent `command` can be a shell function, an
@@ -29,11 +29,11 @@ use crate::session::Multiplexer;
 
 /// How many search directories a one-line message names before it summarizes
 /// the rest. A `PATH` of thirty entries is ordinary; a message that prints all
-/// of them is unreadable in a TUI's one-line message row, and `thurbox-cli
+/// of them is unreadable in a TUI's one-line message row, and `talos-cli
 /// doctor` prints the full list for the case where every entry matters.
 const DIRS_IN_A_MESSAGE: usize = 6;
 
-/// What thurbox found when it looked for a binary.
+/// What talos found when it looked for a binary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Presence {
     /// A file that can be executed is there.
@@ -130,10 +130,10 @@ fn names_to_try(exe: &str) -> Vec<String> {
     names
 }
 
-/// A binary thurbox needs, and what a user does about it not being there.
+/// A binary talos needs, and what a user does about it not being there.
 ///
 /// Carries the *role* rather than the bare name because the fix depends on it:
-/// a multiplexer is a package to install, an agent is a CLI thurbox knows
+/// a multiplexer is a package to install, an agent is a CLI talos knows
 /// nothing about beyond the `command` the registry gives it.
 #[derive(Debug, Clone, Copy)]
 pub enum Dependency<'a> {
@@ -167,9 +167,9 @@ impl Dependency<'_> {
     fn role(&self) -> String {
         match self {
             Dependency::LocalMultiplexer | Dependency::Multiplexer(_) => {
-                format!("{} (thurbox's multiplexer)", self.binary())
+                format!("{} (talos's multiplexer)", self.binary())
             }
-            Dependency::Launcher(bin) => format!("{bin} (how thurbox reaches a host)"),
+            Dependency::Launcher(bin) => format!("{bin} (how talos reaches a host)"),
             Dependency::Agent { name, command } if name == command => {
                 format!("{name} (a coding agent)")
             }
@@ -181,12 +181,12 @@ impl Dependency<'_> {
 
     /// The one thing to do about it, on *this* platform.
     ///
-    /// Never a package-manager line thurbox has not verified: where the command
+    /// Never a package-manager line talos has not verified: where the command
     /// depends on a distribution, this names the package and links the
-    /// project's own install page instead of guessing an invocation. thurbox
+    /// project's own install page instead of guessing an invocation. talos
     /// bakes in no agent knowledge either (`docs/AGENTS.md`), so a missing
     /// agent is answered with the registry entry that decides what gets run
-    /// rather than with an install command for a CLI thurbox does not know.
+    /// rather than with an install command for a CLI talos does not know.
     pub fn fix(&self) -> String {
         match self {
             Dependency::LocalMultiplexer | Dependency::Multiplexer(_) => {
@@ -222,17 +222,17 @@ impl Dependency<'_> {
         format!("`{}` was not found on PATH; {}", self.binary(), self.fix())
     }
 
-    /// The whole sentence: what is missing, the fix, and where thurbox looked.
+    /// The whole sentence: what is missing, the fix, and where talos looked.
     ///
     /// One line, and in that order deliberately. It is rendered in a TUI
     /// message row, which is as wide as the terminal and no wider, so what
     /// comes last is what a narrow screen loses — and of the three, the list of
-    /// directories is both the longest and the one `thurbox-cli doctor` prints
+    /// directories is both the longest and the one `talos-cli doctor` prints
     /// in full anyway. A reader who sees only the first clause still knows what
     /// is missing and roughly what to do.
     pub fn missing_message(&self) -> String {
         format!(
-            "{} is not installed, or not on thurbox's own PATH. Fix: {}. {}",
+            "{} is not installed, or not on talos's own PATH. Fix: {}. {}",
             self.role(),
             self.fix(),
             searched(self.binary()),
@@ -240,7 +240,7 @@ impl Dependency<'_> {
     }
 }
 
-/// Where thurbox looked for `binary`, as a phrase.
+/// Where talos looked for `binary`, as a phrase.
 ///
 /// Reads [`crate::paths::path_dirs`] rather than re-deriving the list, so the
 /// message can never name a search the resolver did not do.
@@ -267,7 +267,7 @@ fn searched(binary: &str) -> String {
 ///
 /// [`std::process::Command`]'s `spawn`/`output` fails before anything has run,
 /// so a `NotFound` here is exactly one thing: the program named is not
-/// installed, or is not on the `PATH` thurbox was started with. That is the
+/// installed, or is not on the `PATH` talos was started with. That is the
 /// whole content of the report this module exists for, and it used to reach the
 /// user as `No such file or directory (os error 2)` under a context line that
 /// named tmux without saying tmux was the thing that was missing.
@@ -334,7 +334,7 @@ mod tests {
     fn a_relative_command_is_unknown_because_its_directory_is_not_ours() {
         // `./bin/agent` is resolved by whoever launches it, from the *session's*
         // working directory — the repo or worktree the window is opened in, not
-        // thurbox's own. Answering from this process's directory would report a
+        // talos's own. Answering from this process's directory would report a
         // binary that launches fine as missing, and one that does not as
         // present. Not looking is the honest answer, and `Unknown` is how this
         // module says it.
@@ -407,7 +407,7 @@ mod tests {
             assert!(fix.contains("tmux"), "{fix}");
             assert!(
                 !fix.contains("apt install"),
-                "the distribution is not thurbox's to guess: {fix}"
+                "the distribution is not talos's to guess: {fix}"
             );
         }
     }

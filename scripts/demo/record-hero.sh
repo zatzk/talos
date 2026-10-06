@@ -2,10 +2,10 @@
 # Regenerate the hero demo — the clip the README opens with and the website's
 # first video:
 #
-#   media/thurbox-demo.gif                    (README)
-#   media/thurbox-demo.mp4                    (copied into website/assets/ at
+#   media/talos-demo.gif                    (README)
+#   media/talos-demo.mp4                    (copied into website/assets/ at
 #                                              deploy time by pages.yml)
-#   website/assets/thurbox-demo-poster.webp   (committed; the poster frame)
+#   website/assets/talos-demo-poster.webp   (committed; the poster frame)
 #
 #   scripts/demo/record-hero.sh               # the whole regeneration
 #
@@ -16,12 +16,12 @@
 #
 # Not a VHS tape. VHS cannot press a mouse button, and the context menu opens on
 # a right press, nor can it send F-keys or Ctrl+punctuation, so a tape has to
-# rebind half the chords it shows. Here thurbox runs under asciinema inside a
+# rebind half the chords it shows. Here talos runs under asciinema inside a
 # private tmux server and `tmux send-keys` presses the real keys — a right press
 # is the SGR mouse report a terminal would send. agg rasterises the cast.
 #
 # **The remote host is a stand-in `ssh`, not a machine.** `devbox` is declared
-# in hosts.toml like any SSH host, and thurbox reaches it through `ssh` on PATH —
+# in hosts.toml like any SSH host, and talos reaches it through `ssh` on PATH —
 # which here is a script that drops the options and the destination and runs
 # the rest on this machine, under a HOME and a tmux socket directory of the
 # host's own (the same stand-in tests/backend_routes.rs uses). Everything
@@ -29,7 +29,7 @@
 # control-mode connection, the host's own multiplexer server. Anybody can rerun
 # it without a second machine, a container runtime or an sshd.
 #
-# Isolation: HOME, XDG and thurbox's config/data all point into $SBX, and both
+# Isolation: HOME, XDG and talos's config/data all point into $SBX, and both
 # tmux servers (this machine's and devbox's) live under its TMUX_TMPDIR, so the
 # teardown cannot reach a server you have running. The agents boot with no
 # history; codex's auth token is copied in (it shows no identity when signed
@@ -58,15 +58,15 @@ FONT_SIZE="${FONT_SIZE:-20}"
 GIF_FONT_SIZE="${GIF_FONT_SIZE:-12}"
 FPS="${FPS:-20}"
 THEME="${THEME:-doom}"
-# Boot is cut from the clip: thurbox adopting the sessions and the agents
+# Boot is cut from the clip: talos adopting the sessions and the agents
 # drawing their first screen is not something to watch.
 BOOT_SECS="${BOOT_SECS:-12}"
 POSTER_AT="${POSTER_AT:-4}"
 # Short and fixed: AF_UNIX socket paths are length-limited, and HOME is under it.
-SBX="${SBX:-/tmp/thurbox-hero}"
+SBX="${SBX:-/tmp/talos-hero}"
 # Every run starts with `rm -rf "$SBX"`, so an SBX pointed at a directory this
 # script did not make (`SBX=~`) must be refused rather than emptied.
-if [ -e "$SBX" ] && [ ! -e "$SBX/.thurbox-hero" ]; then
+if [ -e "$SBX" ] && [ ! -e "$SBX/.talos-hero" ]; then
     echo "error: $SBX exists and is not a sandbox this script made; refusing to wipe it" >&2
     exit 1
 fi
@@ -100,22 +100,22 @@ done
 # The session -> agent pairing below cycles through what is installed.
 agent_for() { echo "${agents[$(($1 % ${#agents[@]}))]}"; }
 
-echo "==> building thurbox (dev)"
-(cd "$ROOT" && cargo build --bin thurbox --bin thurbox-cli) || exit 1
+echo "==> building talos (dev)"
+(cd "$ROOT" && cargo build --bin talos --bin talos-cli) || exit 1
 
 REAL_HOME="$HOME"
-REC_SOCKET="thurbox-hero-rec"
+REC_SOCKET="talos-hero-rec"
 export TMUX_TMPDIR="$SBX/tmux"
 export HOME="$SBX/home"
 export XDG_CONFIG_HOME="$HOME/.config" XDG_DATA_HOME="$HOME/.local/share"
 export XDG_STATE_HOME="$HOME/.local/state" XDG_CACHE_HOME="$HOME/.cache"
-export THURBOX_CONFIG_DIR="$XDG_CONFIG_HOME/thurbox"
-export THURBOX_DATA_DIR="$XDG_DATA_HOME/thurbox"
-# Names nothing else uses — never `thurbox`: the teardown kills these by name,
+export TALOS_CONFIG_DIR="$XDG_CONFIG_HOME/talos"
+export TALOS_DATA_DIR="$XDG_DATA_HOME/talos"
+# Names nothing else uses — never `talos`: the teardown kills these by name,
 # and a socket directory that failed to apply must not make that name yours.
-export THURBOX_SOCKET="thurbox-hero"
-DEVBOX_SOCKET="thurbox-hero-devbox"
-unset THURBOX_SOCKET_FOR TMUX
+export TALOS_SOCKET="talos-hero"
+DEVBOX_SOCKET="talos-hero-devbox"
+unset TALOS_SOCKET_FOR TMUX
 DEVBOX_HOME="$SBX/devbox"
 PATH="$SBX/bin:$ROOT/target/debug:$PATH"
 export PATH
@@ -124,7 +124,7 @@ export OPENCODE_DISABLE_AUTOUPDATE=true CODEX_DISABLE_UPDATE_CHECK=1 \
 
 cleanup() {
     tmux -L "$REC_SOCKET" kill-server 2>/dev/null
-    tmux -L "$THURBOX_SOCKET" kill-server 2>/dev/null
+    tmux -L "$TALOS_SOCKET" kill-server 2>/dev/null
     TMUX_TMPDIR="$TMUX_TMPDIR/devbox" tmux -L "$DEVBOX_SOCKET" kill-server 2>/dev/null
     # Whatever an agent daemonised out of its pane runs from a binary it
     # installed under the sandbox, so the path names it and nothing else.
@@ -141,9 +141,9 @@ KEEP_SANDBOX= cleanup  # a kept sandbox is for inspecting the last run, not reus
 # exit (which runs the EXIT trap) instead of tearing down and carrying on.
 trap cleanup EXIT
 trap 'exit 130' INT TERM
-mkdir -p "$TMUX_TMPDIR" "$HOME" "$THURBOX_CONFIG_DIR" "$THURBOX_DATA_DIR" \
+mkdir -p "$TMUX_TMPDIR" "$HOME" "$TALOS_CONFIG_DIR" "$TALOS_DATA_DIR" \
     "$DEVBOX_HOME" "$SBX/bin"
-touch "$SBX/.thurbox-hero"
+touch "$SBX/.talos-hero"
 
 # --- devbox: the stand-in ssh ----------------------------------------------------
 cat > "$SBX/bin/ssh" <<SH
@@ -166,7 +166,7 @@ exec sh -c "\$*"
 SH
 chmod +x "$SBX/bin/ssh"
 
-cat > "$THURBOX_CONFIG_DIR/hosts.toml" <<TOML
+cat > "$TALOS_CONFIG_DIR/hosts.toml" <<TOML
 [[hosts]]
 name = "devbox"
 destination = "devbox"
@@ -176,7 +176,7 @@ TOML
 
 # Both flags reach the network: one puts an upgrade notice in the top band, the
 # other replaces binaries on startup.
-cat > "$THURBOX_CONFIG_DIR/settings.toml" <<'TOML'
+cat > "$TALOS_CONFIG_DIR/settings.toml" <<'TOML'
 [features]
 version_check = false
 auto_update = false
@@ -191,7 +191,7 @@ TOML
         # taken and dies printing the daemon's log.
         [ "$a" = codex ] && printf 'args = ["--no-daemon"]\n'
     done
-} > "$THURBOX_CONFIG_DIR/agents.toml"
+} > "$TALOS_CONFIG_DIR/agents.toml"
 
 # --- Demo repositories ------------------------------------------------------------
 git_q() { git -c user.email=demo@example.invalid -c user.name=demo -c commit.gpgsign=false "$@"; }
@@ -201,14 +201,14 @@ make_repo() {
     git_q -C "$1" add -A
     git_q -C "$1" commit -qm init
 }
-make_repo "$HOME/thurbox"
+make_repo "$HOME/talos"
 make_repo "$HOME/website"
 make_repo "$DEVBOX_HOME/api-gateway"
 make_repo "$DEVBOX_HOME/ml-pipeline"
 
 # --- Agent first-run state --------------------------------------------------------
 # Trust prompts and onboarding screens would otherwise be what every pane shows.
-trusted=("$HOME/thurbox" "$HOME/website" "$DEVBOX_HOME/api-gateway" "$DEVBOX_HOME/ml-pipeline")
+trusted=("$HOME/talos" "$HOME/website" "$DEVBOX_HOME/api-gateway" "$DEVBOX_HOME/ml-pipeline")
 seed_agent_home() {
     local home="$1"
     if [ -f "$REAL_HOME/.codex/auth.json" ]; then
@@ -236,8 +236,8 @@ echo 'set -g focus-events on' | tee "$HOME/.tmux.conf" > "$DEVBOX_HOME/.tmux.con
 # --- Sessions ---------------------------------------------------------------------
 # Named after the work, so the list reads as one backlog in flight. Worktree
 # sessions carry the branch mark in the list.
-thurbox-cli extension deactivate hooks >/dev/null 2>&1
-thurbox-cli config accept-interface >/dev/null 2>&1
+talos-cli extension deactivate hooks >/dev/null 2>&1
+talos-cli config accept-interface >/dev/null 2>&1
 
 i=0
 create() { # name repo branch [host]
@@ -246,18 +246,18 @@ create() { # name repo branch [host]
         --worktree-branch "$branch" --base-branch main)
     [ -n "$host" ] && args+=(--host "$host")
     echo "==> session $name${host:+ on $host}"
-    thurbox-cli "${args[@]}" >/dev/null || exit 1
+    talos-cli "${args[@]}" >/dev/null || exit 1
     i=$((i + 1))
 }
-create fix-osc52-tmux "$HOME/thurbox" fix/osc52-tmux
-create add-wsl-host-tests "$HOME/thurbox" test/wsl-hosts
-create perf-session-order "$HOME/thurbox" perf/session-order
+create fix-osc52-tmux "$HOME/talos" fix/osc52-tmux
+create add-wsl-host-tests "$HOME/talos" test/wsl-hosts
+create perf-session-order "$HOME/talos" perf/session-order
 create docs-landing-copy "$HOME/website" docs/landing-copy
 create rate-limit-middleware "$DEVBOX_HOME/api-gateway" feat/rate-limit devbox
 create fix-auth-refresh "$DEVBOX_HOME/api-gateway" fix/auth-refresh devbox
 create retrain-nightly "$DEVBOX_HOME/ml-pipeline" ci/retrain-nightly devbox
 
-DB="$THURBOX_DATA_DIR/thurbox.db"
+DB="$TALOS_DATA_DIR/talos.db"
 sqlite3 "$DB" "
 INSERT INTO metadata (key, value) VALUES ('v2_interface_acknowledged', '1')
   ON CONFLICT(key) DO UPDATE SET value = excluded.value;
@@ -279,17 +279,17 @@ CAST="$SBX/hero.cast"
 TRIMMED="$SBX/trimmed.cast"
 GIF="$SBX/hero.gif"
 
-echo "==> recording thurbox (${COLS}x${ROWS})"
-# asciinema owns the pty, so `send-keys` reaches thurbox through it. The env is
+echo "==> recording talos (${COLS}x${ROWS})"
+# asciinema owns the pty, so `send-keys` reaches talos through it. The env is
 # spelled out because a new tmux server starts its panes from its own
 # environment, not this script's.
 tmux -L "$REC_SOCKET" new-session -d -x "$COLS" -y "$ROWS" -c "$HOME" -s r \
     "env TERM=xterm-256color HOME=$HOME TMUX_TMPDIR=$TMUX_TMPDIR \
      XDG_CONFIG_HOME=$XDG_CONFIG_HOME XDG_DATA_HOME=$XDG_DATA_HOME \
      XDG_STATE_HOME=$XDG_STATE_HOME XDG_CACHE_HOME=$XDG_CACHE_HOME \
-     THURBOX_CONFIG_DIR=$THURBOX_CONFIG_DIR THURBOX_DATA_DIR=$THURBOX_DATA_DIR \
-     THURBOX_SOCKET=$THURBOX_SOCKET PATH=$PATH \
-     asciinema rec --overwrite --quiet --cols $COLS --rows $ROWS -c thurbox '$CAST'"
+     TALOS_CONFIG_DIR=$TALOS_CONFIG_DIR TALOS_DATA_DIR=$TALOS_DATA_DIR \
+     TALOS_SOCKET=$TALOS_SOCKET PATH=$PATH \
+     asciinema rec --overwrite --quiet --cols $COLS --rows $ROWS -c talos '$CAST'"
 START=$SECONDS
 
 send() { tmux -L "$REC_SOCKET" send-keys -t r "$@"; }
@@ -388,18 +388,18 @@ echo "==> rasterising with agg"
 agg --font-dir "$FONT_DIR" --font-family "$FONT_FAMILY" --font-size "$FONT_SIZE" \
     --fps-cap "$FPS" --theme asciinema "$TRIMMED" "$GIF" || exit 1
 
-echo "==> encoding media/thurbox-demo.{gif,mp4} and the poster"
+echo "==> encoding media/talos-demo.{gif,mp4} and the poster"
 # `-r $FPS`: ffmpeg reads GIF frame delays as a ~100 fps variable rate.
 ffmpeg -y -loglevel error -i "$GIF" -r "$FPS" \
     -c:v libx264 -preset slow -crf 28 -pix_fmt yuv420p -movflags +faststart \
-    -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" "$ROOT/media/thurbox-demo.mp4" || exit 1
+    -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" "$ROOT/media/talos-demo.mp4" || exit 1
 # The README GIF is rendered a second time at a smaller font rather than scaled
 # down from the first: agg only emits a frame when the screen changes, and
 # re-encoding through ffmpeg turns that into one full frame per tick.
 agg --font-dir "$FONT_DIR" --font-family "$FONT_FAMILY" --font-size "$GIF_FONT_SIZE" \
-    --fps-cap "$FPS" --theme asciinema "$TRIMMED" "$ROOT/media/thurbox-demo.gif" || exit 1
+    --fps-cap "$FPS" --theme asciinema "$TRIMMED" "$ROOT/media/talos-demo.gif" || exit 1
 ffmpeg -y -loglevel error -ss "$POSTER_AT" -i "$GIF" -frames:v 1 -c:v libwebp -quality 88 \
-    "$ROOT/website/assets/thurbox-demo-poster.webp" || exit 1
+    "$ROOT/website/assets/talos-demo-poster.webp" || exit 1
 
-ls -la "$ROOT/media/thurbox-demo.gif" "$ROOT/media/thurbox-demo.mp4" \
-    "$ROOT/website/assets/thurbox-demo-poster.webp"
+ls -la "$ROOT/media/talos-demo.gif" "$ROOT/media/talos-demo.mp4" \
+    "$ROOT/website/assets/talos-demo-poster.webp"

@@ -1,4 +1,4 @@
-//! What `thurbox-cli watch` streams, and what it can no longer lose.
+//! What `talos-cli watch` streams, and what it can no longer lose.
 //!
 //! The command used to sample every session's state on a 250 ms timer and diff
 //! the samples, which is exactly wrong for the thing a driver watches for: two
@@ -20,9 +20,9 @@ use std::sync::mpsc;
 use std::time::Duration;
 
 use serde_json::Value;
-use thurbox::session::SessionId;
-use thurbox::storage::Database;
-use thurbox::sync::SharedSession;
+use talos::session::SessionId;
+use talos::storage::Database;
+use talos::sync::SharedSession;
 
 /// The guard every tmux server in this file is reaped by — see its own doc.
 #[path = "support/tmux_server.rs"]
@@ -49,7 +49,7 @@ name = "codex"
 command = "codex"
 "#;
 
-/// A throwaway thurbox instance: its own config, data, home and multiplexer
+/// A throwaway talos instance: its own config, data, home and multiplexer
 /// socket, so nothing here reads or writes the operator's.
 struct Env {
     root: tempfile::TempDir,
@@ -69,7 +69,7 @@ impl Env {
         std::fs::write(agents, AGENTS_TOML).expect("write agents.toml");
         Self {
             root,
-            server: TmuxServer::private("thurbox-watch-test"),
+            server: TmuxServer::private("talos-watch-test"),
         }
     }
 
@@ -78,22 +78,22 @@ impl Env {
     }
 
     fn db(&self) -> Database {
-        Database::open(&self.path("data").join("thurbox.db")).expect("open the instance database")
+        Database::open(&self.path("data").join("talos.db")).expect("open the instance database")
     }
 
     /// Start `watch` with the given flags, its stdout on a pipe.
     fn watch(&self, args: &[&str]) -> Watch {
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         cmd.arg("watch").args(args);
         cmd.env("HOME", self.path("home"));
         cmd.env("USERPROFILE", self.path("home"));
         cmd.env("XDG_DATA_HOME", self.path("home").join("xdg-data"));
         cmd.env("XDG_CONFIG_HOME", self.path("home").join("xdg-config"));
-        cmd.env("THURBOX_CONFIG_DIR", self.path("config"));
-        cmd.env("THURBOX_DATA_DIR", self.path("data"));
+        cmd.env("TALOS_CONFIG_DIR", self.path("config"));
+        cmd.env("TALOS_DATA_DIR", self.path("data"));
         self.server.scope(&mut cmd);
-        cmd.env_remove("THURBOX_SESSION");
-        cmd.env_remove("THURBOX_SESSION_ID");
+        cmd.env_remove("TALOS_SESSION");
+        cmd.env_remove("TALOS_SESSION_ID");
         let mut child = cmd
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
@@ -271,7 +271,7 @@ fn gone_says_which_delete_it_was() {
     assert_eq!(second["name"], Value::String("hard".into()));
 }
 
-/// `created` says where the session came from — thurbox launched it, it was
+/// `created` says where the session came from — talos launched it, it was
 /// adopted while already running, or it came back from the deleted list.
 #[test]
 fn created_says_where_the_session_came_from() {
@@ -335,7 +335,7 @@ fn a_parked_session_gets_no_hook_events() {
     assert_eq!(event_of(&parked), ("changed", "stopped"));
     assert_eq!(parked["stopped"], Value::Bool(true));
     assert_eq!(parked["state"], Value::String("stopped".into()));
-    // The park cleared the latched state; the word came from thurbox, not the
+    // The park cleared the latched state; the word came from talos, not the
     // agent, so nothing may launder it back into the column.
     assert_eq!(parked["from_state"], Value::String("working".into()));
 
@@ -362,14 +362,14 @@ fn the_stream_ends_when_the_reader_closes() {
 
     // Read directly rather than through the pump thread: this test has to *drop*
     // the pipe, which the pump would keep open.
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     cmd.args(["watch", "--json", "--initial", "--for-secs", "120"]);
     cmd.env("HOME", env.path("home"));
     cmd.env("USERPROFILE", env.path("home"));
     cmd.env("XDG_DATA_HOME", env.path("home").join("xdg-data"));
     cmd.env("XDG_CONFIG_HOME", env.path("home").join("xdg-config"));
-    cmd.env("THURBOX_CONFIG_DIR", env.path("config"));
-    cmd.env("THURBOX_DATA_DIR", env.path("data"));
+    cmd.env("TALOS_CONFIG_DIR", env.path("config"));
+    cmd.env("TALOS_DATA_DIR", env.path("data"));
     env.server.scope(&mut cmd);
     let mut child = cmd
         .stdout(Stdio::piped())
@@ -659,13 +659,13 @@ fn verify_names_the_agent_running_in_the_sessions_pane() {
         use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o700)).expect("chmod");
     }
-    // `thurbox-dev` is the group a test build's local backend puts its
+    // `talos-dev` is the group a test build's local backend puts its
     // windows under, and `tb-<name>` is a session's agent window.
     let started = env.server.tmux(&[
         "new-session",
         "-d",
         "-s",
-        "thurbox-dev",
+        "talos-dev",
         "-n",
         "tb-worker",
         &fake.to_string_lossy(),

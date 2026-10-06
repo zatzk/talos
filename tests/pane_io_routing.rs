@@ -25,11 +25,11 @@ use std::time::{Duration, Instant};
 
 use clap::Parser;
 use serde_json::Value;
-use thurbox::backend::{SessionBackend, WindowRole};
-use thurbox::kernel::command::{Command as KernelCommand, CommandBus, Phase};
-use thurbox::session::{Multiplexer, Route, SessionId, Via};
-use thurbox::storage::Database;
-use thurbox::sync::SharedSession;
+use talos::backend::{SessionBackend, WindowRole};
+use talos::kernel::command::{Command as KernelCommand, CommandBus, Phase};
+use talos::session::{Multiplexer, Route, SessionId, Via};
+use talos::storage::Database;
+use talos::sync::SharedSession;
 
 #[path = "support/tmux_server.rs"]
 mod tmux_server;
@@ -40,7 +40,7 @@ mod recording_backend;
 use recording_backend::RecordingBackend;
 use tmux_server::TmuxServer;
 
-const SOCKET: &str = "thurbox-pane-io-routing";
+const SOCKET: &str = "talos-pane-io-routing";
 
 /// Driven directly: sharing off, so the kernel and the sweeps reach the host
 /// through its backend, and a CLI pane verb delegates to the host's own CLI
@@ -77,10 +77,10 @@ impl Instance {
         // Both forms: the thread-local override for this thread, and the
         // process-wide ones for the command bus's workers, which would
         // otherwise resolve the real paths.
-        thurbox::paths::set_test_dir(root.path());
-        std::env::set_var(thurbox::paths::CONFIG_DIR_OVERRIDE_ENV, root.path());
-        std::env::set_var(thurbox::paths::DATA_DIR_OVERRIDE_ENV, root.path());
-        let config = thurbox::paths::config_file()
+        talos::paths::set_test_dir(root.path());
+        std::env::set_var(talos::paths::CONFIG_DIR_OVERRIDE_ENV, root.path());
+        std::env::set_var(talos::paths::DATA_DIR_OVERRIDE_ENV, root.path());
+        let config = talos::paths::config_file()
             .expect("config path")
             .parent()
             .expect("config dir")
@@ -105,16 +105,16 @@ impl Instance {
         let mut dirs = vec![bin];
         dirs.extend(std::env::split_paths(&path));
         std::env::set_var("PATH", std::env::join_paths(dirs).expect("PATH"));
-        for var in ["TMUX", "TMUX_PANE", "THURBOX_SESSION", "THURBOX_SESSION_ID"] {
+        for var in ["TMUX", "TMUX_PANE", "TALOS_SESSION", "TALOS_SESSION_ID"] {
             std::env::remove_var(var);
         }
         // No heartbeat: arming one is a supervisor window on this machine's
         // own multiplexer whatever a session's route, and it is routed with
         // status, not here. Automations still fire through `automation tick`.
-        let mut settings = thurbox::session::settings::Settings::default();
+        let mut settings = talos::session::settings::Settings::default();
         settings.features.automations = false;
         settings.multiplexer = multiplexer.map(str::to_string);
-        thurbox::session::settings::init(settings);
+        talos::session::settings::init(settings);
         // What a headless create reads its default multiplexer from.
         if let Some(mux) = multiplexer {
             std::fs::write(
@@ -134,7 +134,7 @@ impl Instance {
 
     /// The database the command bus opens for itself, so both halves read one.
     fn db(&self) -> Database {
-        Database::open(&thurbox::paths::database_file().expect("db path")).expect("open db")
+        Database::open(&talos::paths::database_file().expect("db path")).expect("open db")
     }
 
     fn ssh_log(&self) -> String {
@@ -188,7 +188,7 @@ fn repo() -> tempfile::TempDir {
     let dir = tempfile::tempdir().expect("tempdir");
     git(dir.path(), &["init", "-q", "-b", "main"]);
     git(dir.path(), &["config", "user.email", "t@example.com"]);
-    git(dir.path(), &["config", "user.name", "thurbox-test"]);
+    git(dir.path(), &["config", "user.name", "talos-test"]);
     git(dir.path(), &["config", "commit.gpgsign", "false"]);
     std::fs::write(dir.path().join("README.md"), "# probe\n").expect("write");
     git(dir.path(), &["add", "."]);
@@ -220,8 +220,8 @@ fn seed_row(db: &Database, id: SessionId, name: &str, backend_type: &str, pane: 
 fn configured_with(
     local: &Arc<RecordingBackend>,
     far: &Arc<RecordingBackend>,
-) -> thurbox::backend::BackendRegistry {
-    let (mut backends, _hosts, _warnings) = thurbox::backend::wiring::configured();
+) -> talos::backend::BackendRegistry {
+    let (mut backends, _hosts, _warnings) = talos::backend::wiring::configured();
     backends.register(Route::local(Some(Multiplexer::Rmux)), local.clone());
     backends.register(
         Route::remote(Via::Ssh, "probehost", Some(Multiplexer::Rmux)),
@@ -233,8 +233,8 @@ fn configured_with(
 /// One registry for the CLI and one for the kernel, as the two binaries each
 /// build their own — serving the same two probes.
 struct Registries {
-    cli: thurbox::cli::Backends<'static>,
-    kernel: Arc<thurbox::backend::BackendRegistry>,
+    cli: talos::cli::Backends<'static>,
+    kernel: Arc<talos::backend::BackendRegistry>,
     probe: Arc<RecordingBackend>,
     far: Arc<RecordingBackend>,
 }
@@ -247,43 +247,43 @@ fn registries() -> Registries {
         Some(Multiplexer::Rmux),
     ));
     Registries {
-        cli: thurbox::cli::Backends::ready(configured_with(&probe, &far)),
+        cli: talos::cli::Backends::ready(configured_with(&probe, &far)),
         kernel: Arc::new(configured_with(&probe, &far)),
         probe,
         far,
     }
 }
 
-/// `thurbox-cli --json <args>` in-process, returning the document it printed.
+/// `talos-cli --json <args>` in-process, returning the document it printed.
 fn cli(
     db: &Database,
-    backends: &thurbox::cli::Backends<'_>,
+    backends: &talos::cli::Backends<'_>,
     args: &[&str],
 ) -> Result<Value, String> {
     let parsed =
-        thurbox::cli::Cli::try_parse_from(["thurbox-cli", "--json"].iter().chain(args).copied())
+        talos::cli::Cli::try_parse_from(["talos-cli", "--json"].iter().chain(args).copied())
             .map_err(|e| format!("parse {args:?}: {e}"))?;
     let output = match parsed.command {
-        Some(thurbox::cli::Command::Session { action }) => {
-            thurbox::cli::sessions::run(action, db, backends).map_err(|e| e.message)?
+        Some(talos::cli::Command::Session { action }) => {
+            talos::cli::sessions::run(action, db, backends).map_err(|e| e.message)?
         }
-        Some(thurbox::cli::Command::Automation { action }) => {
-            thurbox::cli::automations::run(action, db, backends)?
+        Some(talos::cli::Command::Automation { action }) => {
+            talos::cli::automations::run(action, db, backends)?
         }
-        Some(thurbox::cli::Command::Task { action }) => {
-            thurbox::cli::tasks::run(action, db, backends)?
+        Some(talos::cli::Command::Task { action }) => {
+            talos::cli::tasks::run(action, db, backends)?
         }
-        Some(thurbox::cli::Command::Message { action }) => {
-            thurbox::cli::messages::run(action, db).map_err(|e| e.message)?
+        Some(talos::cli::Command::Message { action }) => {
+            talos::cli::messages::run(action, db).map_err(|e| e.message)?
         }
         // A stream rather than a document: run it through the dispatcher,
         // which prints each line, and report only whether it ran.
-        Some(thurbox::cli::Command::Watch(_)) => {
-            let parsed = thurbox::cli::Cli::try_parse_from(
-                ["thurbox-cli", "--json"].iter().chain(args).copied(),
+        Some(talos::cli::Command::Watch(_)) => {
+            let parsed = talos::cli::Cli::try_parse_from(
+                ["talos-cli", "--json"].iter().chain(args).copied(),
             )
             .expect("parsed once already");
-            thurbox::cli::run(parsed, db, backends).map_err(|e| e.message)?;
+            talos::cli::run(parsed, db, backends).map_err(|e| e.message)?;
             return Ok(Value::Null);
         }
         other => panic!("not a command this test drives: {other:?}"),
@@ -295,13 +295,13 @@ fn cli(
 }
 
 /// [`cli`], returning the document whether or not the command failed.
-fn cli_doc(db: &Database, backends: &thurbox::cli::Backends<'_>, args: &[&str]) -> Value {
+fn cli_doc(db: &Database, backends: &talos::cli::Backends<'_>, args: &[&str]) -> Value {
     let parsed =
-        thurbox::cli::Cli::try_parse_from(["thurbox-cli", "--json"].iter().chain(args).copied())
+        talos::cli::Cli::try_parse_from(["talos-cli", "--json"].iter().chain(args).copied())
             .expect("parse");
     match parsed.command {
-        Some(thurbox::cli::Command::Session { action }) => {
-            thurbox::cli::sessions::run(action, db, backends)
+        Some(talos::cli::Command::Session { action }) => {
+            talos::cli::sessions::run(action, db, backends)
                 .map_err(|e| e.message)
                 .expect("a document")
                 .json
@@ -340,7 +340,7 @@ fn kernel(bus: &mut CommandBus, command: KernelCommand) -> Result<(), String> {
 }
 
 /// Mark an automation due and fire it headlessly, returning its last run.
-fn fire(db: &Database, backends: &thurbox::cli::Backends<'_>, id: i64) -> Value {
+fn fire(db: &Database, backends: &talos::cli::Backends<'_>, id: i64) -> Value {
     cli(db, backends, &["automation", "run", &id.to_string()]).expect("mark due");
     cli(db, backends, &["automation", "tick"]).expect("tick");
     let runs = cli(db, backends, &["automation", "runs", &id.to_string()]).expect("runs");
@@ -587,7 +587,7 @@ fn every_pane_pathway_reaches_the_backend_the_route_names() {
 
     probe.forget_calls();
     let mut store =
-        thurbox::kernel::snapshot::SnapshotStore::with_database(instance.db(), &reg.kernel);
+        talos::kernel::snapshot::SnapshotStore::with_database(instance.db(), &reg.kernel);
     let deadline = Instant::now() + Duration::from_secs(10);
     while !probe.called("pane_state") && Instant::now() < deadline {
         std::thread::sleep(Duration::from_millis(100));
@@ -638,7 +638,7 @@ fn a_remote_rows_text_never_reaches_a_local_namesake() {
 
     // The local namesake: `tb-x` on this machine's server, unstamped, echoing
     // whatever it is sent.
-    let local = thurbox::backend::tmux::TmuxBackend::new();
+    let local = talos::backend::tmux::TmuxBackend::new();
     local.ensure_ready().expect("ready the private server");
     let local_pane = local
         .spawn("tb-x", "cat", &[], None, &Default::default(), 24, 80)
@@ -787,7 +787,7 @@ fn a_spawn_automation_never_types_into_a_window_no_row_owns() {
     .expect("create a spawn automation");
     let spawn_id = spawn["id"].as_i64().unwrap();
 
-    let local = thurbox::backend::tmux::TmuxBackend::new();
+    let local = talos::backend::tmux::TmuxBackend::new();
     local.ensure_ready().expect("ready the private server");
     let stranger = local
         .spawn(
@@ -885,12 +885,12 @@ fn a_spawn_reuses_only_what_it_can_see_and_refuses_what_it_cannot_tell() {
 
     // A task whose earlier session sits on a local backend that does not
     // answer, while a new one could still be created on the default one.
-    let (mut backends, _hosts, _warnings) = thurbox::backend::wiring::configured();
+    let (mut backends, _hosts, _warnings) = talos::backend::wiring::configured();
     backends.register(Route::local(Some(Multiplexer::Rmux)), reg.probe.clone());
     let silent_route = Route::local(Some(Multiplexer::Herdr));
     let silent = RecordingBackend::new(&silent_route);
     backends.register(silent_route, silent.clone());
-    let with_silent = thurbox::cli::Backends::ready(backends);
+    let with_silent = talos::cli::Backends::ready(backends);
     let task = cli(
         &db,
         &reg.cli,

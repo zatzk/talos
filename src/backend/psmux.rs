@@ -103,7 +103,7 @@ impl TmuxCompatible for Psmux {
     const SERVER_SCOPE: &str = "-g";
 
     /// Without `-t`, psmux may route `set-option -g` to `__default` even when
-    /// the thurbox session is live under the same socket.
+    /// the talos session is live under the same socket.
     const SERVER_OPTIONS_NEED_TARGET: bool = true;
 
     /// psmux has no locale sanitizing, and need not know tmux's `-u`.
@@ -189,7 +189,7 @@ impl TmuxCompatible for Psmux {
     ///
     /// ```text
     /// $ printf 'display-message -p first\ndisplay-message -p second\n' \
-    ///     | psmux -L s -C attach-session -t thurbox
+    ///     | psmux -L s -C attach-session -t talos
     /// %begin 1789657328 1 1     <- the first command sent, not the attach
     /// %begin 1789657328 2 1
     /// ```
@@ -205,7 +205,7 @@ impl TmuxCompatible for Psmux {
     /// No format subscriptions either, so a remote psmux connection **polls**
     /// the hook-state option — but only where a producer can exist: a *remote*
     /// psmux host, once its status channel is open ([`Self::HOOK_STATUS`]). A
-    /// local psmux session signals via `thurbox-cli` straight into the DB.
+    /// local psmux session signals via `talos-cli` straight into the DB.
     fn control_policy(transport: &TmuxTransport, session: &str) -> ControlPolicy {
         ControlPolicy {
             flow_control_command: Some("refresh-client -f pause-after=5"),
@@ -227,7 +227,7 @@ impl TmuxCompatible for Psmux {
     /// `SessionInfo::hook_wiring`), and a psmux host's sessions report no
     /// status — unknown, not idle. `scripts/dev/e2e/windows-vm.sh test` probes
     /// the first two and holds them against this answer, which it reads from
-    /// `thurbox-cli runtime status --json` (`hook_status`); open it only with
+    /// `talos-cli runtime status --json` (`hook_status`); open it only with
     /// evidence for all three.
     const HOOK_STATUS: bool = false;
 
@@ -786,7 +786,7 @@ mod tests {
                  if [ \"$scenario\" = needs_unsized_bootstrap ]; then\n\
                    for arg do\n\
                      if [ \"$arg\" = -x ] || [ \"$arg\" = -y ]; then\n\
-                       echo \"psmux: failed to create session 'thurbox'\" >&2\n\
+                       echo \"psmux: failed to create session 'talos'\" >&2\n\
                        exit 1\n\
                      fi\n\
                    done\n\
@@ -798,12 +798,12 @@ mod tests {
                    if [ \"$count\" -eq 0 ]; then\n\
                      (sleep 0.3; touch \"$session\") >/dev/null 2>&1 &\n\
                    fi\n\
-                   echo \"psmux: failed to create session 'thurbox'\" >&2\n\
+                   echo \"psmux: failed to create session 'talos'\" >&2\n\
                    exit 1\n\
                  fi\n\
                  if [ \"$scenario\" = always_refused ] || \
                     {{ [ \"$scenario\" = refused_once ] && [ \"$count\" -eq 0 ]; }}; then\n\
-                   echo \"psmux: failed to create session 'thurbox'\" >&2\n\
+                   echo \"psmux: failed to create session 'talos'\" >&2\n\
                    exit 1\n\
                  fi\n\
                  if [ \"$scenario\" = vanished_once ] && [ \"$count\" -eq 0 ]; then\n\
@@ -819,7 +819,7 @@ mod tests {
                    global=false; targeted=false; prev=''\n\
                    for arg do\n\
                      [ \"$arg\" = -g ] && global=true\n\
-                     [ \"$prev\" = -t ] && [ \"$arg\" = thurbox ] && targeted=true\n\
+                     [ \"$prev\" = -t ] && [ \"$arg\" = talos ] && targeted=true\n\
                      prev=$arg\n\
                    done\n\
                    if [ \"$global\" = true ] && [ \"$targeted\" != true ]; then\n\
@@ -862,7 +862,7 @@ mod tests {
         PsmuxBackend::with_transport(
             TmuxTransport::local(mux.to_string_lossy()),
             "private-socket",
-            "thurbox",
+            "talos",
             "local:psmux",
         )
     }
@@ -1029,14 +1029,14 @@ mod tests {
     /// the agent reports "stdin is unreadable (EISDIR)" and exits.
     #[test]
     fn psmux_older_than_3_3_7_is_refused_with_the_upgrade() {
-        let err = check_psmux_version("tmux 3.3.6\n", "thurbox")
+        let err = check_psmux_version("tmux 3.3.6\n", "talos")
             .unwrap_err()
             .to_string();
         assert!(err.contains("3.3.6"), "{err}");
         assert!(err.contains("3.3.7"), "{err}");
-        assert!(err.contains("`psmux -L thurbox kill-server`"), "{err}");
-        assert!(check_psmux_version("tmux 3.3.5", "thurbox").is_err());
-        assert!(check_psmux_version("psmux 3.2.9", "thurbox").is_err());
+        assert!(err.contains("`psmux -L talos kill-server`"), "{err}");
+        assert!(check_psmux_version("tmux 3.3.5", "talos").is_err());
+        assert!(check_psmux_version("psmux 3.2.9", "talos").is_err());
     }
 
     /// `#{version}` is answered by the running server, which is what matters:
@@ -1046,8 +1046,8 @@ mod tests {
     /// born.
     #[test]
     fn an_old_psmux_banner_is_refused_before_a_server_starts() {
-        assert!(Psmux::check_banner("tmux 3.3.6\n", "thurbox").is_err());
-        assert!(Psmux::check_banner("tmux 3.3.8\npsmux 3.3.8 (x)\n", "thurbox").is_ok());
+        assert!(Psmux::check_banner("tmux 3.3.6\n", "talos").is_err());
+        assert!(Psmux::check_banner("tmux 3.3.8\npsmux 3.3.8 (x)\n", "talos").is_ok());
     }
 
     /// An old binary on `PATH` beside a server that is new enough is no
@@ -1056,39 +1056,39 @@ mod tests {
     #[test]
     fn a_safe_running_server_outranks_an_old_binary() {
         use crate::backend::tmux_compat::server::admit_banner;
-        let old = Psmux::check_banner("tmux 3.3.6\n", "thurbox");
-        assert!(admit_banner::<Psmux>(old, Some("3.3.8".into()), "thurbox").is_ok());
-        let old = Psmux::check_banner("tmux 3.3.6\n", "thurbox");
-        assert!(admit_banner::<Psmux>(old, Some("3.3.6".into()), "thurbox").is_err());
-        let old = Psmux::check_banner("tmux 3.3.6\n", "thurbox");
-        assert!(admit_banner::<Psmux>(old, None, "thurbox").is_err());
+        let old = Psmux::check_banner("tmux 3.3.6\n", "talos");
+        assert!(admit_banner::<Psmux>(old, Some("3.3.8".into()), "talos").is_ok());
+        let old = Psmux::check_banner("tmux 3.3.6\n", "talos");
+        assert!(admit_banner::<Psmux>(old, Some("3.3.6".into()), "talos").is_err());
+        let old = Psmux::check_banner("tmux 3.3.6\n", "talos");
+        assert!(admit_banner::<Psmux>(old, None, "talos").is_err());
     }
 
     #[test]
     fn a_running_server_is_judged_by_its_own_version() {
-        assert!(check_psmux_version("3.3.6\n", "thurbox").is_err());
-        assert!(check_psmux_version("3.3.8", "thurbox").is_ok());
+        assert!(check_psmux_version("3.3.6\n", "talos").is_err());
+        assert!(check_psmux_version("3.3.8", "talos").is_ok());
     }
 
     #[test]
     fn psmux_3_3_7_and_newer_is_accepted() {
         assert!(
-            check_psmux_version("tmux 3.3.8\npsmux 3.3.8 (66cf613 2026-08-18)\n", "thurbox")
+            check_psmux_version("tmux 3.3.8\npsmux 3.3.8 (66cf613 2026-08-18)\n", "talos")
                 .is_ok()
         );
-        assert!(check_psmux_version("tmux 3.3.7\npsmux 3.3.7", "thurbox").is_ok());
-        assert!(check_psmux_version("psmux 3.4.0", "thurbox").is_ok());
-        assert!(check_psmux_version("psmux 4.0", "thurbox").is_ok());
+        assert!(check_psmux_version("tmux 3.3.7\npsmux 3.3.7", "talos").is_ok());
+        assert!(check_psmux_version("psmux 3.4.0", "talos").is_ok());
+        assert!(check_psmux_version("psmux 4.0", "talos").is_ok());
         // A pre-release suffix on the patch is still that patch, not 0.
-        assert!(check_psmux_version("psmux 3.3.9-dev", "thurbox").is_ok());
+        assert!(check_psmux_version("psmux 3.3.9-dev", "talos").is_ok());
     }
 
     /// A banner this cannot read says nothing about the fix, and refusing it
     /// would lock out every later psmux that changes how it prints `-V`.
     #[test]
     fn an_unreadable_psmux_banner_is_not_refused() {
-        assert!(check_psmux_version("", "thurbox").is_ok());
-        assert!(check_psmux_version("psmux (dev build)", "thurbox").is_ok());
+        assert!(check_psmux_version("", "talos").is_ok());
+        assert!(check_psmux_version("psmux (dev build)", "talos").is_ok());
     }
 
     /// psmux gets its own `send-paste`: the bracketed markers are psmux's to add,
@@ -1096,13 +1096,13 @@ mod tests {
     /// would otherwise cut the line and run the tail as a command (psmux #560).
     #[test]
     fn paste_prompt_args_uses_send_paste_for_psmux() {
-        let args = Psmux::paste_args("thurbox:tb-demo", "line one\nline two");
+        let args = Psmux::paste_args("talos:tb-demo", "line one\nline two");
         assert_eq!(
             args,
             vec![
                 "send-paste",
                 "-t",
-                "thurbox:tb-demo",
+                "talos:tb-demo",
                 "bGluZSBvbmUKbGluZSB0d28=",
             ]
         );
@@ -1121,12 +1121,12 @@ mod tests {
         // `Set-Item Env:K 'v'` (not `$env:K`) keeps the string `$`-free; sorted
         // for determinism. Values with spaces survive the PS single quotes.
         let mut env = HashMap::new();
-        env.insert("THURBOX_SESSION".to_string(), "id-1".to_string());
+        env.insert("TALOS_SESSION".to_string(), "id-1".to_string());
         env.insert("B".to_string(), "x y".to_string());
         let cmd = psmux_window_command("claude", &[], &env);
         assert_eq!(
             cmd,
-            "\"Set-Item Env:B 'x y'; Set-Item Env:THURBOX_SESSION 'id-1'; & 'claude'\""
+            "\"Set-Item Env:B 'x y'; Set-Item Env:TALOS_SESSION 'id-1'; & 'claude'\""
         );
     }
 
@@ -1192,7 +1192,7 @@ mod tests {
             "psmux",
         );
         for transport in [TmuxTransport::local("psmux"), ssh] {
-            let policy = Psmux::control_policy(&transport, "thurbox");
+            let policy = Psmux::control_policy(&transport, "talos");
             assert!(!policy.implicit_attach_reply);
             assert!(!policy.tagged_blocks);
             assert!(!policy.subscriptions);
@@ -1203,7 +1203,7 @@ mod tests {
         }
         assert_eq!(
             hook_poll_command("a\"b\\c"),
-            "list-panes -s -t \"abc\" -F \"#{pane_id} #{@thurbox_state}\""
+            "list-panes -s -t \"abc\" -F \"#{pane_id} #{@talos_state}\""
         );
     }
 
@@ -1536,12 +1536,12 @@ mod tests {
             |socket: &str| Psmux::hook_signal_command(&PsmuxBackend::for_host(&host(socket)));
         assert_eq!(
             command("we\"ird sock\\et"),
-            "psmux -L weirdsocket set-option -p @thurbox_state "
+            "psmux -L weirdsocket set-option -p @talos_state "
         );
         assert_eq!(
             command("\"\\ "),
             format!(
-                "psmux -L {} set-option -p @thurbox_state ",
+                "psmux -L {} set-option -p @talos_state ",
                 crate::backend::instance::TMUX_SOCKET
             )
         );

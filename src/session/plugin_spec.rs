@@ -272,7 +272,7 @@ impl PluginSpec {
 /// name = "atlas"
 /// description = "A map of your sessions"
 /// version = "v0.3.1"
-/// requires_thurbox = ">=2.0"
+/// requires_talos = ">=2.0"
 ///
 /// # a pane, and where it lands. Repeated for each one the package carries.
 /// [[pane]]
@@ -289,7 +289,7 @@ impl PluginSpec {
 /// one version, one pin, one lock record — and not a unit of pane. The plugins
 /// people have shipped carry two and three panes over one `lib/`, one gate and one
 /// version history; under one pane each, a manifest's `version` and
-/// `requires_thurbox` would describe one of them and the rest would install a
+/// `requires_talos` would describe one of them and the rest would install a
 /// destination at a time forever.
 ///
 /// `pane = { … }` is kept as sugar for a single `[[pane]]`, so every manifest
@@ -305,11 +305,11 @@ pub struct PackageManifest {
     /// source offers nothing better to pin to.
     #[serde(default)]
     pub version: Option<String>,
-    /// The thurbox versions this package expects. Advisory: recorded and
+    /// The talos versions this package expects. Advisory: recorded and
     /// reported, not enforced at load — one place in the kernel knowing about
     /// versions is enough.
     #[serde(default)]
-    pub requires_thurbox: Option<String>,
+    pub requires_talos: Option<String>,
     /// The panes this package delivers, in the order the manifest declares them.
     /// The first is the one a spec entry is keyed on unless `--as` names another.
     #[serde(rename = "pane", deserialize_with = "one_or_several_panes")]

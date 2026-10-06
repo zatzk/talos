@@ -1,4 +1,4 @@
-//! Rebuilding the `thurbox.*` tables plugins read.
+//! Rebuilding the `talos.*` tables plugins read.
 //!
 //! `republish` runs once per painted frame and once per input *batch*, not once
 //! per event — a held-down key otherwise paid for it per repeat. Within it every
@@ -8,7 +8,7 @@
 
 use std::time::Instant;
 
-use thurbox::kernel::metrics::Subject;
+use talos::kernel::metrics::Subject;
 
 use super::browser_available;
 use crate::{App, LINK_SCAN_INTERVAL};
@@ -36,7 +36,7 @@ impl App {
         // not the agent's pane is the one on screen.
         let surfaces: Vec<String> = sessions
             .iter()
-            .flat_map(|id| [id.clone(), thurbox::kernel::terminal::shell_surface(id)])
+            .flat_map(|id| [id.clone(), talos::kernel::terminal::shell_surface(id)])
             .collect();
         self.refresh_links(&surfaces);
         // Generation-gated, so an idle session costs one atomic load. The
@@ -64,7 +64,7 @@ impl App {
         let ui_dir = self.ui_dir.clone();
         let registry = &self.registry;
         let trust = &self.trust;
-        self.inventory = thurbox::kernel::inventory::rows(
+        self.inventory = talos::kernel::inventory::rows(
             &self.host.plugins,
             &self.sources,
             &visible,
@@ -74,15 +74,15 @@ impl App {
                 trust
                     .get(path)
                     .copied()
-                    .unwrap_or(thurbox::kernel::inventory::Trust::NotAsked)
+                    .unwrap_or(talos::kernel::inventory::Trust::NotAsked)
             },
             &|path| registry.is_disabled(&ui_dir.join(path).to_string_lossy()),
         );
         let inventory = std::mem::take(&mut self.inventory);
         let ui_dir = self.ui_dir.display().to_string();
         let meta = self.terminals.meta_map();
-        if let Err(e) = self.host.publish(&thurbox::kernel::host::Published {
-            epoch: thurbox::kernel::host::Epoch {
+        if let Err(e) = self.host.publish(&talos::kernel::host::Published {
+            epoch: talos::kernel::host::Epoch {
                 snapshot: self.snapshots.version(),
                 themes: self.themes.version(),
                 registry: self.registry.version(),
@@ -140,7 +140,7 @@ impl App {
     /// On reload, and after this process edits one — the two moments the answer
     /// can have changed. Not per frame: it digests every file.
     pub(crate) fn refresh_sources(&mut self) {
-        self.sources = thurbox::kernel::bundled::sources(&self.ui_dir);
+        self.sources = talos::kernel::bundled::sources(&self.ui_dir);
         // Delivery just re-read the directory, so whatever the cached trust
         // answers were digested from is no longer the file on disk.
         self.trust_stale = true;
@@ -153,7 +153,7 @@ impl App {
         self.link_scans.insert(id.to_string(), now);
         let found = self.terminals.links(id);
         // Absent rather than empty when there are none, which is the shape a
-        // plugin reads: `thurbox.links[surface]` is nil for a screen with no
+        // plugin reads: `talos.links[surface]` is nil for a screen with no
         // links, not a table with nothing in it.
         //
         // Compared before storing: a printing agent moves its stamp every frame
@@ -239,7 +239,7 @@ impl App {
     /// is owed — an agent that printed a match and went quiet inside the pacing
     /// interval would otherwise never have it searched.
     pub(crate) fn serve_search(&mut self) {
-        use thurbox::kernel::search::{Request, WANT_CONTENT, WANT_SESSIONS};
+        use talos::kernel::search::{Request, WANT_CONTENT, WANT_SESSIONS};
         let request = self.host.shared_string(WANT_CONTENT).map(|query| Request {
             query,
             sessions: self
@@ -286,14 +286,14 @@ impl App {
         if !self.trust_stale {
             return;
         }
-        let lock = thurbox::kernel::packages::read_lock(&self.ui_dir).unwrap_or_default();
+        let lock = talos::kernel::packages::read_lock(&self.ui_dir).unwrap_or_default();
         self.trust = self
             .sources
             .keys()
             .map(|path| {
                 (
                     path.clone(),
-                    thurbox::kernel::packages::trust_of(&self.ui_dir, path, &lock, &self.registry),
+                    talos::kernel::packages::trust_of(&self.ui_dir, path, &lock, &self.registry),
                 )
             })
             .collect();
@@ -327,7 +327,7 @@ impl App {
         let disabled: Vec<String> = self
             .registry
             .disabled()
-            .filter_map(|absolute| thurbox::kernel::bundled::relative_to(&self.ui_dir, absolute))
+            .filter_map(|absolute| talos::kernel::bundled::relative_to(&self.ui_dir, absolute))
             .collect();
         self.host.set_disabled(disabled);
     }
@@ -337,8 +337,8 @@ impl App {
     /// Absent means not asking, which is why the local machine is an *empty*
     /// host rather than an absent one: a closed flow must cost nothing, and
     /// asking about local has to be expressible (`kernel::repos::Wants`).
-    pub(crate) fn repo_wants(&self) -> thurbox::kernel::repos::Wants {
-        use thurbox::kernel::repos::{
+    pub(crate) fn repo_wants(&self) -> talos::kernel::repos::Wants {
+        use talos::kernel::repos::{
             Wants, WANT_BOOKMARKS, WANT_BRANCHES, WANT_BROWSE, WANT_WORKTREES,
         };
         Wants::new(
@@ -371,10 +371,10 @@ impl App {
     /// everything else, which is what makes them listable in help, conflict-checked
     /// against a plugin's keys, and rebindable — they simply have no Lua plugin
     /// behind them. The composition itself is
-    /// [`kernel::declare_interface`](thurbox::kernel::declare_interface), shared
-    /// with `thurbox-cli plugin check`.
+    /// [`kernel::declare_interface`](talos::kernel::declare_interface), shared
+    /// with `talos-cli plugin check`.
     pub(crate) fn collect_declarations(&mut self) {
-        thurbox::kernel::declare_interface(&mut self.registry, &self.host);
+        talos::kernel::declare_interface(&mut self.registry, &self.host);
         // Trust is read against the plugin set that just loaded, so a reload —
         // including the one a trust change triggers — lands both together.
         self.publish_trust();

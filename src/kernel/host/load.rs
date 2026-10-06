@@ -29,7 +29,7 @@ const HOOK_INTERVAL: u32 = 100_000;
 
 /// Marker in the abort error, so [`clean_error`] can recognise its own work
 /// rather than pattern-matching on VM prose.
-pub(super) const BUDGET_EXCEEDED: &str = "thurbox: instruction budget exceeded";
+pub(super) const BUDGET_EXCEEDED: &str = "talos: instruction budget exceeded";
 
 /// Arms the instruction-count hook for the duration of one plugin call.
 ///

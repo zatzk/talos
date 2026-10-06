@@ -23,8 +23,8 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Barrier};
 
-use thurbox::backend::identity::Located;
-use thurbox::backend::tmux_compat::server as tmux;
+use talos::backend::identity::Located;
+use talos::backend::tmux_compat::server as tmux;
 
 /// The guard every tmux server in this file is reaped by — see its own doc.
 #[path = "support/tmux_server.rs"]
@@ -33,7 +33,7 @@ mod tmux_server;
 use tmux_server::TmuxServer;
 
 /// A socket of this test's own, so it can never see — or kill — a real session.
-const SOCKET: &str = "thurbox-one-window-per-stamp";
+const SOCKET: &str = "talos-one-window-per-stamp";
 
 const SESSION: &str = "11111111-2222-3333-4444-555555555555";
 const OTHER: &str = "99999999-8888-7777-6666-555555555555";
@@ -50,10 +50,10 @@ fn have_tmux() -> bool {
 /// Type `text` into the session's own window, located the way every pane verb
 /// locates it: by the row, through the backend.
 fn send_to(session_id: &str, name: &str, text: &str) -> anyhow::Result<()> {
-    use thurbox::backend::SessionBackend;
-    let backend = thurbox::backend::tmux::TmuxBackend::new();
+    use talos::backend::SessionBackend;
+    let backend = talos::backend::tmux::TmuxBackend::new();
     let pane = backend
-        .locate(thurbox::backend::Owner::new(session_id, name))?
+        .locate(talos::backend::Owner::new(session_id, name))?
         .agent
         .pane()
         .ok_or_else(|| anyhow::anyhow!("session '{name}' has no window of its own here"))?;
@@ -62,11 +62,11 @@ fn send_to(session_id: &str, name: &str, text: &str) -> anyhow::Result<()> {
 
 /// A window running a program that outlives the test's own commands.
 fn spawn(session_id: &str, name: &str) -> String {
-    thurbox::backend::SessionBackend::create_window(
-        &thurbox::backend::tmux::TmuxBackend::new(),
-        &thurbox::backend::WindowSpec {
-            owner: thurbox::backend::Owner::new(session_id, name),
-            role: thurbox::backend::WindowRole::Agent,
+    talos::backend::SessionBackend::create_window(
+        &talos::backend::tmux::TmuxBackend::new(),
+        &talos::backend::WindowSpec {
+            owner: talos::backend::Owner::new(session_id, name),
+            role: talos::backend::WindowRole::Agent,
             command: "sh",
             args: &["-c".to_string(), "while :; do sleep 1; done".to_string()],
             cwd: None,
@@ -84,7 +84,7 @@ fn listing(server: &TmuxServer) -> String {
                 "list-panes",
                 "-a",
                 "-F",
-                "#{pane_id}|#{window_id}|#{window_name}|#{@thurbox_session}|#{@thurbox_role}",
+                "#{pane_id}|#{window_id}|#{window_name}|#{@talos_session}|#{@talos_role}",
             ])
             .stdout,
     )
@@ -104,7 +104,7 @@ fn stamped_panes(server: &TmuxServer) -> Vec<String> {
 ///
 /// By hand on purpose: a *spawn* retires the window it would have paired with,
 /// so the only way to plant the state an operator's server is already in is to
-/// write the option outside thurbox.
+/// write the option outside talos.
 fn plant_stamp(server: &TmuxServer, pane: &str) {
     for (option, value) in [
         (tmux::WINDOW_SESSION_OPTION, SESSION),
@@ -115,20 +115,20 @@ fn plant_stamp(server: &TmuxServer, pane: &str) {
     }
 }
 
-/// Every thurbox window on the private server, indexed.
-fn local_index() -> thurbox::backend::identity::WindowIndex {
-    thurbox::backend::identity::WindowIndex::from_listing(
-        thurbox::backend::SessionBackend::discover(&thurbox::backend::tmux::TmuxBackend::new())
+/// Every talos window on the private server, indexed.
+fn local_index() -> talos::backend::identity::WindowIndex {
+    talos::backend::identity::WindowIndex::from_listing(
+        talos::backend::SessionBackend::discover(&talos::backend::tmux::TmuxBackend::new())
             .expect("list windows"),
     )
 }
 
 /// Kill the session's agent window, found as every teardown finds it.
 fn kill_agent(session: &str, name: &str) -> anyhow::Result<()> {
-    use thurbox::backend::SessionBackend;
-    let backend = thurbox::backend::tmux::TmuxBackend::new();
+    use talos::backend::SessionBackend;
+    let backend = talos::backend::tmux::TmuxBackend::new();
     if let Located::At(pane) = backend
-        .locate(thurbox::backend::Owner::new(session, name))?
+        .locate(talos::backend::Owner::new(session, name))?
         .agent
     {
         backend.kill(&pane)?;

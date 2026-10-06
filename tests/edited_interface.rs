@@ -9,7 +9,7 @@
 //! `tests/fixtures/edited_interface/<release>/` is what such a user has on
 //! disk: files as that release shipped them, each with an edit so delivery
 //! treats it as the user's. `v2.22.4` is the arrangement, `10_sessions.lua` and
-//! `20_agent.lua` of the release the `thurbox-files` fork is pinned to;
+//! `20_agent.lua` of the release the `talos-files` fork is pinned to;
 //! `v2.32.0` is the arrangement and the agent pane of the release that briefly
 //! shipped layout presets, whose agent pane asks `panels.placed`. They are FROZEN on
 //! purpose — never refresh them to follow a change in `ui/`, because a user's
@@ -26,14 +26,14 @@ use std::process::Command as Process;
 
 use ratatui::layout::Rect;
 
-use thurbox::kernel::bundled;
-use thurbox::kernel::command::Command;
-use thurbox::kernel::host::{LuaHost, Published, RenderContext};
-use thurbox::kernel::layout::resolve;
-use thurbox::kernel::registry::Registry;
-use thurbox::kernel::snapshot::{SessionRow, Snapshot};
-use thurbox::kernel::theme::Themes;
-use thurbox::session::SessionState;
+use talos::kernel::bundled;
+use talos::kernel::command::Command;
+use talos::kernel::host::{LuaHost, Published, RenderContext};
+use talos::kernel::layout::resolve;
+use talos::kernel::registry::Registry;
+use talos::kernel::snapshot::{SessionRow, Snapshot};
+use talos::kernel::theme::Themes;
+use talos::session::SessionState;
 
 /// Every release a user may have edited files from, each with what they edited.
 const RELEASES: &[(&str, &[&str])] = &[
@@ -92,8 +92,8 @@ fn row(name: &str) -> SessionRow {
         agent: "claude".into(),
         status: SessionState::Idle,
         cwd: None,
-        repo: Some("thurbox".into()),
-        repos: vec!["thurbox".into()],
+        repo: Some("talos".into()),
+        repos: vec!["talos".into()],
         branch: Some(format!("feat/{name}")),
         base_branch: None,
         backend: "local-tmux".into(),
@@ -118,14 +118,14 @@ fn publish_rows(host: &LuaHost, sessions: Vec<SessionRow>) {
     let mut registry = Registry::default();
     let (bindings, settings) = host.declarations();
     registry.declare(bindings, settings);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     let snapshot = Snapshot {
         sessions,
         ..Snapshot::default()
     };
     host.publish(&Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot: &snapshot,
         attach_errors: &Default::default(),
         inflight: &[],
@@ -237,16 +237,16 @@ fn edited_session_pane_still_renders_remote_sessions() {
 #[test]
 fn edited_interfaces_pass_plugin_check() {
     // What the user runs — and what `AGENTS.md` tells an agent to run — after an
-    // upgrade. It loads the whole interface at two sizes the way thurbox does.
+    // upgrade. It loads the whole interface at two sizes the way talos does.
     for (release, edited) in RELEASES {
         let dir = upgraded_edited_interface(release, edited);
-        let output = Process::new(env!("CARGO_BIN_EXE_thurbox-cli"))
+        let output = Process::new(env!("CARGO_BIN_EXE_talos-cli"))
             .args(["plugin", "check", "--json"])
-            .env("THURBOX_UI_DIR", dir.path())
-            .env("THURBOX_CONFIG_DIR", dir.path().join("config"))
-            .env("THURBOX_DATA_DIR", dir.path().join("data"))
+            .env("TALOS_UI_DIR", dir.path())
+            .env("TALOS_CONFIG_DIR", dir.path().join("config"))
+            .env("TALOS_DATA_DIR", dir.path().join("data"))
             .output()
-            .expect("run thurbox-cli");
+            .expect("run talos-cli");
         assert!(
             output.status.success(),
             "{release}: plugin check failed on an edited interface:\n{}\n{}",
@@ -258,7 +258,7 @@ fn edited_interfaces_pass_plugin_check() {
 
 // ── lib/'s published surface ────────────────────────────────────────────────
 
-/// Every `lib/` module that loads into the VM — `thurbox.d.lua` is types only.
+/// Every `lib/` module that loads into the VM — `talos.d.lua` is types only.
 fn lib_modules() -> Vec<String> {
     let lib = Path::new(env!("CARGO_MANIFEST_DIR")).join("ui/lib");
     let mut names: Vec<String> = std::fs::read_dir(lib)

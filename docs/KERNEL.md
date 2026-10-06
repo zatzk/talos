@@ -1,29 +1,29 @@
 # The plugin kernel
 
-thurbox is a session engine with a Lua-driven renderer. The kernel owns no
+talos is a session engine with a Lua-driven renderer. The kernel owns no
 pane: the session list, the terminal and every other surface that shows *your
 work* is a plugin under `ui/`. The bundled set is currently **three** — the
 session list, the agent pane and the search strip — plus the new-session flow,
 the confirmation and the restore list, which float rather than filling a slot;
 the interface was cut back to its core, and v1's other surfaces are not
 bundled. It does own the **system modals** — help, settings, the theme picker
-and the interface's own file list — which are chrome about thurbox itself
+and the interface's own file list — which are chrome about talos itself
 rather than panes (see below). The file list was a pane and is deliberately no
 longer one: it is how a broken interface is recovered, so it must not be a file
 the interface loads. Written for someone about to change the kernel; if you
 want to *write* a plugin, read `docs/PLUGINS.md`.
 
 Writing a plugin starts at `docs/PLUGINS.md` — **Start here**, which is four
-`thurbox-cli plugin` commands and needs no terminal.
+`talos-cli plugin` commands and needs no terminal.
 
-Runs as `thurbox`. It **is** the interface now: `src/app/` and `src/ui/` were
+Runs as `talos`. It **is** the interface now: `src/app/` and `src/ui/` were
 deleted when the kernel took the binary name, so there is no second interface to
 fall back to inside the process. v1 is unsupported; its code stays on the
 `v1.x` branch.
 
 The name matters more than it looks. The updater in an already-installed binary
 hard-fails on a known binary missing from a release archive and swallows the
-error, so an archive that dropped the name `thurbox` would end auto-update for
+error, so an archive that dropped the name `talos` would end auto-update for
 every install already out there, silently and unfixably. Inheriting the name was
 the only safe direction — see `docs/RELEASING.md`.
 
@@ -34,9 +34,9 @@ reinstall 1.x.
 
 Two of those surfaces are answered by panes rather than by the kernel, which is
 the mechanism working as designed:
-[`thurbox-code-review`](https://github.com/Thurbeen/thurbox-code-review) (v1's diff
-reviewer, the first consumer of `thurbox.diffs`) and
-[`thurbox-info-panel`](https://github.com/Thurbeen/thurbox-info-panel) (v1's info
+[`talos-code-review`](https://github.com/zatzk/talos-code-review) (v1's diff
+reviewer, the first consumer of `talos.diffs`) and
+[`talos-info-panel`](https://github.com/zatzk/talos-info-panel) (v1's info
 panel, drawn entirely from the snapshot). Each is its own repository, installed by
 clone — `docs/PLUGINS.md` has the commands and what the two demonstrate.
 
@@ -120,7 +120,7 @@ plugin cannot call something that waits, so the flow asks by leaving a key in
 ## A capability that cannot be absent and useful
 
 "Capabilities are absent rather than blocked" is easy while the answer is always
-absent: there is no `os`, no `io`, no `package`, and `thurbox.yml` says so. The
+absent: there is no `os`, no `io`, no `package`, and `talos.yml` says so. The
 first capability a plugin can be *granted* breaks that symmetry — it has to be
 present for the plugin that may use it and absent for every other, in one shared
 Lua state.
@@ -159,7 +159,7 @@ kernel's own events come from **diffing published state** — the snapshot's row
 between two versions, the focus ring between two iterations, the command bus's
 completions — never from the code that mutates it. Raising them from
 `session_ops` was the obvious design and the wrong one: it misses every other
-process (`thurbox-cli`, the cron tick, a second interface), it puts a kernel
+process (`talos-cli`, the cron tick, a second interface), it puts a kernel
 concern inside a layer the kernel may not `use`, and it is the model where one
 mutation site forgets to fire. The four `session.post_*` names are the only ones
 raised rather than derived — from a *tracked* command finishing — which is why
@@ -176,7 +176,7 @@ per-iteration trickle. A reload clears the queue, resets the deriver so the next
 snapshot seeds silently, and puts `interface.reloaded` first.
 
 The set is closed (`KERNEL_EVENTS`) with three readers — the loader, help and
-`thurbox-cli plugin events` — so a name a plugin may subscribe to is always one
+`talos-cli plugin events` — so a name a plugin may subscribe to is always one
 the kernel emits.
 
 ## Drawn is not the same as focusable
@@ -228,7 +228,7 @@ restart-only change lands in the file and is deliberately withheld from what is
 running, so seeding an edit from what is running silently proposes undoing it —
 the next save of any row reverted it.
 
-`settings::global()` is still a write-once `OnceLock`, shared with `thurbox-cli`
+`settings::global()` is still a write-once `OnceLock`, shared with `talos-cli`
 and v1, and it stays that way: it is what makes those callers safe. The live half
 lives in `kernel::config` instead. Publishing at startup is load-bearing rather
 than tidy — `Database::open` prunes the audit log to `audit_retention_days`, so a
@@ -267,7 +267,7 @@ its own, and that chord was `F11` — the one F-key terminals commonly claim for
 fullscreen. Note the asymmetry the modal has to make legible, since the kernel is
 the only thing that knows it: `r` writes back a copy the *binary* holds, so it has
 no answer for a file the user wrote (`space` is that answer) or one a package
-delivered (`thurbox-cli plugin sync` is).
+delivered (`talos-cli plugin sync` is).
 
 The one genuinely modal input in the product lives here too: while help is
 capturing a chord, **every** key is data, `ctrl+q` included. A plugin could
@@ -370,7 +370,7 @@ conversion less often:
   (`Terminals::output_stamp`), the same atomic v1 reads in
   `detect_output_redraw`, so a quiet agent settles at the redraw floor.
 - **Read less.** The snapshot rebuild is gated on `PRAGMA data_version`, so an
-  idle thurbox stops re-reading five tables (plus one query per automation)
+  idle talos stops re-reading five tables (plus one query per automation)
   every 400ms. Git stats are folded in either way — they arrive from workers,
   about which the pragma says nothing. v1's ADR-P6, same mechanism.
 - **Emit fewer nodes.** The session list spends 4 nodes per row (a box plus a
@@ -384,7 +384,7 @@ conversion less often:
 
 Dependencies are built with `opt-level = 3` even in dev builds
 (`[profile.dev.package."*"]`), because `cargo run` is the documented way to run
-thurbox from a checkout and an unoptimised Lua VM is felt in the UI.
+talos from a checkout and an unoptimised Lua VM is felt in the UI.
 
 ## The gap to v1
 

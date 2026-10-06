@@ -1,9 +1,9 @@
-//! Session lifecycle hooks — the user's own commands, run by thurbox at the
+//! Session lifecycle hooks — the user's own commands, run by talos at the
 //! moments it creates, deletes, restarts or restores a session.
 //!
 //! This is the *reverse* of the built-in `hooks` extension, which installs
-//! status hooks **into** the agent CLIs so they can report to thurbox. Here
-//! thurbox reports to the user's scripts. The two share a word and nothing
+//! status hooks **into** the agent CLIs so they can report to talos. Here
+//! talos reports to the user's scripts. The two share a word and nothing
 //! else; this module and its consumers say "lifecycle hook" for the same
 //! reason.
 //!
@@ -62,7 +62,7 @@ impl HookEvent {
     ];
 
     /// The dotted name — the `event` value in `hooks.toml` and the
-    /// `THURBOX_HOOK_EVENT` a hook reads.
+    /// `TALOS_HOOK_EVENT` a hook reads.
     pub fn name(self) -> &'static str {
         match self {
             HookEvent::PreCreate => "session.pre_create",
@@ -147,17 +147,17 @@ pub struct HookWorktree {
 /// What a hook is told about the session — everything known at the moment
 /// the event fires. A field that is not known at that moment is `None`, and
 /// [`HookContext::env`] leaves its variable **unset** (never empty), so
-/// `${THURBOX_HOST:+…}` idioms work.
+/// `${TALOS_HOST:+…}` idioms work.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
 pub struct HookContext {
-    /// The thurbox session id. At `pre_create` it is the id the session will
+    /// The talos session id. At `pre_create` it is the id the session will
     /// have if creation succeeds — minted early precisely so a pre and its post
     /// can be correlated.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub session_id: Option<SessionId>,
     pub name: String,
     pub agent: String,
-    /// The agent's own conversation id — `THURBOX_SESSION_ID`, as the agent
+    /// The agent's own conversation id — `TALOS_SESSION_ID`, as the agent
     /// receives it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub agent_session_id: Option<String>,
@@ -207,30 +207,30 @@ struct Payload<'a> {
 }
 
 impl HookContext {
-    /// The `THURBOX_*` variables a hook for `event` receives — only the ones
+    /// The `TALOS_*` variables a hook for `event` receives — only the ones
     /// whose value is known.
     pub fn env(&self, event: HookEvent) -> Vec<(String, String)> {
         let mut vars: Vec<(String, String)> =
-            vec![("THURBOX_HOOK_EVENT".into(), event.name().into())];
+            vec![("TALOS_HOOK_EVENT".into(), event.name().into())];
         let mut set = |key: &str, value: Option<String>| {
             if let Some(value) = value.filter(|v| !v.is_empty()) {
                 vars.push((key.to_string(), value));
             }
         };
-        set("THURBOX_SESSION", self.session_id.map(|id| id.to_string()));
-        set("THURBOX_SESSION_ID", self.agent_session_id.clone());
-        set("THURBOX_SESSION_NAME", Some(self.name.clone()));
-        set("THURBOX_AGENT", Some(self.agent.clone()));
-        set("THURBOX_REPO", self.repo.as_deref().map(display));
-        set("THURBOX_CWD", self.cwd.as_deref().map(display));
-        set("THURBOX_BRANCH", self.branch.clone());
-        set("THURBOX_BASE_BRANCH", self.base_branch.clone());
-        set("THURBOX_HOST", self.host.clone());
+        set("TALOS_SESSION", self.session_id.map(|id| id.to_string()));
+        set("TALOS_SESSION_ID", self.agent_session_id.clone());
+        set("TALOS_SESSION_NAME", Some(self.name.clone()));
+        set("TALOS_AGENT", Some(self.agent.clone()));
+        set("TALOS_REPO", self.repo.as_deref().map(display));
+        set("TALOS_CWD", self.cwd.as_deref().map(display));
+        set("TALOS_BRANCH", self.branch.clone());
+        set("TALOS_BASE_BRANCH", self.base_branch.clone());
+        set("TALOS_HOST", self.host.clone());
         set(
-            "THURBOX_PARENT_SESSION",
+            "TALOS_PARENT_SESSION",
             self.parent_session_id.map(|id| id.to_string()),
         );
-        set("THURBOX_TASK", self.task_id.map(|id| id.to_string()));
+        set("TALOS_TASK", self.task_id.map(|id| id.to_string()));
         vars
     }
 
@@ -246,7 +246,7 @@ impl HookContext {
     /// Where the hook runs: the primary repository when it is a directory on
     /// this machine. A remote session's paths are the host's, so a same-named
     /// local directory is a coincidence, not a match. `None` means the hook
-    /// inherits thurbox's own working directory.
+    /// inherits talos's own working directory.
     pub fn workdir(&self) -> Option<&Path> {
         if self.host.is_some() {
             return None;
@@ -351,18 +351,18 @@ mod tests {
         assert_eq!(
             names,
             [
-                "THURBOX_AGENT",
-                "THURBOX_BASE_BRANCH",
-                "THURBOX_BRANCH",
-                "THURBOX_CWD",
-                "THURBOX_HOOK_EVENT",
-                "THURBOX_HOST",
-                "THURBOX_PARENT_SESSION",
-                "THURBOX_REPO",
-                "THURBOX_SESSION",
-                "THURBOX_SESSION_ID",
-                "THURBOX_SESSION_NAME",
-                "THURBOX_TASK",
+                "TALOS_AGENT",
+                "TALOS_BASE_BRANCH",
+                "TALOS_BRANCH",
+                "TALOS_CWD",
+                "TALOS_HOOK_EVENT",
+                "TALOS_HOST",
+                "TALOS_PARENT_SESSION",
+                "TALOS_REPO",
+                "TALOS_SESSION",
+                "TALOS_SESSION_ID",
+                "TALOS_SESSION_NAME",
+                "TALOS_TASK",
             ]
         );
         let get = |k: &str| {
@@ -370,14 +370,14 @@ mod tests {
                 .find(|(key, _)| key == k)
                 .map(|(_, v)| v.as_str())
         };
-        assert_eq!(get("THURBOX_HOOK_EVENT"), Some("session.post_create"));
-        assert_eq!(get("THURBOX_SESSION"), Some(sid.to_string().as_str()));
+        assert_eq!(get("TALOS_HOOK_EVENT"), Some("session.post_create"));
+        assert_eq!(get("TALOS_SESSION"), Some(sid.to_string().as_str()));
         assert_eq!(
-            get("THURBOX_PARENT_SESSION"),
+            get("TALOS_PARENT_SESSION"),
             Some(parent.to_string().as_str())
         );
-        assert_eq!(get("THURBOX_TASK"), Some("7"));
-        assert_eq!(get("THURBOX_CWD"), Some("/srv/repo/worktrees/demo"));
+        assert_eq!(get("TALOS_TASK"), Some("7"));
+        assert_eq!(get("TALOS_CWD"), Some("/srv/repo/worktrees/demo"));
     }
 
     #[test]
@@ -392,9 +392,9 @@ mod tests {
         assert_eq!(
             names,
             [
-                "THURBOX_HOOK_EVENT",
-                "THURBOX_SESSION_NAME",
-                "THURBOX_AGENT"
+                "TALOS_HOOK_EVENT",
+                "TALOS_SESSION_NAME",
+                "TALOS_AGENT"
             ]
         );
         assert!(env.iter().all(|(_, v)| !v.is_empty()));

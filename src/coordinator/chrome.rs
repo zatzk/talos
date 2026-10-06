@@ -10,14 +10,14 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::layout::Rect;
 use ratatui::{DefaultTerminal, Frame};
 
-use thurbox::kernel::host::KeyPress;
+use talos::kernel::host::KeyPress;
 
 /// A connection for reading the persisted theme choice at startup.
 ///
 /// Separate from the snapshot store's: this is read once, and opening a second
 /// short-lived connection is cheaper than threading one through construction.
-pub(crate) fn snapshots_db() -> Option<thurbox::storage::Database> {
-    thurbox::paths::database_file().and_then(|path| thurbox::storage::Database::open(&path).ok())
+pub(crate) fn snapshots_db() -> Option<talos::storage::Database> {
+    talos::paths::database_file().and_then(|path| talos::storage::Database::open(&path).ok())
 }
 
 /// Can a link actually be opened here?
@@ -80,7 +80,7 @@ pub(crate) fn open_url(url: &str) -> Result<(), String> {
 /// `command+j`) stay the registry's vocabulary rather than becoming a second
 /// one.
 pub(crate) fn key_event_from_chord(chord: &str) -> Option<KeyEvent> {
-    let normalised = thurbox::kernel::registry::normalise_chord(chord);
+    let normalised = talos::kernel::registry::normalise_chord(chord);
     let mut modifiers = KeyModifiers::NONE;
     let mut name = "";
     for part in normalised.split('+') {
@@ -129,7 +129,7 @@ pub(crate) fn key_event_from_chord(chord: &str) -> Option<KeyEvent> {
 /// The editor to open a session's directory with.
 ///
 /// v1's chain, from `resolve_editor` (`src/cli/config.rs`): the DB setting
-/// `thurbox-cli editor set` writes, then `$VISUAL`, then `$EDITOR`.
+/// `talos-cli editor set` writes, then `$VISUAL`, then `$EDITOR`.
 pub(crate) fn editor_command() -> Option<String> {
     snapshots_db()
         .and_then(|db| db.get_editor_command().ok().flatten())
@@ -138,10 +138,10 @@ pub(crate) fn editor_command() -> Option<String> {
         .filter(|command| !command.trim().is_empty())
 }
 
-/// How the editor should be launched, as configured (`thurbox-cli editor mode`).
+/// How the editor should be launched, as configured (`talos-cli editor mode`).
 ///
 /// `Auto` — the default — leaves the decision to the name-based classification.
-pub(crate) fn editor_mode() -> thurbox::session::settings::EditorMode {
+pub(crate) fn editor_mode() -> talos::session::settings::EditorMode {
     snapshots_db()
         .and_then(|db| db.get_editor_mode().ok())
         .unwrap_or_default()
@@ -171,7 +171,7 @@ pub(crate) fn open_editor(
         .first()
         .ok_or("that session has no directory to open")?;
     let configured = editor_command()
-        .ok_or("no editor configured — set one with `thurbox-cli editor set <command>`")?;
+        .ok_or("no editor configured — set one with `talos-cli editor set <command>`")?;
     let (program, mut args) = super::editor::parse_editor_command(&configured)
         .map_err(|e| format!("the configured editor command is unusable: {e}"))?;
     let terminal_editor = super::editor::is_terminal_editor(&program, &args, editor_mode());
@@ -195,10 +195,10 @@ pub(crate) fn open_editor(
     if std::env::var_os("TMUX").is_some() {
         // Quoted and run through tmux's shell, so a path or flag with a space
         // in it survives being flattened into one command string.
-        let mut script = thurbox::shell::posix_quote(&program);
+        let mut script = talos::shell::posix_quote(&program);
         for arg in &args {
             script.push(' ');
-            script.push_str(&thurbox::shell::posix_quote(arg));
+            script.push_str(&talos::shell::posix_quote(arg));
         }
         // `-E` closes the popup when the editor exits; the editor's own exit
         // code is ignored, since a non-zero edit must not trigger a retry.
@@ -213,7 +213,7 @@ pub(crate) fn open_editor(
                 "-h",
                 "90%",
                 "-T",
-                "thurbox editor",
+                "talos editor",
             ])
             .arg(&script)
             .status();
@@ -310,7 +310,7 @@ pub(crate) fn pop_keyboard_enhancement() {
 /// Three modes, each earning its keep:
 ///
 /// * `?1000` — presses and releases, what the click registry needs.
-/// * `?1003` — motion, **whether or not a button is down**. Both of thurbox's
+/// * `?1003` — motion, **whether or not a button is down**. Both of talos's
 ///   pointer features need it and neither worked without it: a drag reports
 ///   nothing between press and release (so dragging a selection selected
 ///   nothing), and a *hover* highlight has no event at all to fire on, which is
@@ -340,7 +340,7 @@ pub(crate) fn enable_mouse_clicks() -> bool {
 /// every drag for **its** selection: it highlights a rectangle of the whole
 /// screen buffer, copies through conhost, and never tells the application. So a
 /// drag selected across panes instead of within one, and the copy that followed
-/// raised no toast, because thurbox was not involved in either. crossterm does
+/// raised no toast, because talos was not involved in either. crossterm does
 /// not touch these bits (its raw mode clears only the line, echo and processed
 /// flags), so this does.
 ///
@@ -497,8 +497,8 @@ pub(crate) fn fmt_hud_us(us: u64) -> String {
 pub(crate) fn render_hud(
     frame: &mut Frame,
     area: Rect,
-    counters: &thurbox::kernel::perf::Snapshot,
-    timings: &thurbox::kernel::perf::Timings,
+    counters: &talos::kernel::perf::Snapshot,
+    timings: &talos::kernel::perf::Timings,
 ) {
     use ratatui::style::{Color, Style};
     use ratatui::widgets::{Block, BorderType, Borders, Clear, Paragraph};
@@ -556,7 +556,7 @@ pub(crate) fn render_hud(
 }
 
 /// Rows of the per-pane table. The table is ranked, so an interface with more
-/// plugins than this shows its most expensive ones; `thurbox-cli perf
+/// plugins than this shows its most expensive ones; `talos-cli perf
 /// --plugins` lists all of them.
 const PLUGIN_HUD_ROWS: usize = 8;
 
@@ -596,7 +596,7 @@ pub(crate) fn plugin_hud_area(area: Rect, hud: Rect, rows: usize) -> Rect {
 pub(crate) fn render_plugin_hud(
     frame: &mut Frame,
     area: Rect,
-    report: &thurbox::kernel::perf::PluginReport,
+    report: &talos::kernel::perf::PluginReport,
 ) {
     use ratatui::style::{Color, Modifier, Style};
     use ratatui::text::Line;
@@ -623,7 +623,7 @@ pub(crate) fn render_plugin_hud(
         let text = format!(
             "{} {} {:>7} {:>6} {:>4}% {:>5}/{:<5}{}",
             rank + 1,
-            thurbox::kernel::perf::fit_columns(&row.name, 13),
+            talos::kernel::perf::fit_columns(&row.name, 13),
             fmt_hud_us(row.total_us),
             fmt_hud_us(row.stats.render.percentile_us(95)),
             (row.frame_share * 100.0).round() as u64,
@@ -681,7 +681,7 @@ pub(crate) fn to_press(key: &KeyEvent) -> KeyPress {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use thurbox::kernel::host::Float;
+    use talos::kernel::host::Float;
 
     use crate::App;
 

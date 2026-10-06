@@ -214,7 +214,7 @@ const REMOTE_RESCAN_TTL: std::time::Duration = std::time::Duration::from_secs(30
 /// A settled list expires so reopening the flow sees a branch someone pushed
 /// meanwhile, as v1's fetch-on-open does. A *failure* is retried sooner and, above
 /// all, is retried at all: held forever, one unreachable moment left the picker
-/// empty until thurbox was restarted.
+/// empty until talos was restarted.
 const BRANCHES_TTL: std::time::Duration = std::time::Duration::from_secs(30);
 const BRANCHES_RETRY: std::time::Duration = std::time::Duration::from_secs(3);
 
@@ -752,12 +752,12 @@ fn read_bookmarks(host: &str, remote: Option<&HostDef>) -> Vec<BookmarkRow> {
 
 /// Put the interface directory at the top of the local repository list.
 ///
-/// Editing a pane is the one piece of work every thurbox user can do without
+/// Editing a pane is the one piece of work every talos user can do without
 /// cloning anything, and it was the one directory the list never offered — you
 /// had to know where the interface lives and type the path. Offered rather than
 /// persisted: it is wherever `bundled::resolve` says it is *now*, which changes
 /// with the working directory (a `./ui` beside it wins), so a remembered path
-/// would go stale the moment you started thurbox somewhere else.
+/// would go stale the moment you started talos somewhere else.
 ///
 /// Local only. The interface runs on this machine, so its directory is not a
 /// path on a host — the same reason a local home is not offered as a remote
@@ -782,7 +782,7 @@ fn offer_interface_dir(rows: &mut Vec<BookmarkRow>) {
     // Named for what picking it does, not for where it happens to live. Its leaf
     // is usually `ui`, which tells a reader nothing, and the rest of the path is
     // install-specific boilerplate that the row was truncating anyway.
-    offered.label = Some("Thurbox interface — edit your panes".to_string());
+    offered.label = Some("Talos interface — edit your panes".to_string());
     // Flagged so a reader of the list can tell placement from recency: this row
     // is first because this function puts it here, not because it was just used.
     offered.offered = true;
@@ -1465,9 +1465,9 @@ mod tests {
 
     #[test]
     fn a_row_leads_with_its_final_component() {
-        let built = row(Path::new("/home/me/src/thurbox"), None, false, Some(true));
-        assert_eq!(built.name, "thurbox");
-        assert_eq!(built.path, "/home/me/src/thurbox");
+        let built = row(Path::new("/home/me/src/talos"), None, false, Some(true));
+        assert_eq!(built.name, "talos");
+        assert_eq!(built.path, "/home/me/src/talos");
     }
 
     #[test]
@@ -1582,7 +1582,7 @@ mod tests {
         let home = tempfile::TempDir::new().expect("tempdir");
         let ui = home.path().join("ui");
         std::fs::create_dir_all(ui.join("plugins")).expect("mkdir");
-        std::env::set_var("THURBOX_UI_DIR", &ui);
+        std::env::set_var("TALOS_UI_DIR", &ui);
 
         let mut rows = Vec::new();
         offer_interface_dir(&mut rows);
@@ -1605,7 +1605,7 @@ mod tests {
         // The flag is what keeps it out of the flow's recency lookup: being
         // first here is placement, not a bookmark that was just used.
         assert!(rows[0].offered, "an offered row says so");
-        std::env::remove_var("THURBOX_UI_DIR");
+        std::env::remove_var("TALOS_UI_DIR");
     }
 
     #[test]
@@ -1614,7 +1614,7 @@ mod tests {
         // along, and nothing ever surfaced it — so a label was write-only in a
         // table nothing wrote to. It travels with the row now, by the same field
         // the offered interface row uses.
-        let mut saved = saved("/src/thurbox", false, None);
+        let mut saved = saved("/src/talos", false, None);
         saved.label = Some("the orchestrator".into());
         let rows = flatten(&[saved], &no_scan());
         assert_eq!(rows.len(), 1, "{rows:?}");
@@ -1638,12 +1638,12 @@ mod tests {
         let home = tempfile::TempDir::new().expect("tempdir");
         let ui = home.path().join("ui");
         std::fs::create_dir_all(&ui).expect("mkdir");
-        std::env::set_var("THURBOX_UI_DIR", &ui);
+        std::env::set_var("TALOS_UI_DIR", &ui);
 
         let mut rows = vec![row(&ui, Some("projects".into()), false, Some(true))];
         offer_interface_dir(&mut rows);
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].parent.as_deref(), Some("projects"));
-        std::env::remove_var("THURBOX_UI_DIR");
+        std::env::remove_var("TALOS_UI_DIR");
     }
 }

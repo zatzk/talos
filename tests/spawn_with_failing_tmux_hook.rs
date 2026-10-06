@@ -1,4 +1,4 @@
-//! A user hook on the tmux server cannot cost thurbox a window it created —
+//! A user hook on the tmux server cannot cost talos a window it created —
 //! an agent's, or the automation heartbeat keeper's.
 //!
 //! tmux hands a command-mode client the exit status of the last `run-shell` its
@@ -12,7 +12,7 @@
 //! what corrupts the id if stdout is taken whole.
 //!
 //! Asserted against a real tmux, because what is being tested is which of the
-//! two answers thurbox believes.
+//! two answers talos believes.
 //!
 //! Its own binary and its own socket because the hook it installs is
 //! **server-global**: borrowing another suite's socket would leave every spawn
@@ -40,12 +40,12 @@ mod tmux_server;
 
 use tmux_server::TmuxServer;
 
-const SOCKET: &str = "thurbox-failing-hook-e2e";
+const SOCKET: &str = "talos-failing-hook-e2e";
 const SESSION_ID: &str = "11111111-1111-4111-8111-111111111111";
 
 /// The hook an uninstalled plugin leaves behind: a script that is no longer on
 /// the disk, which the server keeps calling for the rest of its life.
-const DEAD_HOOK: &str = "run-shell 'thurbox-uninstalled-plugin-script'";
+const DEAD_HOOK: &str = "run-shell 'talos-uninstalled-plugin-script'";
 
 fn have_tmux() -> bool {
     Command::new("tmux")
@@ -85,11 +85,11 @@ fn window_names() -> Vec<String> {
 /// A long-lived program: one that exits before tmux finishes setting the window
 /// up would turn a real failure into a passing run.
 fn spawn(name: &str, cwd: &std::path::Path) -> anyhow::Result<String> {
-    thurbox::backend::SessionBackend::create_window(
-        &thurbox::backend::tmux::TmuxBackend::new(),
-        &thurbox::backend::WindowSpec {
-            owner: thurbox::backend::Owner::new(SESSION_ID, name),
-            role: thurbox::backend::WindowRole::Agent,
+    talos::backend::SessionBackend::create_window(
+        &talos::backend::tmux::TmuxBackend::new(),
+        &talos::backend::WindowSpec {
+            owner: talos::backend::Owner::new(SESSION_ID, name),
+            role: talos::backend::WindowRole::Agent,
             command: "sh",
             args: &["-c".to_string(), "sleep 300".to_string()],
             cwd: Some(cwd),
@@ -104,7 +104,7 @@ fn spawn(name: &str, cwd: &std::path::Path) -> anyhow::Result<String> {
 /// the first spawn is what creates it.)
 fn server_with_a_dead_hook(dir: &std::path::Path) -> TmuxServer {
     let server = TmuxServer::pin(SOCKET);
-    thurbox::paths::set_test_dir(dir);
+    talos::paths::set_test_dir(dir);
 
     if let Err(e) = spawn("clean", dir) {
         panic!("the control window could not be spawned on a clean server: {e:#}");
@@ -150,7 +150,7 @@ fn a_dead_plugin_hook_does_not_fail_a_window_that_was_created() {
 ///
 /// An id that is not one is not a refusal, which is what makes it worse: every
 /// later lookup simply targets nothing and the session's stamp lands nowhere,
-/// so a window that is running is one thurbox can never find again.
+/// so a window that is running is one talos can never find again.
 #[test]
 fn the_id_kept_from_a_hooked_spawn_still_names_the_window() {
     if !have_tmux() {
@@ -167,7 +167,7 @@ fn the_id_kept_from_a_hooked_spawn_still_names_the_window() {
         let name = String::from_utf8_lossy(&out.stdout).trim().to_string();
         let stamp = window_option(
             pane,
-            thurbox::backend::tmux_compat::server::WINDOW_SESSION_OPTION,
+            talos::backend::tmux_compat::server::WINDOW_SESSION_OPTION,
         );
         (name, stamp)
     });
@@ -206,16 +206,16 @@ fn a_dead_plugin_hook_does_not_fail_the_heartbeat_keeper() {
 
     // The keeper runs `<cli> automation tick` in a shell loop, so the loop —
     // and the window holding it — exists whether or not the path resolves.
-    let backend = thurbox::backend::tmux::TmuxBackend::new();
-    let armed = thurbox::backend::SessionBackend::ensure_heartbeat(
+    let backend = talos::backend::tmux::TmuxBackend::new();
+    let armed = talos::backend::SessionBackend::ensure_heartbeat(
         &backend,
-        &dir.path().join("thurbox-cli"),
+        &dir.path().join("talos-cli"),
         &["automation".to_string(), "tick".to_string()],
         std::time::Duration::from_secs(60),
     );
     let names = window_names();
     let running =
-        thurbox::backend::SessionBackend::heartbeat_running(&backend).expect("the server answers");
+        talos::backend::SessionBackend::heartbeat_running(&backend).expect("the server answers");
 
     if let Err(e) = armed {
         panic!("a heartbeat window tmux created was reported as a failure because a user hook exited non-zero: {e:#}");

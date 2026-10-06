@@ -1,7 +1,7 @@
--- `thurbox.theme.roles`, with one letter wrong.
+-- `talos.theme.roles`, with one letter wrong.
 return {
   name = "std_typo_theme_roles",
   render = function()
-    return { text = tostring(thurbox.theme.roles.acent) }
+    return { text = tostring(talos.theme.roles.acent) }
   end,
 }

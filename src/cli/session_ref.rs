@@ -13,7 +13,7 @@
 //! 2. an exact name;
 //! 3. a UUID prefix, for typing the first few characters of an id.
 //!
-//! **Ambiguity is an error, never a guess.** Names are not unique (thurbox does
+//! **Ambiguity is an error, never a guess.** Names are not unique (talos does
 //! not enforce it, and a mirrored host contributes rows that legitimately
 //! collide), so a reference matching more than one session is refused with
 //! every candidate named. Acting on whichever row sorted first is the one

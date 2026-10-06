@@ -575,9 +575,9 @@ fn parse_extended_output_missing_pane_space() {
 #[test]
 fn subscription_changed_parses_canonical_line() {
     assert_eq!(
-        parse_notification("%subscription-changed thurbox-status $1 @5 2 %7 : done"),
+        parse_notification("%subscription-changed talos-status $1 @5 2 %7 : done"),
         Notification::SubscriptionChanged {
-            name: "thurbox-status".into(),
+            name: "talos-status".into(),
             pane_id: "%7".into(),
             value: "done".into(),
         }
@@ -587,9 +587,9 @@ fn subscription_changed_parses_canonical_line() {
 #[test]
 fn subscription_changed_ignores_future_use_args() {
     assert_eq!(
-        parse_notification("%subscription-changed thurbox-status $1 @5 2 %7 extra stuff : working"),
+        parse_notification("%subscription-changed talos-status $1 @5 2 %7 extra stuff : working"),
         Notification::SubscriptionChanged {
-            name: "thurbox-status".into(),
+            name: "talos-status".into(),
             pane_id: "%7".into(),
             value: "working".into(),
         }
@@ -1013,7 +1013,7 @@ const _: () = assert!(PANE_CHANNEL_CAPACITY >= 1024);
 /// Property/fuzz tests proving the tmux control-mode **transport** is byte
 /// transparent: whatever the agent writes is exactly what comes out of
 /// [`decode_octal`] + [`ControlModeReader`], regardless of how tmux escapes it
-/// or how the byte stream is chunked. If these stay green, thurbox's transport
+/// or how the byte stream is chunked. If these stay green, talos's transport
 /// layer cannot be the source of glitched/stray characters in the rendered pane.
 mod transport_proptests {
     use std::fmt::Write as _;
@@ -1300,7 +1300,7 @@ impl ThrowawayServer {
     /// `None` when tmux is absent or will not start a server: an environment
     /// fact, not a regression.
     fn start(name: &str) -> Option<Self> {
-        let socket = format!("thurbox-cm-{name}-{}", std::process::id());
+        let socket = format!("talos-cm-{name}-{}", std::process::id());
         let started = TmuxTransport::local("tmux")
             .tmux_command(
                 &socket,
@@ -1375,7 +1375,7 @@ fn a_control_client_can_skip_flow_control_on_a_server_that_rejects_it() {
         eprintln!("skipping: rmux is not installed");
         return;
     }
-    let socket = format!("thurbox-control-policy-{}", std::process::id());
+    let socket = format!("talos-control-policy-{}", std::process::id());
     let transport = TmuxTransport::local("rmux");
     struct Cleanup(String);
     impl Drop for Cleanup {
@@ -1642,10 +1642,10 @@ fn a_snapshot_is_read_from_its_three_blocks() {
 fn a_snapshot_is_read_from_one_reply_block_with_boundaries() {
     let snapshot = parse_snapshot(vec![vec![
         "80 24 5 3 0".into(),
-        "__thurbox_snapshot_test__normal__".into(),
+        "__talos_snapshot_test__normal__".into(),
         "current".into(),
         "rows".into(),
-        "__thurbox_snapshot_test__alternate__".into(),
+        "__talos_snapshot_test__alternate__".into(),
         "saved".into(),
     ]])
     .expect("one-block snapshot");

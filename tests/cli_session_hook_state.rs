@@ -1,4 +1,4 @@
-//! What `thurbox-cli session get`/`list` say about a session's agent state.
+//! What `talos-cli session get`/`list` say about a session's agent state.
 //!
 //! `hook_state` is self-reported and latched: once an agent writes `working` it
 //! stays `working` until that agent writes something else, whether or not it is
@@ -16,12 +16,12 @@ use std::path::Path;
 use std::process::Command;
 
 use serde_json::Value;
-use thurbox::cli::automations::{run as run_automation, Action as AutomationCommand};
-use thurbox::cli::sessions::{run, Action};
-use thurbox::session::{AutomationAction, AutomationSchedule, SessionId};
-use thurbox::storage::automations::NewAutomation;
-use thurbox::storage::Database;
-use thurbox::sync::SharedSession;
+use talos::cli::automations::{run as run_automation, Action as AutomationCommand};
+use talos::cli::sessions::{run, Action};
+use talos::session::{AutomationAction, AutomationSchedule, SessionId};
+use talos::storage::automations::NewAutomation;
+use talos::storage::Database;
+use talos::sync::SharedSession;
 
 /// The guard every tmux server in this file is reaped by — see its own doc.
 #[path = "support/tmux_server.rs"]
@@ -30,12 +30,12 @@ mod tmux_server;
 use tmux_server::TmuxServer;
 
 /// A socket of this test's own, so it can never see — or kill — a real session.
-const SOCKET: &str = "thurbox-hookstate-test";
+const SOCKET: &str = "talos-hookstate-test";
 
 /// The tmux session name the local backend groups its windows under. Mirrors
-/// `backend::tmux_compat::server::TMUX_SESSION`, which is private — and is `thurbox-dev` here,
+/// `backend::tmux_compat::server::TMUX_SESSION`, which is private — and is `talos-dev` here,
 /// because a test build carries the same `dev_build` marker a dev binary does.
-const SESSION: &str = "thurbox-dev";
+const SESSION: &str = "talos-dev";
 
 /// An `agents.toml` in the shape the externally-driven integrations use: the
 /// session's own "agent" is a bare interactive shell, because the driver owns
@@ -91,16 +91,16 @@ fn tmux(args: &[&str]) -> std::process::Output {
         .expect("run tmux")
 }
 
-/// Stamp a window as `session_id`'s agent, the way thurbox does when it
+/// Stamp a window as `session_id`'s agent, the way talos does when it
 /// creates one.
 fn stamp(target: &str, session_id: &str) {
     for (option, value) in [
         (
-            thurbox::backend::tmux_compat::server::WINDOW_SESSION_OPTION,
+            talos::backend::tmux_compat::server::WINDOW_SESSION_OPTION,
             session_id,
         ),
         (
-            thurbox::backend::tmux_compat::server::WINDOW_ROLE_OPTION,
+            talos::backend::tmux_compat::server::WINDOW_ROLE_OPTION,
             "agent",
         ),
     ] {
@@ -108,11 +108,11 @@ fn stamp(target: &str, session_id: &str) {
     }
 }
 
-/// Point every thurbox path at a scratch dir and write the agent registry the
+/// Point every talos path at a scratch dir and write the agent registry the
 /// test wants there, so nothing reads or seeds the real `~/.config`.
-fn isolated_config(dir: &Path) -> thurbox::paths::TestPathGuard {
-    let guard = thurbox::paths::TestPathGuard::new(dir);
-    let agents = thurbox::agent::agent_config::agents_config_path().expect("agents path");
+fn isolated_config(dir: &Path) -> talos::paths::TestPathGuard {
+    let guard = talos::paths::TestPathGuard::new(dir);
+    let agents = talos::agent::agent_config::agents_config_path().expect("agents path");
     std::fs::create_dir_all(agents.parent().expect("config dir")).expect("mkdir");
     std::fs::write(&agents, AGENTS_TOML).expect("write agents.toml");
     guard
@@ -138,14 +138,14 @@ fn session_row(name: &str, agent: &str, backend_type: &str) -> SharedSession {
     }
 }
 
-fn get(db: &Database, id: SessionId, verify: bool) -> thurbox::cli::output::CommandOutput {
+fn get(db: &Database, id: SessionId, verify: bool) -> talos::cli::output::CommandOutput {
     run(
         Action::Get {
             uuid: id.to_string(),
             no_verify: !verify,
         },
         db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .expect("session get")
 }
@@ -157,7 +157,7 @@ fn get_when_pane_settles(
     db: &Database,
     id: SessionId,
     want: &str,
-) -> thurbox::cli::output::CommandOutput {
+) -> talos::cli::output::CommandOutput {
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
     loop {
         let out = get(db, id, true);
@@ -172,7 +172,7 @@ fn get_when_pane_settles(
 
 /// Pin `PATH` for the duration of a test, restoring what was there on drop.
 ///
-/// `session doctor` looks for `thurbox-cli` the way a hook command does — by
+/// `session doctor` looks for `talos-cli` the way a hook command does — by
 /// bare name on `PATH` — and reports `FAIL` when it is absent. That is the
 /// check under test in one assertion and pure noise in every other, so the
 /// operator's install layout must not decide it: a machine with the binary in
@@ -186,7 +186,7 @@ impl PathGuard {
     fn only(dir: &Path, cli: bool) -> Self {
         let previous = std::env::var_os("PATH");
         std::fs::create_dir_all(dir).expect("mkdir");
-        let named = dir.join(format!("thurbox-cli{}", std::env::consts::EXE_SUFFIX));
+        let named = dir.join(format!("talos-cli{}", std::env::consts::EXE_SUFFIX));
         if cli {
             std::fs::write(&named, "#!/bin/sh\nexit 0\n").expect("write");
         } else {
@@ -206,11 +206,11 @@ impl Drop for PathGuard {
     }
 }
 
-/// A directory `PathGuard::only` can be pointed at that still lets **thurbox**
+/// A directory `PathGuard::only` can be pointed at that still lets **talos**
 /// run `tmux`.
 ///
 /// The guard replaces `PATH` wholesale, and the code under test resolves the
-/// multiplexer by bare name — so a guard holding only a `thurbox-cli` makes
+/// multiplexer by bare name — so a guard holding only a `talos-cli` makes
 /// every window lookup fail, and the pane check then reports "could not read"
 /// for a reason that has nothing to do with what it is testing.
 #[cfg(unix)]
@@ -231,19 +231,19 @@ fn doctor_bin_with_tmux(dir: &Path) -> std::path::PathBuf {
 }
 
 /// One session's doctor report.
-fn doctor(db: &Database, id: SessionId) -> thurbox::cli::output::CommandOutput {
+fn doctor(db: &Database, id: SessionId) -> talos::cli::output::CommandOutput {
     run(
         Action::Doctor {
             uuid: Some(id.to_string()),
         },
         db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .expect("doctor runs")
 }
 
 /// One named check out of a report.
-fn check(out: &thurbox::cli::output::CommandOutput, key: &str) -> Value {
+fn check(out: &talos::cli::output::CommandOutput, key: &str) -> Value {
     out.json.as_array().expect("reports")[0]["checks"]
         .as_array()
         .expect("checks")
@@ -343,8 +343,8 @@ fn an_uninstrumented_session_is_not_reported_as_idle() {
 #[test]
 fn a_custom_agent_can_claim_a_hook_family() {
     let dir = tempfile::tempdir().expect("tempdir");
-    let guard = thurbox::paths::TestPathGuard::new(dir.path());
-    let agents = thurbox::agent::agent_config::agents_config_path().expect("agents path");
+    let guard = talos::paths::TestPathGuard::new(dir.path());
+    let agents = talos::agent::agent_config::agents_config_path().expect("agents path");
     std::fs::create_dir_all(agents.parent().expect("config dir")).expect("mkdir");
     std::fs::write(
         &agents,
@@ -496,7 +496,7 @@ fn a_working_state_over_a_bare_shell_is_reported_as_contradicted() {
 }
 
 #[test]
-fn an_agent_thurbox_did_not_launch_is_still_reported_as_running() {
+fn an_agent_talos_did_not_launch_is_still_reported_as_running() {
     if !have_tmux() || !have_ps() {
         eprintln!("skipping: needs tmux and a ps that knows tpgid");
         return;
@@ -528,7 +528,7 @@ fn an_agent_thurbox_did_not_launch_is_still_reported_as_running() {
     ]);
 
     let db = Database::open_in_memory().expect("db");
-    // thurbox launched a bare shell for a driver that owns the agent launch,
+    // talos launched a bare shell for a driver that owns the agent launch,
     // so no hook was ever wired and nothing has ever signalled.
     let row = session_row("driver-owned", "shell", "local-tmux");
     db.upsert_session(&row).expect("persist");
@@ -538,7 +538,7 @@ fn an_agent_thurbox_did_not_launch_is_still_reported_as_running() {
     assert_eq!(
         out["hook_corroboration"],
         Value::String("foreign-agent".into()),
-        "an agent thurbox did not launch is still an agent: {out}"
+        "an agent talos did not launch is still an agent: {out}"
     );
     assert_eq!(out["hook_state"], Value::Null, "nothing ever signalled");
     // Which is the point: the session is no longer indistinguishable from an
@@ -597,7 +597,7 @@ fn submitted_codex_prompt_with_silent_hooks_does_not_keep_old_idle_status() {
             no_enter: true,
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .expect("type without submitting");
     assert_eq!(get(&db, row.id, false)["state"], "idle");
@@ -608,7 +608,7 @@ fn submitted_codex_prompt_with_silent_hooks_does_not_keep_old_idle_status() {
             key: "enter".into(),
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .expect("submit drafted prompt");
     assert_eq!(get(&db, row.id, false)["state"], "unreported");
@@ -621,7 +621,7 @@ fn submitted_codex_prompt_with_silent_hooks_does_not_keep_old_idle_status() {
             no_enter: false,
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .expect("submit prompt");
     let out = get_when_pane_settles(&db, row.id, "agent");
@@ -638,7 +638,7 @@ fn submitted_codex_prompt_with_silent_hooks_does_not_keep_old_idle_status() {
             verify: false,
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .expect("session list");
     let found = listed
@@ -709,9 +709,9 @@ fn reused_spawn_automation_retires_a_silent_codex_idle_report() {
         &fake.to_string_lossy(),
     ]);
     stamp(&format!("{SESSION}:tb-{name}"), &row.id.to_string());
-    let local = thurbox::backend::tmux::TmuxBackend::new();
+    let local = talos::backend::tmux::TmuxBackend::new();
     let placed = |id: &str| {
-        thurbox::backend::SessionBackend::locate(&local, thurbox::backend::Owner::new(id, &name))
+        talos::backend::SessionBackend::locate(&local, talos::backend::Owner::new(id, &name))
             .expect("locate")
             .agent
             .pane()
@@ -722,7 +722,7 @@ fn reused_spawn_automation_retires_a_silent_codex_idle_report() {
     let out = run_automation(
         AutomationCommand::Tick,
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .expect("automation tick");
     assert_eq!(out["fired"][0]["status"], "success", "{out}");
@@ -734,7 +734,7 @@ fn doctor_names_the_wiring_that_is_missing_and_exits_non_zero() {
     let dir = tempfile::tempdir().expect("tempdir");
     let _guard = isolated_config(dir.path());
     // Every verdict below is about *hook* wiring, so the one check that reads
-    // the machine — `thurbox-cli` on PATH — is pinned present rather than left
+    // the machine — `talos-cli` on PATH — is pinned present rather than left
     // to whether the operator happens to have installed it.
     let _path = PathGuard::only(&dir.path().join("path"), true);
     let db = Database::open_in_memory().expect("db");
@@ -769,7 +769,7 @@ fn doctor_names_the_wiring_that_is_missing_and_exits_non_zero() {
     assert!(
         coverage["detail"]
             .as_str()
-            .is_some_and(|d| d.contains("session signal") && d.contains("THURBOX_SESSION")),
+            .is_some_and(|d| d.contains("session signal") && d.contains("TALOS_SESSION")),
         "an integrator has no reason to know the signal route exists: {coverage}"
     );
 
@@ -850,19 +850,19 @@ fn a_parked_session_says_so_on_get_and_on_list() {
             session: row.id.to_string(),
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .expect("session stop");
 
     let after = get(&db, row.id, false);
     assert_eq!(after["stopped"], Value::Bool(true), "{after}");
     // Not `working`, and not `uncovered` either: it is parked, which is a fact
-    // thurbox knows first-hand rather than one inferred from an agent's
+    // talos knows first-hand rather than one inferred from an agent's
     // silence. Both of the other answers describe a session that is running.
     assert_eq!(after["state"], Value::String("stopped".into()), "{after}");
     assert!(
         after["state_source"].is_null(),
-        "nothing reported this; thurbox recorded it: {after}"
+        "nothing reported this; talos recorded it: {after}"
     );
 
     // And the same fact under the same key on the list, which is the verb a
@@ -874,7 +874,7 @@ fn a_parked_session_says_so_on_get_and_on_list() {
             verify: false,
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .expect("session list");
     let rows = listed.json.as_array().expect("rows");
@@ -903,7 +903,7 @@ fn the_pane_verbs_refuse_a_parked_session_by_name() {
             session: row.id.to_string(),
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .expect("session stop");
 
@@ -926,7 +926,7 @@ fn the_pane_verbs_refuse_a_parked_session_by_name() {
         let err = run(
             action,
             &db,
-            &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+            &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
         )
         .expect_err("a parked session has no pane");
         assert!(err.contains("stopped"), "got {err}");
@@ -969,7 +969,7 @@ fn a_parked_sessions_doctor_report_is_clean_not_a_warning() {
             session: row.id.to_string(),
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .expect("session stop");
 
@@ -996,17 +996,17 @@ fn a_parked_sessions_doctor_report_is_clean_not_a_warning() {
     );
 }
 
-/// A hook resolves `thurbox-cli` on the **pane's** `PATH`, so that is what the
+/// A hook resolves `talos-cli` on the **pane's** `PATH`, so that is what the
 /// `cli` check has to answer about — not the `PATH` of whoever ran `doctor`.
 ///
 /// The two came apart in the field. On a shared-sessions host every pane is
-/// spawned by a `thurbox-cli` the TUI invoked over ssh, which sshd hands a
+/// spawned by a `talos-cli` the TUI invoked over ssh, which sshd hands a
 /// `PATH` with no `~/.local/bin` on it, so no hook could find the binary and no
 /// session ever reported a state. `doctor` answered `ok` throughout, because
 /// the shell the operator ran it from had one.
 ///
 /// What makes the check sound is that the pane's `PATH` is readable at all: it
-/// is the `env PATH=…` prefix thurbox spawns the window with, which tmux keeps
+/// is the `env PATH=…` prefix talos spawns the window with, which tmux keeps
 /// verbatim. A pane without one — spawned by an older build — reads as unknown,
 /// and the check then says which `PATH` it answered about instead of
 /// overclaiming.
@@ -1021,7 +1021,7 @@ fn the_cli_check_answers_about_the_panes_path_not_the_doctors() {
     let dir = tempfile::tempdir().expect("tempdir");
     let _config = isolated_config(dir.path());
 
-    // The pane's own PATH: one directory, with no `thurbox-cli` in it.
+    // The pane's own PATH: one directory, with no `talos-cli` in it.
     let pane_bin = dir.path().join("pane-bin");
     std::fs::create_dir_all(&pane_bin).expect("mkdir");
 
@@ -1080,7 +1080,7 @@ fn a_pane_that_can_find_the_cli_is_healthy_though_the_doctor_cannot() {
 
     let pane_bin = dir.path().join("pane-bin");
     std::fs::create_dir_all(&pane_bin).expect("mkdir");
-    let cli_file = pane_bin.join("thurbox-cli");
+    let cli_file = pane_bin.join("talos-cli");
     std::fs::write(&cli_file, "#!/bin/sh\nexit 0\n").expect("write");
     {
         use std::os::unix::fs::PermissionsExt;
@@ -1124,9 +1124,9 @@ fn a_pane_that_can_find_the_cli_is_healthy_though_the_doctor_cannot() {
     );
 }
 
-/// A pane thurbox did not hand a `PATH` is **unverifiable**, not healthy.
+/// A pane talos did not hand a `PATH` is **unverifiable**, not healthy.
 ///
-/// The shape is a session spawned before thurbox put its CLI on a pane's
+/// The shape is a session spawned before talos put its CLI on a pane's
 /// `PATH` — every live session on a host the moment this ships. There is no
 /// prefix to read, and falling back to the `PATH` `doctor` itself runs on
 /// reports exactly the green `cli` check that hid the original bug. `Warn`
@@ -1134,7 +1134,7 @@ fn a_pane_that_can_find_the_cli_is_healthy_though_the_doctor_cannot() {
 /// does not fail the machine.
 #[cfg(unix)]
 #[test]
-fn a_pane_thurbox_did_not_hand_a_path_is_unverifiable_not_healthy() {
+fn a_pane_talos_did_not_hand_a_path_is_unverifiable_not_healthy() {
     if !have_tmux() {
         eprintln!("skipping: tmux is not installed");
         return;
@@ -1166,7 +1166,7 @@ fn a_pane_thurbox_did_not_hand_a_path_is_unverifiable_not_healthy() {
     assert_eq!(
         cli["level"],
         Value::String("warn".into()),
-        "a PATH thurbox did not write cannot be reported as a working one: {cli}"
+        "a PATH talos did not write cannot be reported as a working one: {cli}"
     );
     // Warn and not Fail is the substance: it may well be working, and a session
     // nobody has restarted yet must not read as broken wiring. (The report's

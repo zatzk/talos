@@ -152,7 +152,7 @@ end
 ---
 --- For a path, the head says where you are and the leaf says which one it is, and
 --- the leaf is the half an end-truncation throws away: a repo picker offering
---- `/home/me/.local/share/thurbox/worktrees/a1b2c3d4/thurb` has spent every
+--- `/home/me/.local/share/talos/worktrees/a1b2c3d4/thurb` has spent every
 --- column it had on boilerplate and cut off the only part that identifies the
 --- repository. Falls back to end-truncation below eight columns, where there is
 --- not room for two halves and an ellipsis.
@@ -397,7 +397,7 @@ end
 --- no `os`), so ages are measured against the snapshot's own instant — which is
 --- the moment the rows being drawn were read.
 function widgets.now_ms()
-  return (thurbox and thurbox.taken_at_ms) or 0
+  return (talos and talos.taken_at_ms) or 0
 end
 
 --- v1's `format_time_ago`, including its saturating subtraction: a timestamp in

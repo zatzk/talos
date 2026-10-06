@@ -3,7 +3,7 @@
     "hosts": [
       "tmux",
       "herdr",
-      "thurbox"
+      "talos"
     ],
     "machine": {
       "cpu_model": "Intel(R) Core(TM) i5-6500T CPU @ 2.50GHz",
@@ -89,12 +89,12 @@
       "latency",
       "survival"
     ],
-    "thurbox_commit": "0a7c8ece81035bf91ef61bf989692699a3c9cd1e",
+    "talos_commit": "0a7c8ece81035bf91ef61bf989692699a3c9cd1e",
     "timing": "in-harness, CLOCK_MONOTONIC (hyperfine not used)",
     "versions": {
       "herdr": "herdr 0.9.1",
       "python": "3.13.15",
-      "thurbox": "0.0.0-dev (schema v47)",
+      "talos": "0.0.0-dev (schema v47)",
       "tmux": "tmux 3.7c"
     },
     "warmup": 1
@@ -131,7 +131,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.31,
       "load5": 0.44,
       "metrics": {
@@ -176,7 +176,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.31,
       "load5": 0.44,
       "metrics": {
@@ -221,7 +221,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.31,
       "load5": 0.44,
       "metrics": {
@@ -266,7 +266,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.31,
       "load5": 0.44,
       "metrics": {
@@ -311,7 +311,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.36,
       "load5": 0.45,
       "metrics": {
@@ -356,7 +356,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.36,
       "load5": 0.45,
       "metrics": {
@@ -401,7 +401,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.36,
       "load5": 0.45,
       "metrics": {
@@ -446,7 +446,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.36,
       "load5": 0.45,
       "metrics": {
@@ -491,7 +491,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.36,
       "load5": 0.45,
       "metrics": {
@@ -536,7 +536,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.36,
       "load5": 0.45,
       "metrics": {
@@ -581,7 +581,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.42,
       "load5": 0.46,
       "metrics": {
@@ -626,7 +626,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.42,
       "load5": 0.46,
       "metrics": {
@@ -671,7 +671,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.42,
       "load5": 0.46,
       "metrics": {
@@ -716,7 +716,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.46,
       "load5": 0.47,
       "metrics": {
@@ -761,7 +761,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.59,
       "load5": 0.49,
       "metrics": {
@@ -806,7 +806,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.59,
       "load5": 0.49,
       "metrics": {
@@ -851,7 +851,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.62,
       "load5": 0.5,
       "metrics": {
@@ -896,7 +896,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.57,
       "load5": 0.49,
       "metrics": {
@@ -941,7 +941,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 1.08,
       "load5": 0.6,
       "metrics": {
@@ -986,7 +986,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.99,
       "load5": 0.6,
       "metrics": {
@@ -1031,7 +1031,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 1.39,
       "load5": 0.69,
       "metrics": {
@@ -1076,7 +1076,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 1.44,
       "load5": 0.72,
       "metrics": {
@@ -1121,7 +1121,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 1.77,
       "load5": 0.81,
       "metrics": {
@@ -1166,7 +1166,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 1.65,
       "load5": 0.82,
       "metrics": {
@@ -1211,7 +1211,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 1.35,
       "load5": 0.79,
       "metrics": {
@@ -1256,7 +1256,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 1.04,
       "load5": 0.76,
       "metrics": {
@@ -1301,7 +1301,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.81,
       "load5": 0.72,
       "metrics": {
@@ -1346,7 +1346,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.63,
       "load5": 0.68,
       "metrics": {
@@ -1391,7 +1391,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.64,
       "load5": 0.68,
       "metrics": {
@@ -1436,7 +1436,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.45,
       "load5": 0.64,
       "metrics": {
@@ -1481,7 +1481,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.35,
       "load5": 0.6,
       "metrics": {
@@ -1526,7 +1526,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.33,
       "load5": 0.58,
       "metrics": {
@@ -1571,7 +1571,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.37,
       "load5": 0.58,
       "metrics": {
@@ -1616,7 +1616,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.27,
       "load5": 0.54,
       "metrics": {
@@ -1661,7 +1661,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.19,
       "load5": 0.5,
       "metrics": {
@@ -1706,7 +1706,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.27,
       "load5": 0.5,
       "metrics": {
@@ -1751,7 +1751,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.6,
       "load5": 0.57,
       "metrics": {
@@ -1796,7 +1796,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.5,
       "load5": 0.54,
       "metrics": {
@@ -1841,7 +1841,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.47,
       "load5": 0.53,
       "metrics": {
@@ -1886,7 +1886,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.43,
       "load5": 0.52,
       "metrics": {
@@ -1931,7 +1931,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.49,
       "load5": 0.52,
       "metrics": {
@@ -1976,7 +1976,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 2.47,
       "load5": 1.02,
       "metrics": {
@@ -2105,7 +2105,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.07,
       "load5": 0.19,
       "metrics": {
@@ -2119,7 +2119,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.07,
       "load5": 0.19,
       "metrics": {
@@ -2133,7 +2133,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.07,
       "load5": 0.19,
       "metrics": {
@@ -2148,7 +2148,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.07,
       "load5": 0.19,
       "metrics": {
@@ -2276,7 +2276,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.04,
       "load5": 0.12,
       "metrics": {
@@ -2290,7 +2290,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.04,
       "load5": 0.12,
       "metrics": {
@@ -2304,7 +2304,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.04,
       "load5": 0.12,
       "metrics": {
@@ -2319,7 +2319,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.04,
       "load5": 0.12,
       "metrics": {
@@ -2447,7 +2447,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.01,
       "load5": 0.08,
       "metrics": {
@@ -2461,7 +2461,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.01,
       "load5": 0.08,
       "metrics": {
@@ -2475,7 +2475,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.01,
       "load5": 0.08,
       "metrics": {
@@ -2490,7 +2490,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.01,
       "load5": 0.08,
       "metrics": {
@@ -2618,7 +2618,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.05,
       "load5": 0.06,
       "metrics": {
@@ -2632,7 +2632,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.05,
       "load5": 0.06,
       "metrics": {
@@ -2646,7 +2646,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.05,
       "load5": 0.06,
       "metrics": {
@@ -2661,7 +2661,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.05,
       "load5": 0.06,
       "metrics": {
@@ -2789,7 +2789,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.06,
       "load5": 0.09,
       "metrics": {
@@ -2803,7 +2803,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.06,
       "load5": 0.09,
       "metrics": {
@@ -2817,7 +2817,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.06,
       "load5": 0.09,
       "metrics": {
@@ -2832,7 +2832,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.06,
       "load5": 0.09,
       "metrics": {
@@ -2960,7 +2960,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.08,
       "load5": 0.09,
       "metrics": {
@@ -2974,7 +2974,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.08,
       "load5": 0.09,
       "metrics": {
@@ -2988,7 +2988,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.08,
       "load5": 0.09,
       "metrics": {
@@ -3003,7 +3003,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.08,
       "load5": 0.09,
       "metrics": {
@@ -3131,7 +3131,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.09,
       "load5": 0.09,
       "metrics": {
@@ -3145,7 +3145,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.09,
       "load5": 0.09,
       "metrics": {
@@ -3159,7 +3159,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.09,
       "load5": 0.09,
       "metrics": {
@@ -3174,7 +3174,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.09,
       "load5": 0.09,
       "metrics": {
@@ -3302,7 +3302,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.31,
       "load5": 0.16,
       "metrics": {
@@ -3316,7 +3316,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.31,
       "load5": 0.16,
       "metrics": {
@@ -3330,7 +3330,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.31,
       "load5": 0.16,
       "metrics": {
@@ -3345,7 +3345,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.31,
       "load5": 0.16,
       "metrics": {
@@ -3473,7 +3473,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.26,
       "load5": 0.15,
       "metrics": {
@@ -3487,7 +3487,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.26,
       "load5": 0.15,
       "metrics": {
@@ -3501,7 +3501,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.26,
       "load5": 0.15,
       "metrics": {
@@ -3516,7 +3516,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.26,
       "load5": 0.15,
       "metrics": {
@@ -3644,7 +3644,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.14,
       "load5": 0.12,
       "metrics": {
@@ -3658,7 +3658,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.14,
       "load5": 0.12,
       "metrics": {
@@ -3672,7 +3672,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.14,
       "load5": 0.12,
       "metrics": {
@@ -3687,7 +3687,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.14,
       "load5": 0.12,
       "metrics": {
@@ -3815,7 +3815,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.33,
       "load5": 0.17,
       "metrics": {
@@ -3829,7 +3829,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.33,
       "load5": 0.17,
       "metrics": {
@@ -3843,7 +3843,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.33,
       "load5": 0.17,
       "metrics": {
@@ -3858,7 +3858,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.33,
       "load5": 0.17,
       "metrics": {
@@ -3986,7 +3986,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.73,
       "load5": 0.34,
       "metrics": {
@@ -4000,7 +4000,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.73,
       "load5": 0.34,
       "metrics": {
@@ -4014,7 +4014,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.73,
       "load5": 0.34,
       "metrics": {
@@ -4029,7 +4029,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.73,
       "load5": 0.34,
       "metrics": {
@@ -4157,7 +4157,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.38,
       "load5": 0.31,
       "metrics": {
@@ -4171,7 +4171,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.38,
       "load5": 0.31,
       "metrics": {
@@ -4185,7 +4185,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.38,
       "load5": 0.31,
       "metrics": {
@@ -4200,7 +4200,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.38,
       "load5": 0.31,
       "metrics": {
@@ -4328,7 +4328,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 1.59,
       "load5": 1.38,
       "metrics": {
@@ -4342,7 +4342,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 1.59,
       "load5": 1.38,
       "metrics": {
@@ -4356,7 +4356,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 1.59,
       "load5": 1.38,
       "metrics": {
@@ -4371,7 +4371,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 1.59,
       "load5": 1.38,
       "metrics": {
@@ -4499,7 +4499,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.54,
       "load5": 0.99,
       "metrics": {
@@ -4513,7 +4513,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.54,
       "load5": 0.99,
       "metrics": {
@@ -4527,7 +4527,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.54,
       "load5": 0.99,
       "metrics": {
@@ -4542,7 +4542,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.54,
       "load5": 0.99,
       "metrics": {
@@ -4670,7 +4670,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.51,
       "load5": 0.73,
       "metrics": {
@@ -4684,7 +4684,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.51,
       "load5": 0.73,
       "metrics": {
@@ -4698,7 +4698,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.51,
       "load5": 0.73,
       "metrics": {
@@ -4713,7 +4713,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.51,
       "load5": 0.73,
       "metrics": {
@@ -4841,7 +4841,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.38,
       "load5": 0.54,
       "metrics": {
@@ -4855,7 +4855,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.38,
       "load5": 0.54,
       "metrics": {
@@ -4869,7 +4869,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.38,
       "load5": 0.54,
       "metrics": {
@@ -4884,7 +4884,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.38,
       "load5": 0.54,
       "metrics": {
@@ -5012,7 +5012,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.46,
       "load5": 0.46,
       "metrics": {
@@ -5026,7 +5026,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.46,
       "load5": 0.46,
       "metrics": {
@@ -5040,7 +5040,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.46,
       "load5": 0.46,
       "metrics": {
@@ -5055,7 +5055,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.46,
       "load5": 0.46,
       "metrics": {
@@ -5097,7 +5097,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.07,
       "load5": 0.3,
       "metrics": {
@@ -5139,7 +5139,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.12,
       "load5": 0.24,
       "metrics": {
@@ -5181,7 +5181,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.06,
       "load5": 0.18,
       "metrics": {
@@ -5223,7 +5223,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.06,
       "load5": 0.12,
       "metrics": {
@@ -5265,7 +5265,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.1,
       "load5": 0.11,
       "metrics": {
@@ -5307,7 +5307,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.07,
       "load5": 0.08,
       "metrics": {
@@ -5355,7 +5355,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.15,
       "load5": 0.11,
       "metrics": {
@@ -5406,7 +5406,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.22,
       "load5": 0.12,
       "metrics": {
@@ -5457,7 +5457,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.2,
       "load5": 0.12,
       "metrics": {
@@ -5508,7 +5508,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.26,
       "load5": 0.13,
       "metrics": {
@@ -5559,7 +5559,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.22,
       "load5": 0.13,
       "metrics": {
@@ -5610,7 +5610,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.28,
       "load5": 0.14,
       "metrics": {
@@ -5661,7 +5661,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.26,
       "load5": 0.14,
       "metrics": {
@@ -5712,7 +5712,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.38,
       "load5": 0.17,
       "metrics": {
@@ -5763,7 +5763,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.4,
       "load5": 0.18,
       "metrics": {
@@ -5814,7 +5814,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.37,
       "load5": 0.18,
       "metrics": {
@@ -5865,7 +5865,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.31,
       "load5": 0.17,
       "metrics": {
@@ -5916,7 +5916,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.34,
       "load5": 0.18,
       "metrics": {
@@ -5963,7 +5963,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.31,
       "load5": 0.18,
       "metrics": {
@@ -6008,7 +6008,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.29,
       "load5": 0.18,
       "metrics": {
@@ -6053,7 +6053,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.24,
       "load5": 0.17,
       "metrics": {
@@ -6098,7 +6098,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.22,
       "load5": 0.17,
       "metrics": {
@@ -6143,7 +6143,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.29,
       "load5": 0.18,
       "metrics": {
@@ -6188,7 +6188,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.26,
       "load5": 0.18,
       "metrics": {
@@ -6257,7 +6257,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.39,
       "load5": 0.44,
       "metrics": {
@@ -6270,7 +6270,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.35,
       "load5": 0.43,
       "metrics": {
@@ -6338,7 +6338,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.11,
       "load5": 0.34,
       "metrics": {
@@ -6351,7 +6351,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.1,
       "load5": 0.33,
       "metrics": {
@@ -6419,7 +6419,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.09,
       "load5": 0.28,
       "metrics": {
@@ -6432,7 +6432,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.08,
       "load5": 0.27,
       "metrics": {
@@ -6500,7 +6500,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.05,
       "load5": 0.23,
       "metrics": {
@@ -6513,7 +6513,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.37,
       "load5": 0.29,
       "metrics": {
@@ -6581,7 +6581,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.18,
       "load5": 0.24,
       "metrics": {
@@ -6594,7 +6594,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.25,
       "load5": 0.26,
       "metrics": {
@@ -6662,7 +6662,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.13,
       "load5": 0.22,
       "metrics": {
@@ -6675,7 +6675,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.13,
       "load5": 0.22,
       "metrics": {
@@ -6919,7 +6919,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.21,
       "load1_end": 0.25,
       "load5": 0.85,
@@ -7264,7 +7264,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.18,
       "load1_end": 0.15,
       "load5": 0.78,
@@ -7609,7 +7609,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.11,
       "load1_end": 0.09,
       "load5": 0.7,
@@ -7954,7 +7954,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.13,
       "load1_end": 0.12,
       "load5": 0.65,
@@ -8299,7 +8299,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.29,
       "load1_end": 0.25,
       "load5": 0.65,
@@ -8644,7 +8644,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.18,
       "load1_end": 0.15,
       "load5": 0.58,
@@ -8989,7 +8989,7 @@
       "warmup": true
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.32,
       "load1_end": 0.5,
       "load5": 0.58,
@@ -9334,7 +9334,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.71,
       "load1_end": 0.75,
       "load5": 0.65,
@@ -9679,7 +9679,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.82,
       "load1_end": 0.85,
       "load5": 0.68,
@@ -10024,7 +10024,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 0.96,
       "load1_end": 1.19,
       "load5": 0.73,
@@ -10369,7 +10369,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 1.22,
       "load1_end": 1.63,
       "load5": 0.82,
@@ -10714,7 +10714,7 @@
       "warmup": false
     },
     {
-      "host": "thurbox",
+      "host": "talos",
       "load1": 1.52,
       "load1_end": 1.64,
       "load5": 0.95,

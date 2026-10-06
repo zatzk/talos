@@ -238,7 +238,7 @@ impl ThemeModal {
                     return Outcome::Stay(None);
                 };
                 // Applied and persisted where v1 persists it —
-                // `metadata.active_theme` — so every other thurbox process
+                // `metadata.active_theme` — so every other talos process
                 // picks it up on its next `data_version` poll.
                 // Chosen, so there is nothing to put back — clearing this is
                 // what stops the close below from reverting the choice.

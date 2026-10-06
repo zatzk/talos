@@ -101,7 +101,7 @@ pub struct LaunchRecipe {
     /// Arguments passed after `command`, one token per element (never a shell
     /// string — nothing here goes through a shell).
     pub args: Vec<String>,
-    /// Extra environment for the process, on top of the `THURBOX_*` identity
+    /// Extra environment for the process, on top of the `TALOS_*` identity
     /// vars every session gets. Sorted, so a restart's env is byte-identical to
     /// the spawn's rather than hash-order-dependent.
     pub env: BTreeMap<String, String>,
@@ -120,11 +120,11 @@ pub struct WorktreeInfo {
     pub repo_path: PathBuf,
     pub worktree_path: PathBuf,
     pub branch: String,
-    /// Whether thurbox checked this worktree out itself — see
-    /// [`crate::sync::SharedWorktree::created_by_thurbox`]. Carried here so the
+    /// Whether talos checked this worktree out itself — see
+    /// [`crate::sync::SharedWorktree::created_by_talos`]. Carried here so the
     /// `SharedWorktree` → `WorktreeInfo` → `SharedWorktree` round trip that
     /// restore performs cannot quietly turn a borrowed worktree into ours.
-    pub created_by_thurbox: bool,
+    pub created_by_talos: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -372,10 +372,10 @@ pub struct SessionCommand {
 
 #[derive(Debug, Clone, Default)]
 pub struct SessionConfig {
-    /// Desired thurbox [`SessionId`] for the spawned session. When set, the
+    /// Desired talos [`SessionId`] for the spawned session. When set, the
     /// spawn path uses this id instead of minting a fresh one — so the id is
     /// known *before* launch (to inject it into the process env as
-    /// `THURBOX_SESSION`) and can be reused across a respawn so a session's
+    /// `TALOS_SESSION`) and can be reused across a respawn so a session's
     /// identity is stable for life. `None` mints a new id at spawn.
     pub session_id: Option<SessionId>,
     /// Resume an existing agent session (process restart of a known session).
@@ -391,7 +391,7 @@ pub struct SessionConfig {
     /// Fork from an existing session's conversation (agents that support it).
     pub fork_session_id: Option<String>,
     /// Environment variables injected into the spawned session process
-    /// (thurbox-internal: session id, metrics dir, etc.).
+    /// (talos-internal: session id, metrics dir, etc.).
     pub env: HashMap<String, String>,
 }
 
@@ -445,9 +445,9 @@ mod tests {
     fn worktree_info_stores_fields() {
         let wt = WorktreeInfo {
             repo_path: PathBuf::from("/repo"),
-            worktree_path: PathBuf::from("/repo/.git/thurbox-worktrees/feat"),
+            worktree_path: PathBuf::from("/repo/.git/talos-worktrees/feat"),
             branch: "feat".to_string(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         };
         assert_eq!(wt.repo_path, PathBuf::from("/repo"));
         assert_eq!(wt.branch, "feat");

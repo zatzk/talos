@@ -9,13 +9,13 @@
 
 use std::path::PathBuf;
 
-use thurbox::kernel::command::Command;
-use thurbox::kernel::events::{Deriver, Event, Field};
-use thurbox::kernel::host::{LuaHost, Phase, Published, RenderContext};
-use thurbox::kernel::registry::Registry;
-use thurbox::kernel::snapshot::{SessionRow, Snapshot};
-use thurbox::kernel::theme::Themes;
-use thurbox::session::SessionState;
+use talos::kernel::command::Command;
+use talos::kernel::events::{Deriver, Event, Field};
+use talos::kernel::host::{LuaHost, Phase, Published, RenderContext};
+use talos::kernel::registry::Registry;
+use talos::kernel::snapshot::{SessionRow, Snapshot};
+use talos::kernel::theme::Themes;
+use talos::session::SessionState;
 
 /// An interface directory holding the given plugins, each `(file, source)`.
 fn interface(plugins: &[(&str, &str)]) -> tempfile::TempDir {
@@ -41,9 +41,9 @@ fn row(name: &str, status: &str) -> SessionRow {
         name: name.to_string(),
         agent: "claude".to_string(),
         status: SessionState::from_hook_state(status).expect("a hook state"),
-        cwd: Some(PathBuf::from("/src/thurbox")),
-        repo: Some("thurbox".to_string()),
-        repos: vec!["thurbox".to_string()],
+        cwd: Some(PathBuf::from("/src/talos")),
+        repo: Some("talos".to_string()),
+        repos: vec!["talos".to_string()],
         branch: Some(format!("feat/{name}")),
         base_branch: None,
         backend: "local-tmux".to_string(),
@@ -68,10 +68,10 @@ fn publish(host: &LuaHost, snapshot: &Snapshot) {
     let mut registry = Registry::default();
     let (bindings, settings) = host.declarations();
     registry.declare(bindings, settings);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     host.publish(&Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot,
         attach_errors: &Default::default(),
         inflight: &[],
@@ -234,7 +234,7 @@ fn a_handler_reads_the_published_tables_and_can_only_enqueue() {
              name = "reader", slot = "a",
              events = { "session.status" },
              on_event = function(name, payload)
-               local first = thurbox.sessions[1]
+               local first = talos.sessions[1]
                store.name = first and first.name or "nobody"
                command("send", { session = payload.session, text = "you are " .. payload.to })
                return "ignored"

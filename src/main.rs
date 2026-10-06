@@ -1,4 +1,4 @@
-//! thurbox — a session engine with a Lua-driven renderer.
+//! talos — a session engine with a Lua-driven renderer.
 //!
 //! The kernel owns no pane. It resolves rects, calls plugins, paints what they
 //! return, and refreshes a snapshot of the session engine on its own schedule.
@@ -19,22 +19,22 @@ use std::time::{Duration, Instant};
 
 use ratatui::layout::Rect;
 
-use thurbox::kernel::bands::{Band, Level};
-use thurbox::kernel::command::CommandBus;
-use thurbox::kernel::diff::DiffStore;
-use thurbox::kernel::host::{LuaHost, PluginError};
-use thurbox::kernel::metrics::Metrics;
-use thurbox::kernel::modals::Modals;
-use thurbox::kernel::node::Identity;
-use thurbox::kernel::notify::Notifier;
-use thurbox::kernel::perf::Counters;
-use thurbox::kernel::registry::Registry;
-use thurbox::kernel::selection::Selection;
-use thurbox::kernel::snapshot::SnapshotStore;
-use thurbox::kernel::terminal::Terminals;
-use thurbox::kernel::theme::Themes;
-use thurbox::kernel::watch::Watcher;
-use thurbox::ui_control::Server as UiControlServer;
+use talos::kernel::bands::{Band, Level};
+use talos::kernel::command::CommandBus;
+use talos::kernel::diff::DiffStore;
+use talos::kernel::host::{LuaHost, PluginError};
+use talos::kernel::metrics::Metrics;
+use talos::kernel::modals::Modals;
+use talos::kernel::node::Identity;
+use talos::kernel::notify::Notifier;
+use talos::kernel::perf::Counters;
+use talos::kernel::registry::Registry;
+use talos::kernel::selection::Selection;
+use talos::kernel::snapshot::SnapshotStore;
+use talos::kernel::terminal::Terminals;
+use talos::kernel::theme::Themes;
+use talos::kernel::watch::Watcher;
+use talos::ui_control::Server as UiControlServer;
 
 /// How long the loop blocks waiting for input.
 ///
@@ -97,7 +97,7 @@ const LINK_SCAN_INTERVAL: Duration = Duration::from_millis(250);
 const PERF_WINDOW_TICKS: u64 = 1000;
 
 /// How often the JSON snapshot is written while timing is active. Slower than
-/// the log line because it is a database write every other thurbox connection
+/// the log line because it is a database write every other talos connection
 /// pays for with a `data_version` bump.
 const PERF_PUBLISH_INTERVAL: Duration = Duration::from_secs(5);
 
@@ -251,11 +251,11 @@ struct App {
     control_tickets: std::collections::HashMap<String, PendingConfirmation>,
     control_state_version: u64,
     control_registry_version: u64,
-    control_placed: Vec<thurbox::kernel::layout::SlotRect>,
+    control_placed: Vec<talos::kernel::layout::SlotRect>,
     control_floats: std::collections::HashSet<usize>,
     control_focus: usize,
     control_modal: (
-        Option<thurbox::kernel::modals::ModalKind>,
+        Option<talos::kernel::modals::ModalKind>,
         Option<usize>,
         Option<String>,
     ),
@@ -267,7 +267,7 @@ struct App {
     ///
     /// Cached because answering it reads and digests every file: it changes
     /// only when the directory does, which is exactly when the host reloads.
-    sources: std::collections::BTreeMap<String, thurbox::kernel::bundled::Source>,
+    sources: std::collections::BTreeMap<String, talos::kernel::bundled::Source>,
     watcher: Watcher,
     snapshots: SnapshotStore,
     terminals: Terminals,
@@ -276,7 +276,7 @@ struct App {
     /// What the creation flow asks about: remembered repositories, directory
     /// listings, branch lists. Requests arrive through `store` and are served
     /// on workers, like every other read that touches the world.
-    repos: thurbox::kernel::repos::RepoStore,
+    repos: talos::kernel::repos::RepoStore,
     metrics: Metrics,
     /// Native clipboard handle, when the platform has one.
     ///
@@ -289,8 +289,8 @@ struct App {
     ///
     /// Only ever used inside WSL, where [`Self::clipboard`] answers about the X
     /// clipboard rather than the one being copied into — see
-    /// [`thurbox::clipboard::ImageProbe`].
-    image_probe: thurbox::clipboard::ImageProbe,
+    /// [`talos::clipboard::ImageProbe`].
+    image_probe: talos::clipboard::ImageProbe,
     /// The sessions the presses waiting on [`Self::image_probe`] were aimed at,
     /// in the order they were made.
     ///
@@ -310,15 +310,15 @@ struct App {
     notifier: Notifier,
     perf: Counters,
     /// Wall-clock stats, populated only while timing is active (ADR-P11).
-    timings: thurbox::kernel::perf::Timings,
+    timings: talos::kernel::perf::Timings,
     /// How long each startup phase took; published and logged once.
-    startup: thurbox::kernel::perf::Startup,
-    /// `THURBOX_PERF_LOG` was set, read once at construction. The other half of
+    startup: talos::kernel::perf::Startup,
+    /// `TALOS_PERF_LOG` was set, read once at construction. The other half of
     /// [`Self::perf_timing_active`] is the HUD, which can be toggled.
     perf_log: bool,
     /// Counters as they stood when the current perf window opened, so the
     /// `perf_window` line reports deltas rather than lifetime totals.
-    perf_window_base: thurbox::kernel::perf::Snapshot,
+    perf_window_base: talos::kernel::perf::Snapshot,
     /// Iteration count at which the current perf window opened.
     perf_window_tick: u64,
     /// When the JSON snapshot was last written to the database.
@@ -383,10 +383,10 @@ struct App {
     /// hidden pane" rule is satisfied without a second mechanism.
     slot_selection: std::collections::HashMap<String, usize>,
     /// Whether a newer release exists, and the silent update if it was allowed.
-    updates: thurbox::kernel::updates::Updates,
+    updates: talos::kernel::updates::Updates,
     /// The user's settings: the live half re-read when the file changes, the
     /// restart-only half as published at startup. See `kernel::config`.
-    config: thurbox::kernel::config::Config,
+    config: talos::kernel::config::Config,
     registry: Registry,
     /// Help, settings and the theme picker: kernel-owned, overlaying, and
     /// outside both the layout and the focus ring. See `kernel::modals`.
@@ -518,13 +518,13 @@ struct App {
     /// Kept apart from `click_targets` because a band is not a plugin: a click
     /// on one must not focus a pane, and there is no plugin index to record.
     /// Same reason the system modals keep their own click path.
-    band_targets: Vec<thurbox::kernel::bands::Hit>,
+    band_targets: Vec<talos::kernel::bands::Hit>,
     started: Instant,
     frames: u64,
     /// The last painted trees, per plugin index. A frame is skipped when every
     /// plugin returns what it returned last time and nothing else moved — the
     /// plugin-model equivalent of v1's `needs_redraw`.
-    last_trees: Vec<Option<std::rc::Rc<thurbox::kernel::node::Node>>>,
+    last_trees: Vec<Option<std::rc::Rc<talos::kernel::node::Node>>>,
     /// The last float each plugin painted, and where.
     ///
     /// What each chrome band painted last frame, and where. Bands have no tree
@@ -533,7 +533,7 @@ struct App {
     /// Kept apart from `last_trees` because a float is rendered in its own pass at
     /// its own rect, so the two would overwrite each other for a plugin that did
     /// both. Its purpose is the same: settle the loop when nothing moved.
-    last_floats: std::collections::HashMap<usize, (Rect, std::rc::Rc<thurbox::kernel::node::Node>)>,
+    last_floats: std::collections::HashMap<usize, (Rect, std::rc::Rc<talos::kernel::node::Node>)>,
     /// Floats that actually painted on the last frame.
     ///
     /// Distinct from `last_floats`, which is a settle cache and deliberately
@@ -560,7 +560,7 @@ struct App {
     /// leaves the repaint to the next flush, so every toggle blinks the whole
     /// interface. The frame is the same either way — only the empty one in
     /// between is avoided.
-    last_placed: Vec<thurbox::kernel::layout::SlotRect>,
+    last_placed: Vec<talos::kernel::layout::SlotRect>,
     /// Set by anything that invalidates the screen outside the tree diff:
     /// input, a reload, a resize, a completed command.
     dirty: bool,
@@ -582,7 +582,7 @@ struct App {
     pointer_grab: Option<PointerGrab>,
     /// The SURFACE whose pty took the last left press, if the program inside
     /// tracks the mouse. While set, moves and the release are forwarded there
-    /// instead of drawing thurbox's own selection — the press chose the owner
+    /// instead of drawing talos's own selection — the press chose the owner
     /// of the whole gesture.
     ///
     /// A surface rather than a session because a session has two of them: the
@@ -591,17 +591,17 @@ struct App {
     /// the terminal store, which is what resolves it.
     pty_pointer: Option<String>,
     /// Programs plugins asked to be run, and what they printed.
-    runs: thurbox::kernel::runs::RunStore,
+    runs: talos::kernel::runs::RunStore,
     /// Every file of the interface, as of the last painted frame.
     ///
     /// Computed for the plugins that used to list it and kept because the
     /// settings modal's Interface tab lists it too — one join per frame, read
     /// by both.
-    inventory: Vec<thurbox::kernel::inventory::Row>,
+    inventory: Vec<talos::kernel::inventory::Row>,
     /// Sessions with a relaunch in flight, so a respawn is dispatched once per
     /// session rather than every frame its window is still missing. A failed
     /// restart clears its entry, so a session still missing its agent is tried
-    /// again rather than stuck until thurbox restarts.
+    /// again rather than stuck until talos restarts.
     respawned: std::collections::HashSet<String>,
     /// When the loop last asked the database for soft-deleted sessions whose
     /// undo window has closed, so their agents are let go rather than left
@@ -634,7 +634,7 @@ struct App {
     /// serve. Dropped whenever the frame reprints cells the diff would
     /// otherwise have skipped (see `App::draw`), since a re-printed cell loses
     /// the hyperlink the terminal had attached to it.
-    last_link_paints: Vec<thurbox::kernel::terminal::HyperlinkPaint>,
+    last_link_paints: Vec<talos::kernel::terminal::HyperlinkPaint>,
     /// When each session's links were last scanned, so a screen that keeps
     /// moving is rescanned at [`LINK_SCAN_INTERVAL`] rather than per frame.
     /// Kept beside the stamp rather than folded into it: the stamp answers
@@ -644,7 +644,7 @@ struct App {
     link_scans: std::collections::HashMap<String, Instant>,
     /// The content search: every session's scrollback, read and matched on a
     /// worker while the search strip asks (`kernel::search`).
-    search: thurbox::kernel::search::SearchStore,
+    search: talos::kernel::search::SearchStore,
     /// Where each interface file stands with the user, and the lock the answer
     /// was resolved against.
     ///
@@ -653,7 +653,7 @@ struct App {
     /// answer changes only when the directory or a grant does, and both say so.
     /// The rows themselves are still assembled every publish — those depend on
     /// what is on screen this frame, which is cheap and does change.
-    trust: std::collections::HashMap<String, thurbox::kernel::inventory::Trust>,
+    trust: std::collections::HashMap<String, talos::kernel::inventory::Trust>,
     /// Set when the directory, a grant or the disabled set moved, so the trust
     /// answers above are re-read.
     trust_stale: bool,

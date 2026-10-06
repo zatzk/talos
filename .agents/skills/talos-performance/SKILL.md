@@ -1,0 +1,222 @@
+---
+name: talos-performance
+description: The talos render loop's performance contract: demand-driven redraw and the two frame floors, what marks the screen dirty, reflow full-repaints, the republish change-gates and pure-pane memos, the age-carrying cache rule (a cache here needs a TTL/generation), the vt100 two-row floor, dropping the grid of a session off screen, and the perf HUD/histograms. Use when touching the render loop, republish, snapshot caches, adding a cache, or investigating talos CPU/frame cost.
+---
+
+# Talos render-loop performance
+
+*Working reference indexed by `AGENTS.md`. The rationale behind these decisions is owned by the docs under `docs/`; a change that invalidates what this says updates it in the same PR.*
+
+## Performance (render loop)
+
+**Nothing on the loop waits on a network** (ADR-P7/P12 for connecting,
+**ADR-P24** for a connection already open). The trap ADR-P24 closes is that an
+open link can go bad without failing: it carries nothing, no ssh keepalive
+fires, and a round trip that is sub-millisecond when healthy becomes
+`COMMAND_TIMEOUT` plus a reconnect plus another `COMMAND_TIMEOUT`. So a command
+issued from the loop is either **detached** (`send_command_detached`, for one
+whose answer no frame reads — the pane resize behind a paint) or **bounded**
+(`ctrl_command_within`, for one the loop must have an answer to — the
+passthrough gate's `is_dead`), and the bound covers the control lock too, not
+just the answer. Reproduced by the wedged-link scenarios in `tests/tui_e2e.rs`;
+see the `talos-testing` skill for how the stand-in `ssh` builds the byte relay
+a local tmux does not have.
+
+The loop is **demand-driven**: it paints when something changed or when the 250 ms
+forced-redraw floor (`FORCE_REDRAW_INTERVAL`) elapses, never on every iteration.
+There are **two floors between paints**, because typing has to feel instant and
+watching a log scroll does not: `MIN_FRAME_INTERVAL` (16 ms) when a person did
+something — a key, a resize, a worker result they asked for, tracked by
+`input_dirty`, which is set with `dirty` through the one `App::note_input` and
+never alone — and `OUTPUT_FRAME_INTERVAL` (33 ms) when the only thing owing a
+frame is agent output. Applying the tight floor to both made a chatty agent drive
+60 paints a second to show 30 lines; the split is worth 30% of the loaded cost
+(ADR-P17). **A keystroke's echo is on neither floor** (ADR-P28): a key sent to a
+terminal owes an echo (`EchoWait`), the loop sleeps in `poll(2)` on the terminal
+and on the `backend::output_wake` self-pipe (poked only by that pane's reader) until it comes, holds the key's own
+frame for it (`ECHO_HOLD`), and paints it at once as the last full frame with
+only that surface repainted (`paint_echo_frame`) — rapid keys queue successive
+output sequences rather than replacing one pending wait; one such frame per
+key, and declined whenever anything is drawn over the panes. What marks the screen dirty:
+any input, a resize, a reload, a worker result, and **new agent output** —
+`Terminals::output_generation` is summed each iteration, which is what stops a
+printing agent being drawn at 4 fps. It sums each pane's `output_seq`, bumped
+after the parse, never the millisecond `last_output_at`: that stamp was stored
+before the parse and cannot tell two chunks in one millisecond apart. What does **not**: background housekeeping.
+A command answering `Command::is_housekeeping()` (the 5-second deleted-session
+sweep or a Codex status reset after delivered input) is dispatched to a worker
+with no in-flight record, so it reaches neither `talos.commands`, nor the
+message band, nor the animation clock — recorded like a command someone
+pressed, the sweep reserved a
+band row and gave it back every five seconds, and a band row appearing is a
+reflow (ADR-P22). A **reflow** — the arrangement placing a
+slot at a new rect, so a column opened or closed — additionally forces one *full*
+repaint: the cell diff is only correct while ratatui and the terminal agree on a
+glyph's width, and where they cannot (a flag, an emoji presentation sequence) the
+pane that closed leaves characters behind.
+`kernel::paint::normalize_ambiguous_width` strips the one such disagreement that
+is strippable — `U+FE0F` — from every painted cell, panes and vt100 surfaces
+alike, and `kernel::paint::force_full_repaint` covers the rest by marking every
+cell of the reflowed frame as one the diff must print. It is deliberately **not**
+`Terminal::clear`: erasing flushes a blank screen and leaves the repaint to the
+next flush, so every pane toggle blinked the whole interface.
+
+A frame is more expensive than v1's, structurally: every pane is a Lua call
+returning a table that is converted to nodes and painted. The **conversion** is
+the surprise in that sentence and the biggest single cost in a frame — bigger
+than running the plugins' Lua. `kernel::convert` therefore reads each node's
+fields in **one `pairs` pass** rather than ~25 keyed lookups, and builds its
+error paths as a borrowed chain (`Crumb`) rather than a `String` per node; both
+are measured in `docs/PERFORMANCE.md`. So the loop settles
+aggressively. `draw` compares each plugin's returned tree against the last one and
+only marks the frame changed when it differs; a float does the same against its own
+last tree and rect, and a **chrome band** compares the *cells* it just painted
+against the ones it painted last frame — it has no tree to diff, and marking it
+changed for having been *drawn* held `dirty` set after every frame, which stopped
+the loop settling at all: an idle interface with no sessions repainted at the frame
+cap forever (~32% of a core, against ~6% once it settles). Neither an open float
+nor a live text selection marks the frame changed by itself — both used to,
+which pinned the loop at the frame cap for as long as the creation wizard was
+open. The perf HUD is the deliberate exception: its
+counters move every iteration, so it says so.
+
+Everything that touches the world runs on a worker and publishes back (rule 5):
+`kernel::terminal` (attach — the sharpest teeth, since a down host runs out its ssh
+timeout and adopting a pane needs the runtime *entered* on the worker),
+`kernel::command`, `kernel::diff`, `kernel::metrics` (three cadences, one published
+result — the clearest one to copy), `kernel::repos` (the only *parameterised* reads,
+asked for by leaving a key in `store`), `kernel::runs`, `kernel::updates`.
+
+Cached answers carry an **age**, not just a value. The mistake this repeatedly
+invited was storing "we have an answer" where "the answer is current" was needed:
+git stats froze at their first reading, a `run` refresh started a process per frame,
+a failed branch fetch stuck for the process lifetime, a backend surveyed once
+was treated as surveyed since, and a session's diff held its first computation
+for the life of the process. Each is now a TTL, an in-flight marker, or a
+generation counter — if you add a cache here, give it one (ADR-P13/P18; the one
+exemption, the repo-name cache, keys on an origin URL that cannot move within a
+process). When the age is a **generation key** rather than a clock, which key you
+pick is the whole of the correctness: `GitStats::known` caches `merged` against
+the **commit** it was computed for, because keyed on the session it latched — a
+landed branch that keeps working is unmerged again on its next commit, and the
+TTL re-ran the worker without re-opening the question, so the delete confirmation
+stopped warning about commits that existed nowhere else. Both answers are
+cached, and they age differently: a `true` is a fact about the commit and stands
+as long as HEAD does, while a `false` is a fact about a moment as well — the
+branch lands with the worktree standing still — so the caller stops offering it
+once it is `MERGE_RECHECK` (60 s) old. That is a floor on the recheck's
+cadence, not a deadline: it rides on a poll, so the age it really bounds is a
+minute or that session's own interval, whichever is longer. **The cost this cache governs is per session**, so
+it also carries a per-session interval that doubles while the answer does not
+move (`GIT_STAT_BACKOFF`, 12× the base) and a base that is a setting rather than
+a constant (`git_poll_secs`, `0` = off) — nine subprocesses per unlanded session
+every five seconds was talos's largest background cost, and on a machine whose
+endpoint protection scans process creation it was a visible one (ADR-P25). The same rule holds one level up for anything issued **on a timer
+against a host**: window discovery is throttled per backend, at 500 ms locally
+but `REMOTE_DISCOVERY_INTERVAL` over ssh, and a survey or a mirror pass that
+failed backs off further still (ADR-P19). Sharing made remote rows discoverable
+and the one shared clock behind that throttle then cost two ssh commands a
+second for as long as a single remote row stayed unattached.
+
+`republish` — the one call that rebuilds every `talos.*` table — runs once per
+painted frame and **once per input batch**, not once per event: a held-down key
+otherwise paid for it per repeat. Within it **every** group is **gated on a
+change-signal** (`SnapshotStore::version`, `Themes`/`Registry::version`,
+`Terminals::meta_version`/`failed_version`, and the loop's `data_epoch` — which
+moves on every worker result and command transition and deliberately never on
+agent output, so a streaming turn reuses `diffs`, `links`, `content`,
+`commands` and `metrics` whole; the parameterised reads pair the epoch with a
+digest of the question, which is also what gives their tables the stable
+identity the panes' own `rawequal` memos key on). A group whose inputs did not
+move is not rebuilt; and a pane that declares
+`pure = true` has the tree it last returned reused — a cache hit is a refcount
+bump on an `Rc` tree, and the settle diff short-circuits on pointer identity.
+This is ADR-P16 closed out by ADR-P18, and it all rests on one rule: a signal is bumped **inside** the
+mutation and only when the value actually changed — writing an unchanged value
+counts as no change, which is the difference between the gate saving 27% and
+saving nothing. The **animation clock** obeys it too: it lives in the epoch and
+the loop advances it only while something is actually animating — a `working`
+session, a *user's* command in flight, a repo read — because a free-running one
+invalidated every pure pane on every idle frame. It is also
+**scoped to its readers**: `ctx.elapsed` is served through the render context's
+metatable rather than set as a field, so the kernel can see which panes asked for
+it, and a pure tree is keyed on the animation tick only if the render that built
+it read the clock (`CachedTree`). Every other TUI gets that coupling for free
+because the animating widget is the one that asks to be redrawn — a Textual
+widget's `set_interval(…, self.refresh)`, a Bubble Tea spinner's own tick command,
+fidget.nvim's `Anime` closure — and talos's panes do not ask, so it is observed
+instead. Detected rather than declared on purpose: a declaration defaulting to
+"does not animate" freezes a third-party spinner silently (ADR-P21, +51% down to
++12% under load). And the loop
+itself slows its input poll to `IDLE_TICK` once nothing has happened for
+`QUIESCENT_AFTER` — free, because `event::poll` returns the instant an event
+arrives, so only things that never wake the thread are delayed.
+
+The reads in `republish` that touch a screen or the
+disk carry the age above (ADR-P14): link extraction is keyed on that session's
+`output_stamp` **and limited to surfaces actually on screen** — and the row
+extraction itself is computed once per output stamp and shared by the link
+scan, the click-time URL resolve and the OSC 8 repaint (a link nothing
+painted can be neither clicked nor handed to the outer terminal, and the scan
+walks a whole vt100 grid — doing it for every live pane cost ~1.2ms a frame with
+three of them), the search content scan on `output_generation`, and the interface
+inventory's per-file digests on a `trust_stale` flag every path that changes the
+directory or a grant already sets. The link scan carries a **second** gate,
+`LINK_SCAN_INTERVAL` (250 ms), because the stamp is exact for a screen that has
+stopped and no gate at all for one that has not: a printing agent moves it every
+frame, and a scrolling screen puts its URLs on new rows each time, so the scan
+found a real change per frame and moved the data epoch — which un-gated every
+group and every pure pane for anyone whose agent prints a URL, i.e. all of them
+(ADR-P20: printing a URL cost +66% CPU under load, now +15%). A per-frame recompute whose
+answer legitimately changes is the way a change-signal moves that nobody is
+looking for; compare-before-store asks whether the value moved, and the missing
+question is whether it was worth asking yet.
+
+**A session off screen has no grid** (ADR-P27). After `hidden_terminal_secs`
+off screen, or from attach when it was never shown, a pane's parser is two
+cells that still read every byte (title, bell, notification, input modes,
+`last_output_at`); `WiredPane::evict` does the swap. A paint of such a pane
+calls `restore`, which asks tmux for a snapshot over control mode; the control
+reader puts the answer into the pane's own output channel (`PaneChunk::Snapshot`)
+so the reader thread installs it at exactly the byte it describes. Never
+rebuild a grid from a capture taken any other way: the output in flight is then
+lost or repeated. Anything that reads a pane's cells must either be a painted
+surface or handle a non-resident pane (the search's `Source::restore`), and
+anything keyed on what was read off a grid keys on `content_stamp`, which moves
+on a rebuild, not `last_output_at`.
+
+**A vt100 grid is never given fewer than two rows or two columns**
+(`backend::pane::vt_floor`). A cramped layout really does compute a one-cell pane,
+and vt100 underflows on the next byte written into one — in `row_inc_scroll` when a
+line wraps, in `col_wrap` (`cols - width`) when a double-width character arrives.
+The panic lands on the session's *reader* thread, so the process lives while that
+session's terminal is blank for the rest of the run: the unwind poisons the parser
+mutex, and every reader of it (paint, links, selection, copy) reads a poisoned lock
+as "no live terminal". A panic is also written to `talos.log`, because a worker's
+stderr is scrolled away long before anyone looks.
+
+**Measuring it**: two instruments, both outside the PR gate (ADR-P5).
+`cargo bench --bench frame_cost` times the *pieces* of a frame against the real
+`ui/` — publish, arrangement, each placed pane, the paint, the vt100 surface and
+link scan — modelling what `draw` does rather than what the plugin list contains
+(a closed search strip occupies no slot, so nothing renders it).
+`scripts/dev/perf-run.sh` runs the *whole binary* under a reproducible load in an
+isolated sandbox and reports CPU from `/proc` beside the loop's own
+`perf_window` line. A reading is only comparable with another at the same
+terminal size and session count, so both pin theirs, and a change is argued with
+a paired before/after rather than two absolute numbers.
+
+**Observability**: `F12` toggles the perf HUD (`[features] perf_hud`); launching with
+`TALOS_PERF_LOG=1` writes `startup`, `perf_window` and `slow op` lines to
+`talos.log`; while either is active a JSON snapshot is published for
+`talos-cli perf`. Three histograms, kept separate so they **decompose** rather
+than nest: `frame` is the paint, `republish` is the per-frame table rebuild
+above, and `tick` is the rest of one iteration. `kernel::perf::snapshot_json`
+owns the published shape and `cli::perf` only renders it. **Per plugin**
+(ADR-P23): the Lua host records each plugin's renders, reuses, render and
+handler time, `run` asks, render-time `store` writes and tree size into a
+`PluginTable` under the same gate (`LuaHost::set_perf_timing`), and
+`perf::plugin_report` ranks it with hints into the one `PluginReport` the HUD's
+`panes` table, the snapshot's `plugins` array and `talos-cli perf --plugins`
+read; `time_op` names the plugin whose call was longest. Full rationale:
+`docs/PERFORMANCE.md`.

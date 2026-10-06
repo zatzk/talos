@@ -1,7 +1,7 @@
 //! Loading and seeding of the session lifecycle hooks file.
 //!
-//! `~/.config/thurbox/hooks.toml` declares the user's own commands to run
-//! before and after thurbox creates, deletes, restarts or restores a session.
+//! `~/.config/talos/hooks.toml` declares the user's own commands to run
+//! before and after talos creates, deletes, restarts or restores a session.
 //! It is the reverse of the `hooks/` directory beside it, which is where the
 //! built-in `hooks` *extension* keeps the status-hook files it installs into
 //! the agent CLIs. On first run the file is seeded fully commented-out, so a
@@ -19,18 +19,18 @@ use crate::session::{HookEvent, HooksFile, LifecycleHook};
 
 /// Seed contents for `hooks.toml` on first run: full documentation plus one
 /// commented-out example per event, but no active hooks.
-pub const SEED_HOOKS_TOML: &str = r#"# Thurbox session lifecycle hooks  —  ~/.config/thurbox/hooks.toml
+pub const SEED_HOOKS_TOML: &str = r#"# Talos session lifecycle hooks  —  ~/.config/talos/hooks.toml
 #
 # Each [[hooks]] entry runs a shell command of yours at one moment in a
-# session's life: before or after thurbox creates, deletes, restarts or
-# restores it. Hooks run on the machine thurbox runs on, whichever interface
-# asked for the operation — the TUI, `thurbox-cli`, an automation, an
+# session's life: before or after talos creates, deletes, restarts or
+# restores it. Hooks run on the machine talos runs on, whichever interface
+# asked for the operation — the TUI, `talos-cli`, an automation, an
 # extension — once per operation.
 #
 # NOT the same thing as the `hooks/` directory next to this file: that is
 # where the built-in `hooks` extension keeps the status-hook files it installs
-# INTO the agent CLIs (so an agent can tell thurbox it is working/blocked/
-# done). This file is the other direction — thurbox telling your scripts what
+# INTO the agent CLIs (so an agent can tell talos it is working/blocked/
+# done). This file is the other direction — talos telling your scripts what
 # it is doing.
 #
 # Events (pre = before the operation has any effect; post = after it fully
@@ -50,26 +50,26 @@ pub const SEED_HOOKS_TOML: &str = r#"# Thurbox session lifecycle hooks  —  ~/.
 # What a hook receives, as environment variables (unset — not empty — when
 # the fact is not known at that moment):
 #
-#   THURBOX_HOOK_EVENT       the event name, e.g. "session.post_create"
-#   THURBOX_SESSION          the thurbox session id (at pre_create: the id it
+#   TALOS_HOOK_EVENT       the event name, e.g. "session.post_create"
+#   TALOS_SESSION          the talos session id (at pre_create: the id it
 #                            will have if creation succeeds)
-#   THURBOX_SESSION_ID       the agent's own conversation id
-#   THURBOX_SESSION_NAME     the session name
-#   THURBOX_AGENT            the agent, e.g. "claude"
-#   THURBOX_REPO             the primary repository path
-#   THURBOX_CWD              the directory the agent runs in (the worktree, or
+#   TALOS_SESSION_ID       the agent's own conversation id
+#   TALOS_SESSION_NAME     the session name
+#   TALOS_AGENT            the agent, e.g. "claude"
+#   TALOS_REPO             the primary repository path
+#   TALOS_CWD              the directory the agent runs in (the worktree, or
 #                            the symlink workspace of a multi-repo session);
 #                            unset at pre_create, before the worktree exists
-#   THURBOX_BRANCH           the worktree branch, when there is one
-#   THURBOX_BASE_BRANCH      the branch it was created from (create events)
-#   THURBOX_HOST             the remote host name; unset for a local session.
-#                            When set, THURBOX_REPO/THURBOX_CWD are paths on
+#   TALOS_BRANCH           the worktree branch, when there is one
+#   TALOS_BASE_BRANCH      the branch it was created from (create events)
+#   TALOS_HOST             the remote host name; unset for a local session.
+#                            When set, TALOS_REPO/TALOS_CWD are paths on
 #                            that host — the hook itself still runs locally
-#   THURBOX_PARENT_SESSION   the parent session id (a fork, or --parent)
-#   THURBOX_TASK             the originating task id, for a task-spawned session
-#   THURBOX_CONFIG_DIR / THURBOX_DATA_DIR
-#                            so a `thurbox-cli` you run inside the hook hits the
-#                            same database as the thurbox that fired it
+#   TALOS_PARENT_SESSION   the parent session id (a fork, or --parent)
+#   TALOS_TASK             the originating task id, for a task-spawned session
+#   TALOS_CONFIG_DIR / TALOS_DATA_DIR
+#                            so a `talos-cli` you run inside the hook hits the
+#                            same database as the talos that fired it
 #
 # The same facts — plus `worktrees` (repo_path, worktree_path, branch), the
 # additional directories, and `force`/`force_deleted` for delete/restore —
@@ -77,11 +77,11 @@ pub const SEED_HOOKS_TOML: &str = r#"# Thurbox session lifecycle hooks  —  ~/.
 #   jq -r .cwd
 #
 # The hook runs through `sh -c` (`cmd /C` on Windows), in the primary
-# repository when that is a directory on this machine (otherwise in thurbox's
+# repository when that is a directory on this machine (otherwise in talos's
 # own working directory), with no terminal: stdout/stderr are captured and only
 # their tail is reported. It is killed after `timeout_secs` (default 30).
 #
-# Unknown keys are reported on startup (and fail `thurbox-cli config
+# Unknown keys are reported on startup (and fail `talos-cli config
 # validate`) but don't break the load. A file that fails to parse means NO
 # hooks run, with a warning — never a blocked session.
 #
@@ -100,31 +100,31 @@ config_version = 1
 # Refuse a session on a branch nobody should work on directly.
 # [[hooks]]
 # event = "session.pre_create"
-# command = 'case "$THURBOX_BRANCH" in main|master) echo "refusing: protected branch" >&2; exit 1;; esac'
+# command = 'case "$TALOS_BRANCH" in main|master) echo "refusing: protected branch" >&2; exit 1;; esac'
 
 # Copy a local env file and warm the dependencies in a fresh worktree.
 # [[hooks]]
 # event = "session.post_create"
-# command = '[ -n "$THURBOX_CWD" ] && cp -n .env.local "$THURBOX_CWD/.env" 2>/dev/null; true'
+# command = '[ -n "$TALOS_CWD" ] && cp -n .env.local "$TALOS_CWD/.env" 2>/dev/null; true'
 # timeout_secs = 120
 
 # Ask before deleting a session that still has a running build.
 # [[hooks]]
 # event = "session.pre_delete"
-# command = 'test ! -f "$THURBOX_CWD/.build-lock"'
+# command = 'test ! -f "$TALOS_CWD/.build-lock"'
 
 # Tell a channel a session is gone.
 # [[hooks]]
 # event = "session.post_delete"
-# command = 'notify-send "thurbox" "deleted $THURBOX_SESSION_NAME"'
+# command = 'notify-send "talos" "deleted $TALOS_SESSION_NAME"'
 
 # [[hooks]]
 # event = "session.pre_restart"
-# command = 'echo "restarting $THURBOX_SESSION_NAME" >> ~/thurbox-hooks.log'
+# command = 'echo "restarting $TALOS_SESSION_NAME" >> ~/talos-hooks.log'
 
 # [[hooks]]
 # event = "session.post_restart"
-# command = 'echo "restarted $THURBOX_SESSION_NAME" >> ~/thurbox-hooks.log'
+# command = 'echo "restarted $TALOS_SESSION_NAME" >> ~/talos-hooks.log'
 
 # [[hooks]]
 # event = "session.pre_restore"
@@ -132,11 +132,11 @@ config_version = 1
 
 # [[hooks]]
 # event = "session.post_restore"
-# command = 'notify-send "thurbox" "restored $THURBOX_SESSION_NAME"'
+# command = 'notify-send "talos" "restored $TALOS_SESSION_NAME"'
 "#;
 
-/// Path to the lifecycle hooks file: `~/.config/thurbox/hooks.toml` (sibling
-/// of `config.toml`; `~/.config/thurbox-dev/hooks.toml` on a dev build).
+/// Path to the lifecycle hooks file: `~/.config/talos/hooks.toml` (sibling
+/// of `config.toml`; `~/.config/talos-dev/hooks.toml` on a dev build).
 pub fn hooks_config_path() -> Option<PathBuf> {
     crate::paths::config_file().map(|p| p.with_file_name("hooks.toml"))
 }

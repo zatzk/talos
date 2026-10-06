@@ -17,14 +17,14 @@
 //!
 //! [`crate::agent::json_merge::prune_marked`] identifies our entries by finding
 //! a marker *in the entry's content* (every shipped hook command contains
-//! `thurbox-cli session signal`). That is the only thing JSON offers — it has no
+//! `talos-cli session signal`). That is the only thing JSON offers — it has no
 //! comments, and an ownership *key* inside the entry is not available either:
 //! kimi accepts exactly four keys per hook and refuses to load the entire config
 //! file when it sees a fifth. But a content match cannot answer either half of
 //! the question it is asked:
 //!
 //! - It cannot tell **our** entry from the user's. `extensions/hooks/README.md`
-//!   tells a user with an uninstrumented agent to call `thurbox-cli session
+//!   tells a user with an uninstrumented agent to call `talos-cli session
 //!   signal` from their own hook; a content match then deletes that hook on
 //!   uninstall — destroying configuration we never wrote.
 //! - It cannot recognise **our own previous entry** once its content changes. A
@@ -104,12 +104,12 @@ fn renders_among<T: std::fmt::Display>(
     entries.any(|e| e.to_string() == rendered)
 }
 
-/// Remove every `[[array of tables]]` entry **thurbox owns** — one whose own
+/// Remove every `[[array of tables]]` entry **talos owns** — one whose own
 /// comment carries `marker` — anywhere in `doc`, then drop a key whose array
 /// *we* emptied.
 ///
 /// Ownership is the entry's comment, never its content: a user hook that calls
-/// `thurbox-cli session signal` itself is not ours and survives, and an entry of
+/// `talos-cli session signal` itself is not ours and survives, and an entry of
 /// ours whose event or command changed in a later payload is still ours and is
 /// replaced. See the module docs for why the JSON sibling cannot do this.
 ///
@@ -119,7 +119,7 @@ pub fn prune_owned(doc: &mut DocumentMut, marker: &str) {
     prune_item(doc.as_item_mut(), marker);
 }
 
-/// Whether `table` is an entry thurbox wrote: its own comment carries `marker`.
+/// Whether `table` is an entry talos wrote: its own comment carries `marker`.
 ///
 /// The comment is the table's *prefix decor*, which `toml_edit` preserves across
 /// a render and re-parse. Deliberately not `Table::to_string`, which renders the
@@ -172,9 +172,9 @@ mod tests {
 
     /// The signal command every shipped hook carries — and, deliberately, the
     /// thing a user may put in a hook of their own.
-    const SIGNAL: &str = "thurbox-cli session signal";
+    const SIGNAL: &str = "talos-cli session signal";
     /// The ownership marker the payload stamps on each entry it ships.
-    const OWNED: &str = "thurbox `extension install`";
+    const OWNED: &str = "talos `extension install`";
 
     fn doc(text: &str) -> DocumentMut {
         text.parse().expect("valid TOML")
@@ -234,9 +234,9 @@ mod tests {
     }
 
     /// The destructive case ownership-by-comment exists to prevent: a user who
-    /// wired their *own* hook to `thurbox-cli session signal` — which
-    /// `extensions/hooks/README.md` tells them to do for an agent thurbox does
-    /// not instrument — must not have it deleted when thurbox uninstalls.
+    /// wired their *own* hook to `talos-cli session signal` — which
+    /// `extensions/hooks/README.md` tells them to do for an agent talos does
+    /// not instrument — must not have it deleted when talos uninstalls.
     #[test]
     fn uninstall_keeps_a_user_hook_that_calls_the_signal_command_itself() {
         let users_own = format!(

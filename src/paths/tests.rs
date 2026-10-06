@@ -11,8 +11,8 @@ const HOME_VAR: &str = if cfg!(windows) { "USERPROFILE" } else { "HOME" };
 #[test]
 fn display_path_uses_basename() {
     assert_eq!(
-        display_path(Path::new("/home/user/Repositories/thurbox")),
-        "thurbox"
+        display_path(Path::new("/home/user/Repositories/talos")),
+        "talos"
     );
 }
 
@@ -94,8 +94,8 @@ fn resolve_on_path_skips_what_cannot_be_executed() {
 #[test]
 fn display_path_ignores_trailing_slash() {
     assert_eq!(
-        display_path(Path::new("/home/user/Repositories/thurbox/")),
-        "thurbox"
+        display_path(Path::new("/home/user/Repositories/talos/")),
+        "talos"
     );
 }
 
@@ -132,16 +132,16 @@ fn default_strategy_is_xdg() {
 
 #[test]
 fn test_build_ignores_config_and_data_dir_override_env() {
-    // Regression: the unit-test harness often runs *inside* a live thurbox
-    // session whose env carries THURBOX_CONFIG_DIR/THURBOX_DATA_DIR pointing
+    // Regression: the unit-test harness often runs *inside* a live talos
+    // session whose env carries TALOS_CONFIG_DIR/TALOS_DATA_DIR pointing
     // at the developer's real config/data. On the XDG strategy a test build
     // must ignore those and stay under the per-process temp sandbox, so an
     // unguarded config write can never clobber the user's live settings.
     reset_to_xdg();
     let saved_cfg = std::env::var_os(CONFIG_DIR_OVERRIDE_ENV);
     let saved_data = std::env::var_os(DATA_DIR_OVERRIDE_ENV);
-    std::env::set_var(CONFIG_DIR_OVERRIDE_ENV, "/real/config/thurbox");
-    std::env::set_var(DATA_DIR_OVERRIDE_ENV, "/real/data/thurbox");
+    std::env::set_var(CONFIG_DIR_OVERRIDE_ENV, "/real/config/talos");
+    std::env::set_var(DATA_DIR_OVERRIDE_ENV, "/real/data/talos");
 
     let cfg = config_file().unwrap();
     let db = database_file().unwrap();
@@ -157,20 +157,20 @@ fn test_build_ignores_config_and_data_dir_override_env() {
 
     assert!(cfg.starts_with(test_sandbox_base()), "config: {cfg:?}");
     assert!(db.starts_with(test_sandbox_base()), "db: {db:?}");
-    assert!(!cfg.starts_with("/real/config/thurbox"), "config: {cfg:?}");
-    assert!(!db.starts_with("/real/data/thurbox"), "db: {db:?}");
+    assert!(!cfg.starts_with("/real/config/talos"), "config: {cfg:?}");
+    assert!(!db.starts_with("/real/data/talos"), "db: {db:?}");
 }
 
 #[test]
 fn a_data_dir_matching_the_default_is_not_a_relocation() {
-    // thurbox injects THURBOX_DATA_DIR into every session it spawns, pointing
-    // at whatever it resolved itself. A `thurbox-cli` inside such a session
+    // talos injects TALOS_DATA_DIR into every session it spawns, pointing
+    // at whatever it resolved itself. A `talos-cli` inside such a session
     // must still read as the default instance — otherwise every hook would
     // look for its sessions on a socket nobody created.
-    let default = Path::new("/home/u/.local/share/thurbox");
+    let default = Path::new("/home/u/.local/share/talos");
     assert_eq!(
         relocated_from(
-            Some(OsStr::new("/home/u/.local/share/thurbox")),
+            Some(OsStr::new("/home/u/.local/share/talos")),
             Some(default)
         ),
         None
@@ -178,7 +178,7 @@ fn a_data_dir_matching_the_default_is_not_a_relocation() {
     // A trailing separator names the same directory.
     assert_eq!(
         relocated_from(
-            Some(OsStr::new("/home/u/.local/share/thurbox/")),
+            Some(OsStr::new("/home/u/.local/share/talos/")),
             Some(default)
         ),
         None
@@ -190,7 +190,7 @@ fn a_data_dir_matching_the_default_is_not_a_relocation() {
 
 #[test]
 fn a_data_dir_elsewhere_is_a_relocation() {
-    let default = Path::new("/home/u/.local/share/thurbox");
+    let default = Path::new("/home/u/.local/share/talos");
     assert_eq!(
         relocated_from(Some(OsStr::new("/tmp/lab/data")), Some(default)),
         Some(PathBuf::from("/tmp/lab/data"))
@@ -210,7 +210,7 @@ fn override_isolates_paths() {
 
     assert_eq!(config_file(), Some(base.join("config.toml")));
     assert_eq!(log_directory(), Some(base.clone()));
-    assert_eq!(database_file(), Some(base.join("thurbox.db")));
+    assert_eq!(database_file(), Some(base.join("talos.db")));
 
     reset_to_xdg();
 }
@@ -252,7 +252,7 @@ fn all_path_kinds_resolve_in_override() {
 
     assert_eq!(resolve(PathKind::Config), Some(base.join("config.toml")));
     assert_eq!(resolve(PathKind::LogDir), Some(base.clone()));
-    assert_eq!(resolve(PathKind::Database), Some(base.join("thurbox.db")));
+    assert_eq!(resolve(PathKind::Database), Some(base.join("talos.db")));
     assert_eq!(resolve(PathKind::MetricsDir), Some(base.join("metrics")));
     assert_eq!(
         resolve(PathKind::WorktreesDir),
@@ -294,7 +294,7 @@ fn database_file_convenience() {
     set_test_dir(&base);
 
     let path = database_file().unwrap();
-    assert!(path.ends_with("thurbox.db"));
+    assert!(path.ends_with("talos.db"));
 
     reset_to_xdg();
 }
@@ -363,7 +363,7 @@ fn resolve_override_all_kinds() {
     );
     assert_eq!(
         resolve_override(base, PathKind::Database),
-        PathBuf::from("/data/thurbox.db")
+        PathBuf::from("/data/talos.db")
     );
     assert_eq!(
         resolve_override(base, PathKind::MetricsDir),
@@ -764,5 +764,5 @@ fn no_unit_test_temp_dir_outlives_the_test_process() {
 fn resolve_cli_binary_uses_platform_exe_suffix() {
     let p = resolve_cli_binary();
     let name = p.file_name().unwrap().to_string_lossy();
-    assert_eq!(name, format!("thurbox-cli{}", std::env::consts::EXE_SUFFIX));
+    assert_eq!(name, format!("talos-cli{}", std::env::consts::EXE_SUFFIX));
 }

@@ -12,10 +12,10 @@
 
 use std::collections::HashSet;
 
-use thurbox::kernel::bundled;
-use thurbox::kernel::host::LuaHost;
-use thurbox::kernel::inventory::{self, State, Trust};
-use thurbox::kernel::registry::Registry;
+use talos::kernel::bundled;
+use talos::kernel::host::LuaHost;
+use talos::kernel::inventory::{self, State, Trust};
+use talos::kernel::registry::Registry;
 
 /// A pane that declares a key, a setting and a slot, so its absence is testable
 /// from several directions at once.
@@ -178,7 +178,7 @@ fn a_disabled_file_reads_as_disabled_rather_than_failed() {
 #[test]
 fn the_decision_is_per_file_and_survives_a_restart() {
     let home = tempfile::tempdir().expect("tempdir");
-    std::env::set_var("THURBOX_CONFIG_DIR", home.path());
+    std::env::set_var("TALOS_CONFIG_DIR", home.path());
 
     // Loaded, not default: only a registry that read `ui.json` writes it back,
     // which is what keeps a test from erasing the config directory it inherited
@@ -207,7 +207,7 @@ fn the_decision_is_per_file_and_survives_a_restart() {
         .set_disabled("/ui/plugins/mine.lua", false)
         .expect("idempotent");
 
-    std::env::remove_var("THURBOX_CONFIG_DIR");
+    std::env::remove_var("TALOS_CONFIG_DIR");
 }
 
 #[test]
@@ -215,7 +215,7 @@ fn disabling_is_not_recorded_as_a_removal() {
     // A disabled bundled file is still one delivery should keep up to date, so
     // the delivery manifest must not learn about a user preference.
     let home = tempfile::tempdir().expect("tempdir");
-    std::env::set_var("THURBOX_CONFIG_DIR", home.path());
+    std::env::set_var("TALOS_CONFIG_DIR", home.path());
     let ui = home.path().join("ui");
     bundled::materialize(&ui);
 
@@ -233,5 +233,5 @@ fn disabling_is_not_recorded_as_a_removal() {
     );
     assert!(target.exists(), "and the file is still there");
 
-    std::env::remove_var("THURBOX_CONFIG_DIR");
+    std::env::remove_var("TALOS_CONFIG_DIR");
 }

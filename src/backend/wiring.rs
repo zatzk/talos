@@ -252,7 +252,7 @@ mod tests {
     /// The selection matrix: a probe adapter registered for each of
     /// [`Multiplexer::ALL`] — Herdr included, which no adapter here implements
     /// — on this machine, an ssh host and a WSL
-    /// distro, from a POSIX and a Windows thurbox, and on a POSIX and a Windows
+    /// distro, from a POSIX and a Windows talos, and on a POSIX and a Windows
     /// ssh host. Each route reaches the adapter registered for its own
     /// multiplexer, whatever the host prefers; the spec it is built from names
     /// the platform and launcher the placement says, whatever the multiplexer;

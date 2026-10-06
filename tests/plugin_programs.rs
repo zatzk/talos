@@ -12,22 +12,22 @@
 //! that is absent until you read the error, and a pane resolved to the wrong owner
 //! looks like nothing at all until two plugins both want `watch`.
 
-use thurbox::kernel::command::Command;
-use thurbox::kernel::host::{Capability, LuaHost, RenderContext};
-use thurbox::kernel::terminal::{ProgramKey, Terminals};
+use talos::kernel::command::Command;
+use talos::kernel::host::{Capability, LuaHost, RenderContext};
+use talos::kernel::terminal::{ProgramKey, Terminals};
 
 /// Build an interface out of `plugins`, each `(file name, source)`.
 fn interface(plugins: &[(&str, &str)]) -> (tempfile::TempDir, std::path::PathBuf) {
     let home = tempfile::tempdir().expect("tempdir");
     let ui = home.path().join("ui");
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
     for (name, source) in plugins {
         std::fs::write(ui.join("plugins").join(name), source).expect("write");
     }
     (home, ui)
 }
 
-fn render(host: &LuaHost, name: &str) -> thurbox::kernel::host::Rendered {
+fn render(host: &LuaHost, name: &str) -> talos::kernel::host::Rendered {
     let index = host.index_of(name).unwrap_or_else(|| panic!("no {name}"));
     host.render(
         index,
@@ -165,9 +165,9 @@ fn a_pane_name_that_could_not_be_a_window_is_a_load_error_not_a_missing_pane() {
 /// A surface with nothing started says so, rather than drawing an empty box.
 #[test]
 fn an_unstarted_program_surface_is_reported_as_such() {
-    use thurbox::kernel::paint::{ProgramPaint, SurfaceProvider};
+    use talos::kernel::paint::{ProgramPaint, SurfaceProvider};
     let terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let key = ProgramKey::new("plugins/91_watch.lua", "watch");
 
@@ -200,11 +200,11 @@ fn a_program_pane_paints_its_placeholder_rather_than_nothing() {
     let mut term =
         ratatui::Terminal::new(ratatui::backend::TestBackend::new(40, 8)).expect("terminal");
     term.draw(|frame| {
-        thurbox::kernel::paint::render(
+        talos::kernel::paint::render(
             frame,
             ratatui::layout::Rect::new(0, 0, 40, 8),
             &rendered.node,
-            &thurbox::kernel::paint::PlaceholderSurfaces,
+            &talos::kernel::paint::PlaceholderSurfaces,
         );
     })
     .expect("draw");
@@ -232,7 +232,7 @@ fn a_program_pane_paints_its_placeholder_rather_than_nothing() {
 #[test]
 fn a_key_for_an_absent_program_is_not_reported_as_delivered() {
     let terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let key = ProgramKey::new("plugins/91_watch.lua", "watch");
     assert!(
@@ -282,7 +282,7 @@ fn keys_that_are_not_utf8_reach_the_command_intact() {
 #[test]
 fn a_program_surface_is_never_resolved_to_a_session() {
     let terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     // A well-formed program id resolves to nothing while nothing is running, and a
     // session id never resolves to a program at all.
@@ -305,7 +305,7 @@ fn a_program_surface_is_never_resolved_to_a_session() {
 #[test]
 fn a_program_pane_is_absent_from_every_session_enumeration() {
     let terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let key = ProgramKey::new("plugins/91_watch.lua", "watch");
 
@@ -332,7 +332,7 @@ fn a_plugin_can_read_the_platform_it_is_running_on() {
   name = "probe",
   slot = "center",
   render = function()
-    local p = (thurbox and thurbox.platform) or {}
+    local p = (talos and talos.platform) or {}
     return { type = "text", text = "os=" .. tostring(p.os) .. " arch=" .. tostring(p.arch) }
   end,
 }"#;
@@ -340,13 +340,13 @@ fn a_plugin_can_read_the_platform_it_is_running_on() {
     let host = LuaHost::new(&ui);
     assert!(host.error.is_none(), "{:?}", host.error);
 
-    let themes = thurbox::kernel::theme::Themes::load(None);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
-    let snapshot = thurbox::kernel::snapshot::Snapshot::default();
-    let registry = thurbox::kernel::registry::Registry::default();
-    host.publish(&thurbox::kernel::host::Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+    let themes = talos::kernel::theme::Themes::load(None);
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
+    let snapshot = talos::kernel::snapshot::Snapshot::default();
+    let registry = talos::kernel::registry::Registry::default();
+    host.publish(&talos::kernel::host::Published {
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot: &snapshot,
         attach_errors: &Default::default(),
         inflight: &[],

@@ -22,7 +22,7 @@ use rusqlite::Connection;
 
 /// Current schema version. Incremented when schema changes.
 ///
-/// v29 is reserved by the in-flight `improve-agent-thurbox-cli` branch
+/// v29 is reserved by the in-flight `improve-agent-talos-cli` branch
 /// (`session_labels` + `session_spawn_config`); v30 added
 /// `parent_session_id`, v31 added `display_order`, v32 added
 /// `session_messages` (the inter-session mailbox), v33 adds
@@ -40,15 +40,15 @@ use rusqlite::Connection;
 /// gates the worktree toggle) and `parent_path` (persisted children of a
 /// remote parent bookmark) to `repo_bookmarks`. v41 adds the joinable columns:
 /// a session's persisted launch recipe, its `stopped_at` mark, and the
-/// `session_meta` key/value table. v42 adds `created_by_thurbox` to
+/// `session_meta` key/value table. v42 adds `created_by_talos` to
 /// `worktrees`: a session can now *open* a worktree it did not create,
 /// and provenance is what tells a teardown to leave that directory alone and a
 /// restore not to warn about work no delete could have destroyed.
-/// v43 adds `session_events`, the append-only log `thurbox-cli watch`
+/// v43 adds `session_events`, the append-only log `talos-cli watch`
 /// streams: every writer that changes what a watcher reports appends a row in
 /// its own transaction, so two writes in the same instant are two events
 /// rather than one sampled diff. v44 adds `reports_as` to `sessions`: the
-/// agent a driver actually launched inside a pane thurbox opened for
+/// agent a driver actually launched inside a pane talos opened for
 /// something else, which is what hook coverage has to be read against.
 /// v45 adds `host_updated_at` to `sessions`: the host's own last-reported
 /// `updated_at` for the row, snapshotted whenever a mirror pass adopts or
@@ -66,7 +66,7 @@ use rusqlite::Connection;
 /// lets the sweep come back for it.
 /// v47 is not a schema change but a *mark*: a session recorded on a loopback
 /// WSL host is a local session that host relabelled, and the mark records that
-/// putting it back is owed. Auto-discovery offered the distro thurbox runs
+/// putting it back is owed. Auto-discovery offered the distro talos runs
 /// *inside* as a host; being shareable by default it was then mirrored, and its
 /// database is this database — so the pass rewrote our own local rows as remote
 /// and every operation on them went out through `wsl.exe`.
@@ -117,7 +117,7 @@ enum Reapply {
 }
 
 /// How long a connection waits on a locked database before erroring.
-/// The DB is shared by the TUI, thurbox-cli, and the automation heartbeat;
+/// The DB is shared by the TUI, talos-cli, and the automation heartbeat;
 /// writes are short single-row upserts, so 5 s outlasts any WAL checkpoint.
 pub const BUSY_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
 
@@ -222,7 +222,7 @@ pub fn initialize(conn: &Connection) -> rusqlite::Result<()> {
             branch        TEXT NOT NULL,
             created_at    INTEGER NOT NULL,
             deleted_at    INTEGER,
-            created_by_thurbox INTEGER NOT NULL DEFAULT 1,
+            created_by_talos INTEGER NOT NULL DEFAULT 1,
             PRIMARY KEY (session_id, repo_path)
         );
 
@@ -500,7 +500,7 @@ pub(super) fn column_exists(
 ///
 /// A failure is re-examined before it is reported, because the check and the
 /// `ALTER` are two statements and the database is shared: the TUI, every
-/// `thurbox-cli` a status hook runs, and the automation heartbeat all open it,
+/// `talos-cli` a status hook runs, and the automation heartbeat all open it,
 /// and on a database the repair pass has something to do
 /// ([`Reapply::WhenMissing`]) several of them can reach this at once. The loser
 /// of that race gets a real error for a column that is now there. Asking the
@@ -1130,9 +1130,9 @@ mod tests {
     }
 
     #[test]
-    fn migrate_from_v41_backfills_worktree_provenance_as_thurbox_made() {
+    fn migrate_from_v41_backfills_worktree_provenance_as_talos_made() {
         let conn = Connection::open_in_memory().unwrap();
-        // Minimal v41 state: the worktrees table without created_by_thurbox.
+        // Minimal v41 state: the worktrees table without created_by_talos.
         conn.execute_batch(
             "CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
              INSERT INTO metadata (key, value) VALUES ('schema_version', '41');
@@ -1155,17 +1155,17 @@ mod tests {
         migrate(&conn).unwrap();
 
         // The value, not merely the column: opening a worktree is what the
-        // column was added for, so every row predating it was one thurbox
+        // column was added for, so every row predating it was one talos
         // checked out itself. Backfilling 0 would make force-delete skip a
         // worktree it owns and leave the directory behind forever.
         let mine: bool = conn
             .query_row(
-                "SELECT created_by_thurbox FROM worktrees WHERE session_id = 's1'",
+                "SELECT created_by_talos FROM worktrees WHERE session_id = 's1'",
                 [],
                 |row| row.get(0),
             )
             .unwrap();
-        assert!(mine, "a worktree predating the column was made by thurbox");
+        assert!(mine, "a worktree predating the column was made by talos");
 
         let version: String = conn
             .query_row(

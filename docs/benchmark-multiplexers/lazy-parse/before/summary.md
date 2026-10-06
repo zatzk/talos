@@ -15,7 +15,7 @@ Run 20260923T154735Z · reps 5 (+1 warm-up discarded)
   "versions": {
     "tmux": "tmux 3.5a",
     "herdr": "herdr 0.9.1",
-    "thurbox": "0.0.0-dev (schema v47)",
+    "talos": "0.0.0-dev (schema v47)",
     "python": "3.13.5"
   }
 }
@@ -23,7 +23,7 @@ Run 20260923T154735Z · reps 5 (+1 warm-up discarded)
 
 ## resources
 
-| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | thurbox median | thurbox p95 |
+| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | talos median | talos p95 |
 |---|---|---|---|---|---|---|---|
 | N=1 attached idle | cpu_pct | 0.00 | 0.00 | 1.29 | 1.29 | 2.99 | 3.10 |
 | N=1 attached idle | first_view_stale | 0.00 | 0.00 | 0.00 | 0.00 | 1.00 | 1.00 |
@@ -67,7 +67,7 @@ Run 20260923T154735Z · reps 5 (+1 warm-up discarded)
 
 ## latency
 
-| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | thurbox median | thurbox p95 |
+| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | talos median | talos p95 |
 |---|---|---|---|---|---|---|---|
 | idle | echo_ms | 0.92 | 1.04 | 1.99 | 2.26 | 23.9 | 48.0 |
 | idle | timeouts | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |

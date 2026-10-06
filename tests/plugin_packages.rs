@@ -6,20 +6,20 @@
 //! differs is only where a bare name points, which is covered by a unit test
 //! beside the resolver.
 //!
-//! `THURBOX_UI_DIR` is set per test. nextest runs a process per test, so the
+//! `TALOS_UI_DIR` is set per test. nextest runs a process per test, so the
 //! override cannot leak between them.
 
 use std::path::{Path, PathBuf};
 
-use thurbox::cli::plugins::{run, Action};
+use talos::cli::plugins::{run, Action};
 
 /// Point the interface directory at a fresh tempdir, with the bundled interface
 /// delivered — a plugin `require`s `lib/`, so a bare directory is not one yet.
 fn interface(dir: &Path) -> PathBuf {
     let ui = dir.join("ui");
     std::fs::create_dir_all(&ui).expect("mkdir");
-    std::env::set_var("THURBOX_UI_DIR", &ui);
-    thurbox::kernel::bundled::materialize(&ui);
+    std::env::set_var("TALOS_UI_DIR", &ui);
+    talos::kernel::bundled::materialize(&ui);
     ui
 }
 
@@ -67,7 +67,7 @@ fn package(root: &Path, name: &str, version: &str, marker: &str) -> PathBuf {
     dir
 }
 
-fn install(src: &Path) -> thurbox::cli::output::CommandOutput {
+fn install(src: &Path) -> talos::cli::output::CommandOutput {
     run(Action::Install {
         src: src.display().to_string(),
         as_file: None,
@@ -128,7 +128,7 @@ fn every_distributed_package_installs_and_loads() {
 
     // And the listing names them, since that is what a bare-name install and a typo
     // suggestion are resolved against.
-    let listed: Vec<&str> = thurbox::kernel::packages::EXAMPLE_PLUGINS
+    let listed: Vec<&str> = talos::kernel::packages::EXAMPLE_PLUGINS
         .iter()
         .map(|(name, _)| *name)
         .collect();
@@ -303,8 +303,8 @@ fn a_module_may_not_be_delivered_outside_its_own_namespace() {
 
 /// A package with two panes sharing one module, one version and one lock entry.
 ///
-/// Modelled on the plugins people actually ship: `thurbox-annotate` carries two
-/// panes and `thurbox-files` three, sharing a `lib/`, a gate and one history.
+/// Modelled on the plugins people actually ship: `talos-annotate` carries two
+/// panes and `talos-files` three, sharing a `lib/`, a gate and one history.
 fn multi_pane_package(root: &Path, name: &str, version: &str) -> PathBuf {
     let dir = root.join(name);
     std::fs::create_dir_all(&dir).expect("mkdir");
@@ -373,7 +373,7 @@ fn a_package_with_several_panes_installs_all_of_them() {
 
     // One version, one pin, one lock entry: the package is the unit of
     // distribution, so both panes are recorded under the one record.
-    let lock = thurbox::kernel::packages::read_lock(&ui).expect("lock");
+    let lock = talos::kernel::packages::read_lock(&ui).expect("lock");
     assert_eq!(lock.plugins.len(), 1, "{lock:?}");
     let entry = &lock.plugins[0];
     assert_eq!(entry.version, "v0.3.1");
@@ -499,7 +499,7 @@ fn keying_an_installed_package_on_another_pane_is_refused() {
         error.contains("plugins/75_atlas.lua"),
         "names the owner: {error}"
     );
-    let spec = thurbox::kernel::packages::read_spec(&ui).expect("spec");
+    let spec = talos::kernel::packages::read_spec(&ui).expect("spec");
     assert_eq!(spec.plugins.len(), 1, "{spec:?}");
 
     // Reinstalling the same selection is an update, not a conflict.
@@ -531,7 +531,7 @@ fn syncing_a_spec_that_keys_one_package_twice_is_refused() {
         error.contains("plugins/75_atlas.lua"),
         "names the owner: {error}"
     );
-    let lock = thurbox::kernel::packages::read_lock(&ui).expect("lock");
+    let lock = talos::kernel::packages::read_lock(&ui).expect("lock");
     assert_eq!(lock.plugins.len(), 1, "no second record: {lock:?}");
 }
 
@@ -553,7 +553,7 @@ fn rekeying_the_sole_entry_by_hand_then_updating_converges() {
 
     let updated = run(Action::Update { name: None }).expect("update converges");
     assert!(updated.failure.is_none(), "{:?}", updated.json);
-    let lock = thurbox::kernel::packages::read_lock(&ui).expect("lock");
+    let lock = talos::kernel::packages::read_lock(&ui).expect("lock");
     assert_eq!(lock.plugins.len(), 1, "{lock:?}");
     assert_eq!(lock.plugins[0].file, "plugins/76_atlas_notes.lua");
     assert!(ui.join("plugins/75_atlas.lua").is_file());
@@ -750,16 +750,16 @@ fn syncing_installs_what_the_spec_lists_and_the_directory_lacks() {
     // Its lock records versions but no digests — and that must read as "never
     // delivered here", not as "the user deleted these", or nothing is ever
     // installed from a checked-in lock.
-    let lock = thurbox::kernel::packages::read_lock(&ui).expect("lock");
-    let mut fresh = thurbox::session::PluginLock::default();
+    let lock = talos::kernel::packages::read_lock(&ui).expect("lock");
+    let mut fresh = talos::session::PluginLock::default();
     for entry in lock.plugins {
-        fresh.record(thurbox::session::LockEntry {
+        fresh.record(talos::session::LockEntry {
             files: Default::default(),
             removed: Vec::new(),
             ..entry
         });
     }
-    thurbox::kernel::packages::write_lock(&ui, &fresh).expect("write");
+    talos::kernel::packages::write_lock(&ui, &fresh).expect("write");
 
     let report = run(Action::Sync).expect("sync");
     assert_eq!(report.json["changed"], true, "{:?}", report.json);
@@ -940,7 +940,7 @@ fn plugin_repo(root: &Path, marker: &str) -> PathBuf {
 /// [`plugin_repo`] on a named object format (`sha1` or `sha256`), so a repository
 /// whose object ids are 64 characters rather than 40 can be installed from too.
 fn plugin_repo_in(root: &Path, marker: &str, object_format: &str) -> PathBuf {
-    let repo = root.join("thurbox-widget");
+    let repo = root.join("talos-widget");
     std::fs::create_dir_all(repo.join("plugins")).expect("mkdir");
     std::fs::create_dir_all(repo.join("lib")).expect("mkdir");
     std::fs::create_dir_all(repo.join("bin")).expect("mkdir");
@@ -949,12 +949,12 @@ fn plugin_repo_in(root: &Path, marker: &str, object_format: &str) -> PathBuf {
     // resolves, and reads the platform to find its own payload.
     std::fs::write(
         repo.join("plugins/40_widget.lua"),
-        "local util = require(\"thurbox-widget.lib.util\")\n\
+        "local util = require(\"talos-widget.lib.util\")\n\
          return {\n\
            name = \"widget\",\n\
            slot = \"widget\",\n\
            render = function(ctx)\n\
-             local p = (thurbox and thurbox.platform) or {}\n\
+             local p = (talos and talos.platform) or {}\n\
              return { type = \"text\", text = util.label() .. \" \" .. tostring(p.os) }\n\
            end,\n\
          }\n",
@@ -1067,14 +1067,14 @@ fn installing_at_a_commit_pin_checks_out_that_commit() {
 
     // The bytes on disk are the pinned commit's, not the branch tip's.
     assert!(
-        std::fs::read_to_string(ui.join("thurbox-widget/lib/util.lua"))
+        std::fs::read_to_string(ui.join("talos-widget/lib/util.lua"))
             .expect("module")
             .contains("first"),
         "the working copy must be at the pin, not the tip"
     );
-    let lock = thurbox::kernel::packages::read_lock(&ui).expect("lock");
+    let lock = talos::kernel::packages::read_lock(&ui).expect("lock");
     assert_eq!(
-        lock.entry("thurbox-widget/plugins/40_widget.lua")
+        lock.entry("talos-widget/plugins/40_widget.lua")
             .expect("recorded")
             .version,
         pinned
@@ -1109,12 +1109,12 @@ fn an_abbreviated_commit_pin_names_the_prefix_not_a_rebase() {
         "and must not blame a rebase that did not happen: {error}"
     );
     assert!(
-        !ui.join("thurbox-widget").exists(),
+        !ui.join("talos-widget").exists(),
         "the clone it had to take back leaves nothing behind"
     );
     assert!(
-        !thurbox::kernel::packages::spec_path(&ui).exists()
-            && !thurbox::kernel::packages::lock_path(&ui).exists(),
+        !talos::kernel::packages::spec_path(&ui).exists()
+            && !talos::kernel::packages::lock_path(&ui).exists(),
         "and nothing is recorded"
     );
 }
@@ -1145,7 +1145,7 @@ fn a_hex_named_tag_pin_still_installs() {
     assert!(report.failure.is_none(), "{:?}", report.json);
     assert_eq!(report.json["version"], tagged);
     assert!(
-        std::fs::read_to_string(ui.join("thurbox-widget/lib/util.lua"))
+        std::fs::read_to_string(ui.join("talos-widget/lib/util.lua"))
             .expect("module")
             .contains("first"),
         "and the working copy is at the tag, not the tip"
@@ -1174,7 +1174,7 @@ fn installing_at_a_tag_pin_checks_out_the_tag() {
     assert!(report.failure.is_none(), "{:?}", report.json);
     assert_eq!(report.json["version"], tagged);
     assert!(
-        std::fs::read_to_string(ui.join("thurbox-widget/lib/util.lua"))
+        std::fs::read_to_string(ui.join("talos-widget/lib/util.lua"))
             .expect("module")
             .contains("first"),
         "the working copy must be at the tag, not the tip"
@@ -1204,7 +1204,7 @@ fn installing_at_a_sha256_commit_pin_checks_out_that_commit() {
     assert!(report.failure.is_none(), "{:?}", report.json);
     assert_eq!(report.json["version"], pinned);
     assert!(
-        std::fs::read_to_string(ui.join("thurbox-widget/lib/util.lua"))
+        std::fs::read_to_string(ui.join("talos-widget/lib/util.lua"))
             .expect("module")
             .contains("first"),
         "the working copy must be at the pin, not the tip"
@@ -1228,12 +1228,12 @@ fn a_commit_pinned_spec_reproduces_on_a_fresh_machine() {
     .expect("install");
 
     // A fresh machine: spec and lock present, working copy absent.
-    std::fs::remove_dir_all(ui.join("thurbox-widget")).expect("remove");
+    std::fs::remove_dir_all(ui.join("talos-widget")).expect("remove");
     let fresh = run(Action::Sync).expect("sync");
     assert_eq!(fresh.json["entries"][0]["outcome"], "installed");
     assert_eq!(fresh.json["entries"][0]["version"], pinned);
     assert!(
-        std::fs::read_to_string(ui.join("thurbox-widget/lib/util.lua"))
+        std::fs::read_to_string(ui.join("talos-widget/lib/util.lua"))
             .expect("module")
             .contains("first"),
         "a spec that reproduces the branch tip reproduces nothing"
@@ -1270,7 +1270,7 @@ fn advancing_a_commit_pinned_entry_holds_its_pin() {
         report.json
     );
     assert!(
-        std::fs::read_to_string(ui.join("thurbox-widget/lib/util.lua"))
+        std::fs::read_to_string(ui.join("talos-widget/lib/util.lua"))
             .expect("module")
             .contains("first"),
         "and its bytes stay at the pin"
@@ -1311,7 +1311,7 @@ fn advancing_a_branch_pinned_entry_follows_the_branch() {
     );
     assert_eq!(report.json["entries"][0]["version"], moved);
     assert!(
-        std::fs::read_to_string(ui.join("thurbox-widget/lib/util.lua"))
+        std::fs::read_to_string(ui.join("talos-widget/lib/util.lua"))
             .expect("module")
             .contains("second"),
         "reporting an update while the bytes stay put is the worst of both"
@@ -1363,15 +1363,15 @@ fn a_clone_that_fails_leaves_nothing_behind() {
         }
 
         assert!(
-            !ui.join("thurbox-widget").exists() && !ui.join("no-such-repo").exists(),
+            !ui.join("talos-widget").exists() && !ui.join("no-such-repo").exists(),
             "no working copy, whole or partial"
         );
         assert!(
-            !thurbox::kernel::packages::spec_path(&ui).exists(),
+            !talos::kernel::packages::spec_path(&ui).exists(),
             "no spec entry"
         );
         assert!(
-            !thurbox::kernel::packages::lock_path(&ui).exists(),
+            !talos::kernel::packages::lock_path(&ui).exists(),
             "no record"
         );
     }
@@ -1396,22 +1396,22 @@ fn installing_a_repository_delivers_its_payload_and_loads_its_pane() {
     assert!(report.failure.is_none(), "{:?}", report.json);
 
     // Delivered in the layout the author chose, payload included.
-    assert!(ui.join("thurbox-widget/plugins/40_widget.lua").is_file());
-    assert!(ui.join("thurbox-widget/lib/util.lua").is_file());
+    assert!(ui.join("talos-widget/plugins/40_widget.lua").is_file());
+    assert!(ui.join("talos-widget/lib/util.lua").is_file());
     assert_eq!(
-        std::fs::read(ui.join("thurbox-widget/bin/payload.bin")).expect("read"),
+        std::fs::read(ui.join("talos-widget/bin/payload.bin")).expect("read"),
         [0x00u8, 0xff, 0xfe, 0x01],
         "the bytes survive — this is what the text fetch path cannot do"
     );
     assert!(
-        ui.join("thurbox-widget/.git").exists(),
+        ui.join("talos-widget/.git").exists(),
         "the clone keeps its .git, which is what makes update a fetch"
     );
 
     // The lock records the COMMIT, not the ref: `main` moves, a commit does not.
-    let lock = thurbox::kernel::packages::read_lock(&ui).expect("lock");
+    let lock = talos::kernel::packages::read_lock(&ui).expect("lock");
     let entry = lock
-        .entry("thurbox-widget/plugins/40_widget.lua")
+        .entry("talos-widget/plugins/40_widget.lua")
         .expect("recorded");
     assert_eq!(
         entry.version.len(),
@@ -1434,7 +1434,7 @@ fn installing_a_repository_delivers_its_payload_and_loads_its_pane() {
         .as_array()
         .expect("files")
         .iter()
-        .find(|row| row["file"] == "thurbox-widget/plugins/40_widget.lua")
+        .find(|row| row["file"] == "talos-widget/plugins/40_widget.lua")
         .cloned()
         .unwrap_or_else(|| panic!("the pane must be listed: {:?}", listing.json));
     assert_eq!(row["source"], "installed", "{row}");
@@ -1459,7 +1459,7 @@ fn an_edit_inside_a_working_copy_survives_sync_and_update() {
     })
     .expect("install");
 
-    let pane = ui.join("thurbox-widget/plugins/40_widget.lua");
+    let pane = ui.join("talos-widget/plugins/40_widget.lua");
     std::fs::write(&pane, "-- mine\nreturn {}\n").expect("edit");
 
     for action in [
@@ -1504,14 +1504,14 @@ fn syncing_a_repository_entry_is_idempotent_and_clones_what_is_missing() {
     assert_eq!(again.json["changed"], false, "{:?}", again.json);
 
     // A fresh machine: the spec and lock are there, the working copy is not.
-    std::fs::remove_dir_all(ui.join("thurbox-widget")).expect("remove");
+    std::fs::remove_dir_all(ui.join("talos-widget")).expect("remove");
     let fresh = run(Action::Sync).expect("sync");
     assert_eq!(
         fresh.json["entries"][0]["outcome"], "installed",
         "a spec that cannot be applied on a fresh machine defeats the lock: {:?}",
         fresh.json
     );
-    assert!(ui.join("thurbox-widget/bin/payload.bin").is_file());
+    assert!(ui.join("talos-widget/bin/payload.bin").is_file());
 }
 
 #[test]
@@ -1534,7 +1534,7 @@ fn removing_a_repository_takes_the_whole_working_copy() {
     .expect("remove");
     assert!(removed.failure.is_none(), "{:?}", removed.json);
     assert!(
-        !ui.join("thurbox-widget").exists(),
+        !ui.join("talos-widget").exists(),
         "the directory and its .git go together, not just the files the lock named"
     );
     assert!(!ui.join("plugins.lock").exists());
@@ -1593,7 +1593,7 @@ fn a_cloned_repository_takes_its_pane_from_its_own_manifest() {
         report.json
     );
     assert_eq!(
-        report.json["file"], "thurbox-widget/plugins/40_widget.lua",
+        report.json["file"], "talos-widget/plugins/40_widget.lua",
         "{:?}",
         report.json
     );
@@ -1644,7 +1644,7 @@ fn a_cloned_repository_declaring_several_panes_asks_which_to_load() {
     })
     .expect("install with --as");
     assert!(chosen.failure.is_none(), "{:?}", chosen.json);
-    assert_eq!(chosen.json["file"], "thurbox-widget/plugins/50_extra.lua");
+    assert_eq!(chosen.json["file"], "talos-widget/plugins/50_extra.lua");
 }
 
 /// A declaration missing its `source` is still a declaration: dropping it would

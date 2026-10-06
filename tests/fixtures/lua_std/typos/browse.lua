@@ -1,7 +1,7 @@
--- `thurbox.browse`, with one letter wrong.
+-- `talos.browse`, with one letter wrong.
 return {
   name = "std_typo_browse",
   render = function()
-    return { text = tostring(thurbox.browse.dirr) }
+    return { text = tostring(talos.browse.dirr) }
   end,
 }

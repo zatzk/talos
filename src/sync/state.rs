@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::session::SessionId;
 
-/// In-memory snapshot of shared state across all thurbox instances.
+/// In-memory snapshot of shared state across all talos instances.
 ///
 /// Used for computing deltas between local and database state.
 #[derive(Debug, Clone)]
@@ -45,7 +45,7 @@ pub struct SharedSession {
     pub agent: String,
 
     /// Backend identifier for finding the session in tmux.
-    /// Format: "thurbox:@0" for local tmux sessions.
+    /// Format: "talos:@0" for local tmux sessions.
     pub backend_id: String,
 
     /// Backend type (e.g., "tmux").
@@ -94,15 +94,15 @@ pub struct SharedWorktree {
 
     pub branch: String,
 
-    /// Whether thurbox checked this worktree out itself.
+    /// Whether talos checked this worktree out itself.
     ///
     /// False when the session merely *opened* a worktree the user already had.
-    /// Force-delete removes only what thurbox created: `git worktree remove
+    /// Force-delete removes only what talos created: `git worktree remove
     /// --force` deletes the directory and any uncommitted work in it, which is
-    /// thurbox's to discard for a worktree it made and never for one it
+    /// talos's to discard for a worktree it made and never for one it
     /// borrowed. Persisted (schema v42) because the decision outlives the
     /// process that made it.
-    pub created_by_thurbox: bool,
+    pub created_by_talos: bool,
 }
 
 impl From<crate::session::WorktreeInfo> for SharedWorktree {
@@ -111,7 +111,7 @@ impl From<crate::session::WorktreeInfo> for SharedWorktree {
             repo_path: wt.repo_path,
             worktree_path: wt.worktree_path,
             branch: wt.branch,
-            created_by_thurbox: wt.created_by_thurbox,
+            created_by_talos: wt.created_by_talos,
         }
     }
 }
@@ -122,7 +122,7 @@ impl From<SharedWorktree> for crate::session::WorktreeInfo {
             repo_path: wt.repo_path,
             worktree_path: wt.worktree_path,
             branch: wt.branch,
-            created_by_thurbox: wt.created_by_thurbox,
+            created_by_talos: wt.created_by_talos,
         }
     }
 }
@@ -159,7 +159,7 @@ mod tests {
             repo_path: PathBuf::from("/repo"),
             worktree_path: PathBuf::from("/repo/.git/wt/feat"),
             branch: "feat".to_string(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         };
 
         let shared: SharedWorktree = wt.into();
@@ -174,7 +174,7 @@ mod tests {
             repo_path: PathBuf::from("/repo"),
             worktree_path: PathBuf::from("/repo/.git/wt/feat"),
             branch: "feat".to_string(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         };
 
         let wt: crate::session::WorktreeInfo = shared.into();

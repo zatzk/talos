@@ -1,4 +1,4 @@
-//! Inter-session message queue subcommands (`thurbox-cli message …`).
+//! Inter-session message queue subcommands (`talos-cli message …`).
 //!
 //! A general, agent-neutral mailbox: one session hands another a structured
 //! payload (clarifying questions, a plan, a result, …) instead of the recipient
@@ -40,12 +40,12 @@ pub enum Action {
         /// Message body.
         #[arg(long)]
         body: String,
-        /// Originating task id. Defaults to the caller's `THURBOX_TASK` when run
+        /// Originating task id. Defaults to the caller's `TALOS_TASK` when run
         /// inside a task-spawned session; pass explicitly to override.
         #[arg(long)]
         task: Option<i64>,
         /// Sender session (UUID or name), for provenance. Defaults to the caller
-        /// (`THURBOX_SESSION`) when run inside a session; pass to override.
+        /// (`TALOS_SESSION`) when run inside a session; pass to override.
         #[arg(long)]
         from: Option<String>,
         /// Only enqueue: don't deliver into the recipient agent's inbox.
@@ -64,7 +64,7 @@ pub enum Action {
         /// Reply kind tag (defaults to "reply").
         #[arg(long, default_value = "reply")]
         kind: String,
-        /// Sender session (UUID or name); defaults to the caller (`THURBOX_SESSION`).
+        /// Sender session (UUID or name); defaults to the caller (`TALOS_SESSION`).
         #[arg(long)]
         from: Option<String>,
         /// Only enqueue: don't deliver into the recipient agent's inbox.
@@ -74,7 +74,7 @@ pub enum Action {
     /// Read a session's inbox. Peeks unread by default; `--claim` drains them.
     Inbox {
         /// Recipient session (UUID or name). Defaults to the calling session
-        /// (`THURBOX_SESSION`) so an agent reads its own mail with no id.
+        /// (`TALOS_SESSION`) so an agent reads its own mail with no id.
         #[arg(long = "for")]
         for_session: Option<String>,
         /// Atomically mark the returned messages read (exactly-once drain).
@@ -140,7 +140,7 @@ fn send_message(
 ) -> Result<CommandOutput, CommandError> {
     let recipient = resolve_uuid_or_name(db, &to)?;
     // Provenance + task tag default to the calling session's injected
-    // identity (`THURBOX_SESSION` / `THURBOX_TASK`), so an agent never has
+    // identity (`TALOS_SESSION` / `TALOS_TASK`), so an agent never has
     // to know or pass its own ids. Explicit flags override.
     let from_session_id = resolve_from(db, from.as_deref())?;
     let from_task_id = task.or_else(calling_task_id);
@@ -187,7 +187,7 @@ fn reply_message(
 }
 
 /// Resolve the `--from` provenance: an explicit reference, else the calling
-/// session's injected id (`THURBOX_SESSION`).
+/// session's injected id (`TALOS_SESSION`).
 fn resolve_from(db: &Database, from: Option<&str>) -> Result<Option<SessionId>, CommandError> {
     match from {
         Some(f) => Ok(Some(resolve_uuid_or_name(db, f)?.id)),
@@ -206,7 +206,7 @@ fn read_inbox(
     let recipient = match for_session {
         Some(ref r) => resolve_uuid_or_name(db, r)?,
         None => calling_session(db).ok_or_else(|| {
-            "no --for given and THURBOX_SESSION is unset (not running inside a session)".to_string()
+            "no --for given and TALOS_SESSION is unset (not running inside a session)".to_string()
         })?,
     };
     let messages = if claim {
@@ -229,8 +229,8 @@ fn read_inbox(
                 recipient.name
             ))
             .help([
-                "thurbox-cli message reply <message_id> --body <text>   answer the sender",
-                "thurbox-cli message inbox --claim   drain unread, exactly once",
+                "talos-cli message reply <message_id> --body <text>   answer the sender",
+                "talos-cli message inbox --claim   drain unread, exactly once",
             ]),
     )
 }
@@ -355,14 +355,14 @@ fn enqueue_and_deliver(
     ))
 }
 
-/// The calling session's id from `THURBOX_SESSION` (used for provenance).
+/// The calling session's id from `TALOS_SESSION` (used for provenance).
 fn calling_session_id(db: &Database) -> Option<SessionId> {
     calling_session(db).map(|s| s.id)
 }
 
-/// The calling session's originating task id from the injected `THURBOX_TASK`.
+/// The calling session's originating task id from the injected `TALOS_TASK`.
 fn calling_task_id() -> Option<i64> {
-    std::env::var("THURBOX_TASK").ok()?.parse().ok()
+    std::env::var("TALOS_TASK").ok()?.parse().ok()
 }
 
 /// Resolve a session reference — a UUID, a name or an id prefix.
@@ -616,7 +616,7 @@ mod tests {
     #[test]
     fn inbox_without_for_and_no_env_errors() {
         let db = db();
-        // No --for and (in tests) THURBOX_SESSION unset → a clear error.
+        // No --for and (in tests) TALOS_SESSION unset → a clear error.
         let err = run(
             Action::Inbox {
                 for_session: None,
@@ -627,7 +627,7 @@ mod tests {
             &db,
         )
         .unwrap_err();
-        assert!(err.contains("THURBOX_SESSION"), "got {err}");
+        assert!(err.contains("TALOS_SESSION"), "got {err}");
     }
 
     #[test]

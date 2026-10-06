@@ -25,7 +25,7 @@ const PERF_SNAPSHOT_KEY: &str = "perf_snapshot";
 ///
 /// Durable rather than process-local because the sweep has two drivers and one
 /// of them is not a long-lived process: the interface's `Command::Reap` runs
-/// for as long as thurbox does, but `thurbox-cli automation tick` is started
+/// for as long as talos does, but `talos-cli automation tick` is started
 /// afresh by the heartbeat every minute, and a backoff held in memory is
 /// forgotten by every one of those ticks. Only a host that failed has a row,
 /// and its first answer deletes it.
@@ -38,7 +38,7 @@ fn host_probe_backoff_key(backend_type: &str) -> String {
 /// and durable for the same reason as [`host_probe_backoff_key`].
 ///
 /// Keyed per row rather than per host because that is the granularity the
-/// retry has: a host answers `list-windows` while its own `thurbox-cli` does
+/// retry has: a host answers `list-windows` while its own `talos-cli` does
 /// not run, so the row is overdue and still owns its windows on every pass
 /// while the host itself looks perfectly reachable (issue #1193).
 fn session_reap_backoff_key(id: SessionId) -> String {
@@ -236,8 +236,8 @@ impl Database {
     }
 
     /// Publish the TUI's latest perf snapshot (a JSON blob) for
-    /// `thurbox-cli perf` to read. Written only while perf timing is active
-    /// (THURBOX_PERF_LOG or an open perf HUD) — each write bumps other
+    /// `talos-cli perf` to read. Written only while perf timing is active
+    /// (TALOS_PERF_LOG or an open perf HUD) — each write bumps other
     /// connections' `data_version`, so an idle default-config TUI must never
     /// churn this row.
     pub fn set_perf_snapshot(&self, json: &str) -> rusqlite::Result<()> {
@@ -262,7 +262,7 @@ impl Database {
 
     /// The set of currently-active extension names (e.g. `["flow"]`), stored as
     /// a JSON array under the `active_extensions` metadata key. Drives self-heal:
-    /// thurbox re-ensures each active extension's resources on startup and tick.
+    /// talos re-ensures each active extension's resources on startup and tick.
     /// A malformed/missing value reads as an empty set rather than erroring.
     pub fn get_active_extensions(&self) -> rusqlite::Result<Vec<String>> {
         let raw: Option<String> = self
@@ -459,7 +459,7 @@ impl Database {
     }
 
     /// Record a "focus this session" request for the running TUI to consume.
-    /// Used by the macOS click-to-focus CLI (`thurbox-cli session focus`) —
+    /// Used by the macOS click-to-focus CLI (`talos-cli session focus`) —
     /// the symmetric writer to [`Self::take_pending_focus_session_id`].
     /// Linux dispatches in-process from the dbus action callback and writes
     /// the metadata row directly; the CLI path needs this helper because it
@@ -631,7 +631,7 @@ mod tests {
     #[test]
     fn a_host_probe_backoff_outlives_the_process_that_recorded_it() {
         let dir = tempfile::TempDir::new().unwrap();
-        let path = dir.path().join("thurbox.db");
+        let path = dir.path().join("talos.db");
         // One minute flat, which is what the sweep's own curve starts at.
         let retry = |_failures: u32| 60_000_u64;
         let backend = "ssh:unreachable";
@@ -691,7 +691,7 @@ mod tests {
     #[test]
     fn consecutive_host_probe_failures_are_counted_across_connections() {
         let dir = tempfile::TempDir::new().unwrap();
-        let path = dir.path().join("thurbox.db");
+        let path = dir.path().join("talos.db");
         let backend = "wsl:ubuntu";
         let seen = std::sync::Mutex::new(Vec::new());
         let retry = |failures: u32| {

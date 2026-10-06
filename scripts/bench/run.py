@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Run the multiplexer benchmark: raw tmux vs Herdr vs thurbox.
+"""Run the multiplexer benchmark: raw tmux vs Herdr vs talos.
 
     scripts/bench/run.py                         # every scenario, every host
-    scripts/bench/run.py --scenarios latency --hosts tmux,thurbox --reps 3
+    scripts/bench/run.py --scenarios latency --hosts tmux,talos --reps 3
 
 Writes ``results.json`` (every sample, with the load average it ran under),
 ``results.csv`` (one row per sample) and ``summary.md`` (median and p95 per
 scenario) into ``--out``. ``scripts/bench/run.sh`` fetches the pinned Herdr and
-builds thurbox first; this file assumes both are there.
+builds talos first; this file assumes both are there.
 
 Each repetition gets a fresh sandbox (own HOME, XDG dirs, tmux socket, Herdr
 state), and every server it started is killed before the next one. Hosts are
@@ -37,7 +37,7 @@ import benchlib as bl
 import hosts
 
 SCENARIOS = ["create", "attach", "resources", "throughput", "scrollback", "latency", "survival"]
-CACHE = os.path.expanduser(os.environ.get("BENCH_CACHE", "~/.cache/thurbox-bench"))
+CACHE = os.path.expanduser(os.environ.get("BENCH_CACHE", "~/.cache/talos-bench"))
 
 
 class Ctx:
@@ -95,20 +95,20 @@ class Ctx:
 
 def resolve_tools(args):
     """The binaries the selected hosts need, and only those: a run of tmux and
-    thurbox must not fail for want of a Herdr it will never start."""
+    talos must not fail for want of a Herdr it will never start."""
     tools = {}
-    if {"tmux", "thurbox"} & set(args.hosts):
+    if {"tmux", "talos"} & set(args.hosts):
         tools["tmux"] = shutil.which("tmux")
     if "herdr" in args.hosts:
         tools["herdr"] = args.herdr or os.path.join(
             CACHE, f"herdr-v0.9.1-{platform.machine()}", "herdr"
         )
-    if "thurbox" in args.hosts:
-        bindir = args.thurbox_bin or os.path.join(
+    if "talos" in args.hosts:
+        bindir = args.talos_bin or os.path.join(
             os.path.dirname(os.path.dirname(HERE)), "target", "release"
         )
-        tools["thurbox"] = os.path.join(bindir, "thurbox")
-        tools["thurbox-cli"] = os.path.join(bindir, "thurbox-cli")
+        tools["talos"] = os.path.join(bindir, "talos")
+        tools["talos-cli"] = os.path.join(bindir, "talos-cli")
     for name, path in tools.items():
         if not path or not os.access(path, os.X_OK):
             sys.exit(
@@ -129,12 +129,12 @@ def versions(ctx):
     return out
 
 
-def thurbox_commit(tools):
-    """The commit the thurbox binaries were built from, when they sit in a git
+def talos_commit(tools):
+    """The commit the talos binaries were built from, when they sit in a git
     checkout's target/ (which is how run.sh builds them)."""
-    if "thurbox" not in tools:
+    if "talos" not in tools:
         return None
-    repo = os.path.dirname(os.path.dirname(os.path.dirname(tools["thurbox"])))
+    repo = os.path.dirname(os.path.dirname(os.path.dirname(tools["talos"])))
     try:
         return subprocess.run(
             ["git", "-C", repo, "rev-parse", "HEAD"], capture_output=True, text=True, check=True
@@ -216,7 +216,7 @@ def main(argv=None):
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    p.add_argument("--hosts", default="tmux,herdr,thurbox")
+    p.add_argument("--hosts", default="tmux,herdr,talos")
     p.add_argument("--scenarios", default=",".join(SCENARIOS))
     p.add_argument("--reps", type=int, default=5)
     p.add_argument("--warmup", type=int, default=1)
@@ -228,7 +228,7 @@ def main(argv=None):
         "--out", default=None, help="results directory (default: <work>/results-<timestamp>)"
     )
     p.add_argument("--herdr", default=None, help="path to the herdr binary")
-    p.add_argument("--thurbox-bin", default=None, help="directory holding thurbox and thurbox-cli")
+    p.add_argument("--talos-bin", default=None, help="directory holding talos and talos-cli")
     args = p.parse_args(argv)
     args.hosts = [h for h in args.hosts.split(",") if h]
     scenarios = [s for s in args.scenarios.split(",") if s]
@@ -246,8 +246,8 @@ def main(argv=None):
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
 
     # The same refusal as run.sh's, for a scenario script run on its own.
-    if os.environ.get("THURBOX_GATE") and not os.environ.get("THURBOX_PERF_ALLOW_IN_GATE"):
-        sys.exit("run.py: refusing to run inside a validation step (THURBOX_GATE is set)")
+    if os.environ.get("TALOS_GATE") and not os.environ.get("TALOS_PERF_ALLOW_IN_GATE"):
+        sys.exit("run.py: refusing to run inside a validation step (TALOS_GATE is set)")
 
     tools = resolve_tools(args)
     ctx = Ctx(args, tools)
@@ -266,7 +266,7 @@ def main(argv=None):
         "warmup": args.warmup,
         "quick": args.quick,
         "versions": versions(ctx),
-        "thurbox_commit": thurbox_commit(tools),
+        "talos_commit": talos_commit(tools),
         "timing": "in-harness, CLOCK_MONOTONIC (hyperfine not used)",
     }
     print(json.dumps(meta, indent=2), flush=True)

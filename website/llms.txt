@@ -1,25 +1,25 @@
-# Thurbox
+# Talos
 
-> Thurbox is a multi-session TUI orchestrator that runs any coding-agent CLI
+> Talos is a multi-session TUI orchestrator that runs any coding-agent CLI
 > — Claude Code, Codex, Antigravity, opencode, aider, GitHub Copilot CLI, Vibe, pi,
 > Oh My Pi, or any CLI you define — inside persistent tmux panes. Sessions, agents, and
 > git worktrees
 > are first-class citizens, and sessions survive crashes, restarts, and
 > reboots because tmux keeps the agent processes alive. It is written in Rust,
 > open source under the MIT license, and runs on Linux, macOS, and Windows
-> (plus remote hosts over SSH). A headless companion binary, `thurbox-cli`,
+> (plus remote hosts over SSH). A headless companion binary, `talos-cli`,
 > drives the same sessions for scripting and automation.
 >
 > Installing: run
-> `curl -fsSL https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/install.sh | sh`
+> `curl -fsSL https://raw.githubusercontent.com/zatzk/talos/main/scripts/install.sh | sh`
 > on Linux/macOS, or
-> `irm https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/install.ps1 | iex`
-> on Windows, or `nix profile install github:Thurbeen/thurbox` with Nix, then
-> run `thurbox`. That is the whole setup — config, themes and the interface
+> `irm https://raw.githubusercontent.com/zatzk/talos/main/scripts/install.ps1 | iex`
+> on Windows, or `nix profile install github:zatzk/talos` with Nix, then
+> run `talos`. That is the whole setup — config, themes and the interface
 > itself are seeded on first launch.
 >
 > Its defining feature is that the interface is fully customizable: no UI is
-> compiled into the binary. thurbox boots a Rust kernel that reads a
+> compiled into the binary. talos boots a Rust kernel that reads a
 > directory of Lua files and draws whatever it finds, so every pane — the
 > session list included — is a file the user can move, turn off, delete,
 > rewrite, or install from someone else, with no recompile and no restart. The
@@ -28,37 +28,37 @@
 > session is created, deleted, restarted or restored), themes, keybindings and
 > settings are all data files. Because the interface is
 > plain text in a directory, the usual way to change it is to ask a coding
-> session for the change in English — thurbox ships a built-in `ui-skill`
+> session for the change in English — talos ships a built-in `ui-skill`
 > extension that teaches whichever CLI is running how the interface is put
 > together, so "add my project logs within a dedicated pane on the right in the
-> thurbox UI" works from any session. The same holds for orchestration:
-> `thurbox-cli` is installed beside `thurbox`, so it is already on every session
-> agent's PATH, and "using thurbox-cli, start refactor sessions for this repo,
+> talos UI" works from any session. The same holds for orchestration:
+> `talos-cli` is installed beside `talos`, so it is already on every session
+> agent's PATH, and "using talos-cli, start refactor sessions for this repo,
 > one per crate, each on its own worktree branch" spins up a fleet without a
 > script.
 
 ## Docs
 
-- [Documentation hub](https://thurbox.thurbeen.eu/docs/index.html): entry point to all Thurbox documentation.
-- [Tutorial](https://thurbox.thurbeen.eu/docs/tutorial.html): onboarding walkthrough with screenshots — adding a repository to the picker, creating a first session on its own git worktree, the everyday keybindings, and the equivalent thurbox-cli commands.
-- [FAQ](https://thurbox.thurbeen.eu/docs/faq.html): short answers to the most common questions (what it is, how it differs, install, platforms, license).
-- [Features](https://thurbox.thurbeen.eu/docs/features.html): the customizable interface, sessions, agent definitions, git worktrees, remote SSH and WSL hosts, session lifecycle hooks, automations, tasks, global search, headless CLI.
-- [Built-in agents](https://thurbox.thurbeen.eu/docs/agents.html): every built-in coding agent (claude, codex, antigravity, opencode, aider, copilot, vibe, pi, omp) with its recommended agents.toml config, resume/fork behavior, and status support.
-- [Comparison](https://thurbox.thurbeen.eu/docs/comparison.html): how Thurbox compares to Conductor, Claude Squad, Cursor, and other parallel coding-agent tools.
-- [Installation](https://thurbox.thurbeen.eu/docs/installation.html): install via curl, Homebrew, AUR, Nix/NixOS, winget, Chocolatey, or from source; prerequisites; running it; how to pin a specific version.
-- [Orchestration](https://thurbox.thurbeen.eu/docs/orchestration.html): asking an agent to spin up a fleet with thurbox-cli, and the control-plane pattern for running agents across many repos.
-- [Configuration](https://thurbox.thurbeen.eu/docs/configuration.html): every config file and knob — agents.toml, hosts.toml, hooks.toml (session lifecycle hooks), settings.toml, themes, keybindings.
-- [The Interface](https://thurbox.thurbeen.eu/docs/interface.html): every pane is an editable Lua plugin — how to move, disable, replace or write one, how a plugin reacts to events and puts actions in the Ctrl+P command palette, how to have a coding agent do it for you, what the kernel refuses a plugin, and the panes you install (thurbox-code-review, thurbox-info-panel).
-- [Architecture](https://thurbox.thurbeen.eu/docs/architecture.html): the Lua-on-Rust plugin kernel and its five rules, module isolation, the tmux session backend, and the decisions behind them.
+- [Documentation hub](https://talos.zatzk.com/docs/index.html): entry point to all Talos documentation.
+- [Tutorial](https://talos.zatzk.com/docs/tutorial.html): onboarding walkthrough with screenshots — adding a repository to the picker, creating a first session on its own git worktree, the everyday keybindings, and the equivalent talos-cli commands.
+- [FAQ](https://talos.zatzk.com/docs/faq.html): short answers to the most common questions (what it is, how it differs, install, platforms, license).
+- [Features](https://talos.zatzk.com/docs/features.html): the customizable interface, sessions, agent definitions, git worktrees, remote SSH and WSL hosts, session lifecycle hooks, automations, tasks, global search, headless CLI.
+- [Built-in agents](https://talos.zatzk.com/docs/agents.html): every built-in coding agent (claude, codex, antigravity, opencode, aider, copilot, vibe, pi, omp) with its recommended agents.toml config, resume/fork behavior, and status support.
+- [Comparison](https://talos.zatzk.com/docs/comparison.html): how Talos compares to Conductor, Claude Squad, Cursor, and other parallel coding-agent tools.
+- [Installation](https://talos.zatzk.com/docs/installation.html): install via curl, Homebrew, AUR, Nix/NixOS, winget, Chocolatey, or from source; prerequisites; running it; how to pin a specific version.
+- [Orchestration](https://talos.zatzk.com/docs/orchestration.html): asking an agent to spin up a fleet with talos-cli, and the control-plane pattern for running agents across many repos.
+- [Configuration](https://talos.zatzk.com/docs/configuration.html): every config file and knob — agents.toml, hosts.toml, hooks.toml (session lifecycle hooks), settings.toml, themes, keybindings.
+- [The Interface](https://talos.zatzk.com/docs/interface.html): every pane is an editable Lua plugin — how to move, disable, replace or write one, how a plugin reacts to events and puts actions in the Ctrl+P command palette, how to have a coding agent do it for you, what the kernel refuses a plugin, and the panes you install (talos-code-review, talos-info-panel).
+- [Architecture](https://talos.zatzk.com/docs/architecture.html): the Lua-on-Rust plugin kernel and its five rules, module isolation, the tmux session backend, and the decisions behind them.
 
 ## Extensions
 
-- [Extensions overview](https://thurbox.thurbeen.eu/docs/extensions.html): opt-in, agent-agnostic add-ons and the declarative manifest format.
-- [Agent hooks](https://thurbox.thurbeen.eu/docs/agent-hooks.html): the built-in extension mapping agent lifecycle hooks to session status.
-- [Recipes](https://thurbox.thurbeen.eu/docs/recipes.html): worked patterns for orchestrating multi-session, multi-repo workflows.
+- [Extensions overview](https://talos.zatzk.com/docs/extensions.html): opt-in, agent-agnostic add-ons and the declarative manifest format.
+- [Agent hooks](https://talos.zatzk.com/docs/agent-hooks.html): the built-in extension mapping agent lifecycle hooks to session status.
+- [Recipes](https://talos.zatzk.com/docs/recipes.html): worked patterns for orchestrating multi-session, multi-repo workflows.
 
 ## Optional
 
-- [GitHub repository](https://github.com/Thurbeen/thurbox): source, README, and releases.
-- [Keybindings](https://thurbox.thurbeen.eu/docs/keybindings.html): the Vim-inspired keyboard reference.
-- [Performance](https://thurbox.thurbeen.eu/docs/performance.html): demand-driven rendering and how throughput is measured.
+- [GitHub repository](https://github.com/zatzk/talos): source, README, and releases.
+- [Keybindings](https://talos.zatzk.com/docs/keybindings.html): the Vim-inspired keyboard reference.
+- [Performance](https://talos.zatzk.com/docs/performance.html): demand-driven rendering and how throughput is measured.

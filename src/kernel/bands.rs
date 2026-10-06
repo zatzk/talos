@@ -586,7 +586,7 @@ fn prepare_action(registry: &Registry, width: u16) -> Vec<PreparedEntry> {
 fn render_identity(frame: &mut Frame, area: Rect, state: &BandState<'_>) {
     let mut spans = vec![
         Span::styled(
-            " thurbox",
+            " talos",
             state.style("accent").add_modifier(Modifier::BOLD),
         ),
         Span::styled(

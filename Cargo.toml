@@ -1,17 +1,17 @@
 [package]
-name = "thurbox"
+name = "talos"
 # Development version marker: real version injected at build time from git tags
 version = "0.0.0-dev"
 edition = "2021"
-# Build script injects version from THURBOX_RELEASE_VERSION env variable (set by CI)
+# Build script injects version from TALOS_RELEASE_VERSION env variable (set by CI)
 # Fallback to version above for local development builds
 build = "build.rs"
-# `cargo run` (no --bin) launches the TUI; thurbox-cli is the headless binary.
-default-run = "thurbox"
+# `cargo run` (no --bin) launches the TUI; talos-cli is the headless binary.
+default-run = "talos"
 authors = ["LeTuR"]
 license = "MIT"
 description = "A TUI for orchestrating multiple coding-agent CLI sessions in persistent tmux panels"
-repository = "https://github.com/Thurbeen/thurbox"
+repository = "https://github.com/zatzk/talos"
 keywords = ["tui", "agent", "tmux", "git", "cli"]
 categories = ["command-line-utilities"]
 
@@ -77,14 +77,14 @@ sysinfo = "0.39"
 anyhow = "1.0"
 
 # Clipboard (text only — the default `image-data` feature pulls in the
-# image/png/moxcms decoding stack we never use; thurbox only copies/pastes text)
+# image/png/moxcms decoding stack we never use; talos only copies/pastes text)
 arboard = { version = "3", default-features = false }
 
 
 # JSON (session metadata, keybindings, agent config)
 serde_json = "1"
 
-# CLI argument parsing (thurbox-cli)
+# CLI argument parsing (talos-cli)
 clap = { version = "4", features = ["derive"] }
 
 # Date/time + cron scheduling (automations)
@@ -116,8 +116,8 @@ crossterm_winapi = "0.9"
 windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_Storage_FileSystem", "Win32_System_Threading"] }
 
 [[bin]]
-name = "thurbox-cli"
-path = "src/bin/thurbox-cli.rs"
+name = "talos-cli"
+path = "src/bin/talos-cli.rs"
 
 # Development tool requirements (install with `cargo binstall` or `cargo install`)
 [package.metadata.dev-tools]
@@ -147,7 +147,7 @@ harness = false
 # v2 renders through an embedded Lua VM, so a dev build runs interpreter-heavy
 # work on every frame in a way v1 never did. At opt-level 0 that is felt as lag
 # in the TUI itself, and `cargo run` is the documented way to
-# run it -- so the dev profile is part of how fast thurbox *is*, not just
+# run it -- so the dev profile is part of how fast talos *is*, not just
 # how fast it builds.
 opt-level = 1
 
@@ -179,7 +179,7 @@ strip = false
 # to be built into the shipped binaries.
 tempfile = "3"
 
-# Property/fuzz testing — proves thurbox's terminal pipeline is byte- and
+# Property/fuzz testing — proves talos's terminal pipeline is byte- and
 # render-transparent (control_mode transport + terminal_view rendering). Runs in
 # the normal `cargo nextest --all`.
 proptest = "1"
@@ -187,7 +187,7 @@ proptest = "1"
 # Two test-only uses, both of the C runtime rather than a wrapper crate:
 # `atexit`, which is what removes `paths`' unit-test sandbox when a test process
 # ends (a `static` is never dropped, so nothing else runs there); and the PTY
-# e2e (tests/tui_e2e.rs, `#![cfg(unix)]`), which drives the real `thurbox`
+# e2e (tests/tui_e2e.rs, `#![cfg(unix)]`), which drives the real `talos`
 # binary on a pseudo-terminal and needs only `openpty`, `setsid`, `TIOCSCTTY`
 # and `TIOCSWINSZ` — no PTY crate. `libc` is already in the tree either way.
 libc = "0.2"

@@ -8,8 +8,8 @@
 //!
 //! ```sh
 //! cargo bench --bench search_cost                          # 20 sessions × 1000
-//! THURBOX_BENCH_SESSIONS=20 THURBOX_BENCH_SCROLLBACK=10000 cargo bench --bench search_cost
-//! THURBOX_BENCH_CHECK=1 cargo bench --bench search_cost    # exit 1 over budget
+//! TALOS_BENCH_SESSIONS=20 TALOS_BENCH_SCROLLBACK=10000 cargo bench --bench search_cost
+//! TALOS_BENCH_CHECK=1 cargo bench --bench search_cost    # exit 1 over budget
 //! ```
 //!
 //! * **loop** — what the render thread pays to start a search: one `Source`
@@ -25,15 +25,15 @@
 //! * **rescan** — the same query re-run after three agents printed, which an
 //!   open strip does once a second: only what they printed is read again.
 //!
-//! `THURBOX_BENCH_CHECK=1` exits non-zero when a budget below is exceeded —
+//! `TALOS_BENCH_CHECK=1` exits non-zero when a budget below is exceeded —
 //! the "search must not slow the interface" contract (ADR-P26), as numbers a
 //! run on a quiet machine can be held to.
 
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use thurbox::backend::{SessionParser, TermSignals};
-use thurbox::kernel::search::{run, CacheMap, History, ReadStats, Request, Source};
+use talos::backend::{SessionParser, TermSignals};
+use talos::kernel::search::{run, CacheMap, History, ReadStats, Request, Source};
 
 fn env(name: &str, fallback: usize) -> usize {
     std::env::var(name)
@@ -146,10 +146,10 @@ fn request(query: &str) -> Request {
 }
 
 fn main() {
-    let sessions = env("THURBOX_BENCH_SESSIONS", 20);
-    let scrollback = env("THURBOX_BENCH_SCROLLBACK", 1000);
-    let runs = env("THURBOX_BENCH_RUNS", 9);
-    let check = std::env::var_os("THURBOX_BENCH_CHECK").is_some();
+    let sessions = env("TALOS_BENCH_SESSIONS", 20);
+    let scrollback = env("TALOS_BENCH_SCROLLBACK", 1000);
+    let runs = env("TALOS_BENCH_RUNS", 9);
+    let check = std::env::var_os("TALOS_BENCH_CHECK").is_some();
     let terminals = sources(sessions, scrollback);
     let mut over: Vec<String> = Vec::new();
     let mut budget = |what: &str, took: Duration, limit: Duration| {

@@ -1,9 +1,9 @@
 //! Apply local control requests on the event loop that owns App and Lua.
 
 use serde_json::{json, Value};
-use thurbox::kernel::command::Command;
-use thurbox::kernel::registry::ActionDescriptor;
-use thurbox::ui_control::{InputOperation, Reply, Request};
+use talos::kernel::command::Command;
+use talos::kernel::registry::ActionDescriptor;
+use talos::ui_control::{InputOperation, Reply, Request};
 
 use crate::{App, PendingConfirmation};
 
@@ -67,8 +67,8 @@ impl App {
                     .map(|index| self.host.plugins[*index].path.clone())
                     .collect();
                 let visible_indices: Vec<usize> = match self.host.slot_mode(&placed.slot) {
-                    thurbox::kernel::layout::SlotMode::Stack => (0..members.len()).collect(),
-                    thurbox::kernel::layout::SlotMode::Switch => {
+                    talos::kernel::layout::SlotMode::Stack => (0..members.len()).collect(),
+                    talos::kernel::layout::SlotMode::Switch => {
                         let selection = members
                             .iter()
                             .position(|index| self.host.focusable().get(self.focus) == Some(index))
@@ -262,7 +262,7 @@ impl App {
                         .id
                         .clone();
                     let audited = if destructive {
-                        thurbox::ui_control::audit(
+                        talos::ui_control::audit(
                             &instance,
                             pending.peer,
                             audit_name,
@@ -271,7 +271,7 @@ impl App {
                             &pending.request_id,
                         )
                     } else {
-                        thurbox::ui_control::audit_best_effort(
+                        talos::ui_control::audit_best_effort(
                             &instance,
                             pending.peer,
                             audit_name,
@@ -300,7 +300,7 @@ impl App {
                                 "confirmation_required"
                             };
                             if !destructive {
-                                thurbox::ui_control::audit_best_effort(
+                                talos::ui_control::audit_best_effort(
                                     &instance,
                                     pending.peer,
                                     audit_name,
@@ -317,7 +317,7 @@ impl App {
                             result
                         }
                         Err((code, message)) => {
-                            thurbox::ui_control::audit_best_effort(
+                            talos::ui_control::audit_best_effort(
                                 &instance,
                                 pending.peer,
                                 audit_name,
@@ -423,7 +423,7 @@ impl App {
             "session is no longer in this interface".into(),
         ))?;
         let instance = &self.control.as_ref().expect("control server").instance.id;
-        thurbox::ui_control::audit(
+        talos::ui_control::audit(
             instance,
             peer,
             name,
@@ -464,13 +464,13 @@ impl App {
 
     fn confirm_control_action(&mut self, ticket: &str, peer: u32, request_id: &str) -> Value {
         let instance = &self.control.as_ref().expect("control server").instance.id;
-        if thurbox::ui_control::audit(instance, peer, "confirm", None, "attempted", request_id)
+        if talos::ui_control::audit(instance, peer, "confirm", None, "attempted", request_id)
             .is_err()
         {
             return json!({"ok": false, "error": {"code": "audit_unavailable", "message": "cannot record destructive action"}});
         }
         let Some(pending) = self.control_tickets.remove(ticket) else {
-            thurbox::ui_control::audit_best_effort(
+            talos::ui_control::audit_best_effort(
                 instance,
                 peer,
                 "confirm",
@@ -494,7 +494,7 @@ impl App {
                         && row.member_dirs == pending.member_dirs
                 });
         if !valid {
-            thurbox::ui_control::audit_best_effort(
+            talos::ui_control::audit_best_effort(
                 instance,
                 peer,
                 &pending.action,
@@ -504,7 +504,7 @@ impl App {
             );
             return json!({"ok": false, "error": {"code": "stale_target", "message": "confirmation target changed"}});
         }
-        if thurbox::ui_control::audit(
+        if talos::ui_control::audit(
             instance,
             peer,
             &pending.action,
@@ -840,7 +840,7 @@ impl App {
                 self.on_paste(text);
             }
             InputOperation::Scroll { up } => {
-                let scroll = thurbox::kernel::host::Scroll { up, x: 0, y: 0 };
+                let scroll = talos::kernel::host::Scroll { up, x: 0, y: 0 };
                 let handled = self
                     .host
                     .on_scroll(index, &scroll)

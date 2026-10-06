@@ -2,7 +2,7 @@
 --
 -- NOT bundled. Install it into your interface with:
 --
---     thurbox-cli plugin install top
+--     talos-cli plugin install top
 --
 -- Then trust it: settings (`Ctrl+,`) → Interface (`]`) → the row → `t`. Until you
 -- do, `run` is **not in this plugin's environment** — not a function that returns
@@ -188,7 +188,7 @@ local function selected_session()
   if not id then
     return nil
   end
-  for _, session in ipairs((thurbox and thurbox.sessions) or {}) do
+  for _, session in ipairs((talos and talos.sessions) or {}) do
     if session.id == id then
       return session
     end
@@ -240,7 +240,7 @@ return {
     -- how you get a pane that never updates.
     run("sys", COMMAND, { session = session.id, ttl = TTL })
 
-    local answer = (thurbox.runs or {})["sys"]
+    local answer = (talos.runs or {})["sys"]
     if not answer or answer.state == "pending" then
       return saying(ctx, "reading…")
     end

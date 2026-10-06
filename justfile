@@ -1,4 +1,4 @@
-# thurbox dev task runner. Run `just` (or `just --list`) to see tasks.
+# talos dev task runner. Run `just` (or `just --list`) to see tasks.
 #
 # Enter the pinned toolchain first with `nix develop` (or `direnv allow`); these
 # tasks assume the dev tools (cargo-nextest, cargo-deny, rumdl, shellcheck, selene,
@@ -15,7 +15,7 @@ check:
 
 # Build the dev binaries (TUI + CLI).
 build:
-    cargo build --bin thurbox --bin thurbox-cli
+    cargo build --bin talos --bin talos-cli
 
 # Run the full test suite (nextest).
 test:
@@ -79,13 +79,13 @@ dev-tools:
 hooks-install:
     prek install
 
-# `cargo run` alone reads `~/.config/thurbox-dev/ui`, like every other config a dev
+# `cargo run` alone reads `~/.config/talos-dev/ui`, like every other config a dev
 # build reads. Editing the interface in the repository is a different request, so it
 # is stated here rather than inferred from the working directory.
 #
 # Run the dev TUI against THIS checkout's ui/ instead of your own copy.
 tui-ui *ARGS:
-    THURBOX_UI_DIR="{{justfile_directory()}}/ui" cargo run --bin thurbox -- {{ARGS}}
+    TALOS_UI_DIR="{{justfile_directory()}}/ui" cargo run --bin talos -- {{ARGS}}
 
 # Run the dev TUI in the persistent default sandbox.
 sandbox *ARGS:
@@ -112,7 +112,7 @@ sandbox-demo:
 sandbox-demo-big:
     scripts/dev/sandbox.sh --demo-big
 
-# Drop into a shell with the sandbox env (run `thurbox-cli …` by hand).
+# Drop into a shell with the sandbox env (run `talos-cli …` by hand).
 sandbox-shell:
     scripts/dev/sandbox.sh --shell
 
@@ -126,17 +126,17 @@ smoke:
 
 # Reap orphaned *test* tmux servers (Linux). A harness's own guard covers every
 # in-process exit; this is for the ones a signal killed, which run on with no
-# socket file and nothing able to connect to them. Never touches `thurbox` or
-# `thurbox-dev`. `just reap-tmux --dry-run` lists without killing.
+# socket file and nothing able to connect to them. Never touches `talos` or
+# `talos-dev`. `just reap-tmux --dry-run` lists without killing.
 reap-tmux *ARGS:
     scripts/dev/reap-tmux-servers.sh {{ARGS}}
 
-# Sweep with THURBOX_BENCH_SESSIONS / _WIDTH / _HEIGHT.
+# Sweep with TALOS_BENCH_SESSIONS / _WIDTH / _HEIGHT.
 # What a frame costs, piece by piece, against the real interface.
 bench:
     cargo bench --bench frame_cost
 
-# raw tmux vs Herdr vs thurbox as hosts for agent sessions (docs/BENCHMARK-MULTIPLEXERS.md).
+# raw tmux vs Herdr vs talos as hosts for agent sessions (docs/BENCHMARK-MULTIPLEXERS.md).
 # `just bench-multiplexers --quick --reps 1` to try it; the full run takes a while.
 bench-multiplexers *ARGS:
     scripts/bench/run.sh {{ARGS}}

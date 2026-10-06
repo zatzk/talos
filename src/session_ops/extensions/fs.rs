@@ -66,7 +66,7 @@ pub(super) fn guard_removable_dir(path: &Path) -> Result<(), String> {
 /// content) so reinstall can overwrite *its own* file but not one the user has
 /// edited (or whose marker they removed). The remote provisioning
 /// (`remote_hooks`) applies the same rule to files it ships to a host.
-pub(crate) const MANAGED_MARKER: &str = "thurbox `extension install`";
+pub(crate) const MANAGED_MARKER: &str = "talos `extension install`";
 
 /// Whether `dest` is a `substitute` file the user has taken ownership of: it
 /// exists but no longer carries the managed marker. A missing file (fresh

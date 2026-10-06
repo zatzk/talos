@@ -1,5 +1,5 @@
 {
-  description = "thurbox — multi-session coding-agent TUI orchestrator";
+  description = "talos — multi-session coding-agent TUI orchestrator";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -26,7 +26,7 @@
       date = builtins.substring 0 8 (self.lastModifiedDate or "19700101");
       version = "${baseVersion}-unstable-${builtins.substring 0 4 date}-${builtins.substring 4 2 date}-${builtins.substring 6 2 date}";
 
-      thurboxFor =
+      talosFor =
         pkgs:
         pkgs.callPackage ./nix/package.nix {
           inherit version;
@@ -34,7 +34,7 @@
         };
 
       # The modules install the package and, on request, the opt-in automation
-      # timer from packaging/systemd. That timer is the only thing thurbox needs
+      # timer from packaging/systemd. That timer is the only thing talos needs
       # a service manager for; everything else it configures itself, in files it
       # owns, so the modules manage no config.
       automationTimer = {
@@ -43,27 +43,27 @@
         AccuracySec = "15s";
         Persistent = true;
       };
-      automationTick = package: "${package}/bin/thurbox-cli automation tick";
+      automationTick = package: "${package}/bin/talos-cli automation tick";
 
       options =
         { lib, pkgs, ... }:
         {
-          enable = lib.mkEnableOption "thurbox, the coding-agent TUI orchestrator";
+          enable = lib.mkEnableOption "talos, the coding-agent TUI orchestrator";
           package = lib.mkOption {
             type = lib.types.package;
-            default = thurboxFor pkgs;
-            defaultText = lib.literalExpression "thurbox.packages.\${pkgs.system}.default";
-            description = "The thurbox package to install.";
+            default = talosFor pkgs;
+            defaultText = lib.literalExpression "talos.packages.\${pkgs.system}.default";
+            description = "The talos package to install.";
           };
           automations.enable = lib.mkEnableOption ''
             a user timer (systemd, or launchd under Home Manager on macOS) that
-            runs `thurbox-cli automation tick` every minute, so automations fire after a reboot without the TUI having
+            runs `talos-cli automation tick` every minute, so automations fire after a reboot without the TUI having
             been opened
           '';
         };
     in
     {
-      overlays.default = final: _prev: { thurbox = thurboxFor final; };
+      overlays.default = final: _prev: { talos = talosFor final; };
 
       nixosModules.default =
         {
@@ -73,23 +73,23 @@
           ...
         }:
         let
-          cfg = config.programs.thurbox;
+          cfg = config.programs.talos;
         in
         {
-          options.programs.thurbox = options { inherit lib pkgs; };
+          options.programs.talos = options { inherit lib pkgs; };
           config = lib.mkIf cfg.enable (
             lib.mkMerge [
               { environment.systemPackages = [ cfg.package ]; }
               (lib.mkIf cfg.automations.enable {
-                systemd.user.services.thurbox-automations = {
-                  description = "Fire due thurbox automations (headless)";
+                systemd.user.services.talos-automations = {
+                  description = "Fire due talos automations (headless)";
                   serviceConfig = {
                     Type = "oneshot";
                     ExecStart = automationTick cfg.package;
                   };
                 };
-                systemd.user.timers.thurbox-automations = {
-                  description = "Fire due thurbox automations every minute";
+                systemd.user.timers.talos-automations = {
+                  description = "Fire due talos automations every minute";
                   timerConfig = automationTimer;
                   wantedBy = [ "timers.target" ];
                 };
@@ -106,36 +106,36 @@
           ...
         }:
         let
-          cfg = config.programs.thurbox;
+          cfg = config.programs.talos;
         in
         {
-          options.programs.thurbox = options { inherit lib pkgs; };
+          options.programs.talos = options { inherit lib pkgs; };
           config = lib.mkIf cfg.enable {
             home.packages = [ cfg.package ];
             # Home Manager also runs on macOS, where the timer is the launchd
             # agent from packaging/launchd instead.
             systemd.user = lib.mkIf (cfg.automations.enable && pkgs.stdenv.hostPlatform.isLinux) {
-              services.thurbox-automations = {
-                Unit.Description = "Fire due thurbox automations (headless)";
+              services.talos-automations = {
+                Unit.Description = "Fire due talos automations (headless)";
                 Service = {
                   Type = "oneshot";
                   ExecStart = automationTick cfg.package;
                 };
               };
-              timers.thurbox-automations = {
-                Unit.Description = "Fire due thurbox automations every minute";
+              timers.talos-automations = {
+                Unit.Description = "Fire due talos automations every minute";
                 Timer = automationTimer;
                 Install.WantedBy = [ "timers.target" ];
               };
             };
-            launchd.agents.thurbox-automations =
+            launchd.agents.talos-automations =
               lib.mkIf (cfg.automations.enable && pkgs.stdenv.hostPlatform.isDarwin)
                 {
                   enable = true;
                   config = {
-                    Label = "dev.thurbox.automations";
+                    Label = "dev.talos.automations";
                     ProgramArguments = [
-                      "${cfg.package}/bin/thurbox-cli"
+                      "${cfg.package}/bin/talos-cli"
                       "automation"
                       "tick"
                     ];
@@ -146,8 +146,8 @@
           };
         };
     }
-    # The systems thurbox releases for. nixpkgs no longer evaluates for
-    # x86_64-darwin, and thurbox ships no binary for it either.
+    # The systems talos releases for. nixpkgs no longer evaluates for
+    # x86_64-darwin, and talos ships no binary for it either.
     // flake-utils.lib.eachSystem
       [
         "x86_64-linux"
@@ -161,7 +161,7 @@
           inherit system;
           overlays = [ (import rust-overlay) ];
         };
-        thurbox = thurboxFor pkgs;
+        talos = talosFor pkgs;
 
         # Single source of truth for the Rust toolchain: the same
         # rust-toolchain.toml cargo/rustup already honor (stable + rustfmt,
@@ -176,7 +176,7 @@
           cocogitto
         ];
 
-        # System deps to build/test/lint thurbox (mirrors .github/workflows/ci.yml).
+        # System deps to build/test/lint talos (mirrors .github/workflows/ci.yml).
         systemTools = with pkgs; [
           tmux # session backend (AGENTS.md: >= 3.2)
           git
@@ -188,7 +188,7 @@
           nodejs_22 # website linters (CI uses 26; 22 runs eleventy/eslint/etc.)
           just # task runner (see justfile)
           sqlite # demo/record.sh queries the dev DB
-          jq # handy for `thurbox-cli … --json` in the sandbox
+          jq # handy for `talos-cli … --json` in the sandbox
         ];
 
         # Optional demo-recording stack (scripts/demo/record.sh).
@@ -214,8 +214,8 @@
       in
       {
         packages = {
-          inherit thurbox;
-          default = thurbox;
+          inherit talos;
+          default = talos;
         };
 
         # Evaluates the NixOS module with everything on and renders the unit it
@@ -228,7 +228,7 @@
                 modules = [
                   self.nixosModules.default
                   {
-                    programs.thurbox = {
+                    programs.talos = {
                       enable = true;
                       automations.enable = true;
                     };
@@ -239,14 +239,14 @@
                 ];
               };
             in
-            pkgs.writeText "thurbox-automations.service"
-              nixos.config.systemd.user.units."thurbox-automations.service".text;
+            pkgs.writeText "talos-automations.service"
+              nixos.config.systemd.user.units."talos-automations.service".text;
         };
 
         apps.default = {
           type = "app";
-          program = "${thurbox}/bin/thurbox";
-          meta.description = "Run the thurbox TUI";
+          program = "${talos}/bin/talos";
+          meta.description = "Run the talos TUI";
         };
 
         devShells.default = pkgs.mkShell {
@@ -256,7 +256,7 @@
           RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
 
           shellHook = ''
-            echo "thurbox dev shell — rust $(rustc --version | cut -d' ' -f2), tmux $(tmux -V | cut -d' ' -f2)"
+            echo "talos dev shell — rust $(rustc --version | cut -d' ' -f2), tmux $(tmux -V | cut -d' ' -f2)"
             echo "  build/test/lint: just <task>   |   run isolated: scripts/dev/sandbox.sh   |   git hooks: prek install"
             ${missingHint}
           '';

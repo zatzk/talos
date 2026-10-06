@@ -17,7 +17,7 @@
 --     That is thousands of lines per session, so the kernel reads and matches it
 --     on a worker (`kernel::search`) and this pane draws the answer a frame or
 --     two later. The query is left in `store` under `want_content` once it has
---     stood still, and the answer arrives as `thurbox.search`.
+--     stood still, and the answer arrives as `talos.search`.
 --
 -- Selecting a result PREVIEWS it, whether an arrow or a query put the cursor
 -- there: the session list's cursor moves to the result, and for a text hit the
@@ -134,7 +134,7 @@ end
 --- The sessions the query's filters let through, in list order.
 local function allowed(q)
   local list = {}
-  for _, session in ipairs(thurbox.sessions or {}) do
+  for _, session in ipairs(talos.sessions or {}) do
     if fuzzy.passes(q, session) then
       list[#list + 1] = session
     end
@@ -163,7 +163,7 @@ end
 --- query is not shown with this one's name on it: its highlights would be
 --- wrong and its hits would vanish a frame later.
 local function answer_for(ask)
-  local answer = thurbox and thurbox.search
+  local answer = talos and talos.search
   if not ask or not answer then
     return nil
   end
@@ -260,7 +260,7 @@ local memo = {}
 --- `compute` for the current query, reused while nothing it reads has moved.
 local function results(scope)
   local text = query()
-  local sessions_table, answer_table = thurbox.sessions, thurbox and thurbox.search
+  local sessions_table, answer_table = talos.sessions, talos and talos.search
   if
     memo.rows
     and memo.text == text
@@ -797,7 +797,7 @@ return {
       or layout.cursor ~= search.cursor
       or layout.width ~= list_width
       or layout.height ~= list_height
-      or layout.theme ~= thurbox.theme
+      or layout.theme ~= talos.theme
     then
       local lines, selected_line =
         result_rows(rows, search.cursor, list_width, list_height, info, search.scope)
@@ -806,7 +806,7 @@ return {
         cursor = search.cursor,
         width = list_width,
         height = list_height,
-        theme = thurbox.theme,
+        theme = talos.theme,
         lines = lines,
         selected = selected_line,
       }

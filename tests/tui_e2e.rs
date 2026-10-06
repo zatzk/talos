@@ -1,4 +1,4 @@
-//! The real `thurbox` binary on a real pseudo-terminal.
+//! The real `talos` binary on a real pseudo-terminal.
 //!
 //! Every other test in the suite renders to a `TestBackend`, which by design
 //! never touches a tty — so none of them can see what the binary actually
@@ -36,7 +36,7 @@ use std::process::{Child, Command, ExitStatus, Stdio};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use thurbox::backend::tmux_compat::server::TmuxCompatible;
+use talos::backend::tmux_compat::server::TmuxCompatible;
 
 /// The guard every tmux server in this file is reaped by — see its own doc.
 #[path = "support/tmux_server.rs"]
@@ -82,9 +82,9 @@ const GIT_LOCATION_ENV: [&str; 8] = [
 ];
 
 /// A tmux socket name unique to this process, so parallel tests — and a
-/// developer's own `thurbox-dev` server — never share one.
+/// developer's own `talos-dev` server — never share one.
 fn private_socket() -> String {
-    format!("thurbox-e2e-{}", std::process::id())
+    format!("talos-e2e-{}", std::process::id())
 }
 
 fn have_tmux() -> bool {
@@ -98,7 +98,7 @@ fn have_tmux() -> bool {
 fn have_rmux() -> bool {
     Command::new("rmux").arg("-V").output().is_ok_and(|output| {
         output.status.success()
-            && thurbox::backend::rmux::Rmux::check_banner(
+            && talos::backend::rmux::Rmux::check_banner(
                 &String::from_utf8_lossy(&output.stdout),
                 "test",
             )
@@ -150,15 +150,15 @@ impl Profile {
     fn apply(&self, cmd: &mut Command) {
         cmd.current_dir(self.root.path());
         cmd.env("HOME", self.path("home"));
-        cmd.env("THURBOX_CONFIG_DIR", self.path("config"));
-        cmd.env("THURBOX_DATA_DIR", self.path("data"));
+        cmd.env("TALOS_CONFIG_DIR", self.path("config"));
+        cmd.env("TALOS_DATA_DIR", self.path("data"));
         // Pinned socket, cleared owner tag, private socket directory. Run from
-        // inside a thurbox pane, an inherited owner would make the pin read as
+        // inside a talos pane, an inherited owner would make the pin read as
         // inherited and put the server on a derived socket the guard never
         // names.
         self.server.scope(cmd);
         // `bin` first, so a stand-in dropped there shadows the real binary for
-        // every process this profile launches — the TUI and `thurbox-cli` both,
+        // every process this profile launches — the TUI and `talos-cli` both,
         // which is what a scenario that stubs `ssh` needs (the session is
         // created by one and attached by the other).
         cmd.env(
@@ -183,14 +183,14 @@ impl Profile {
         }
     }
 
-    /// Run `thurbox-cli` in this profile; it must succeed.
+    /// Run `talos-cli` in this profile; it must succeed.
     fn cli(&self, args: &[&str]) {
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         self.apply(&mut cmd);
-        let output = cmd.args(args).output().expect("run thurbox-cli");
+        let output = cmd.args(args).output().expect("run talos-cli");
         assert!(
             output.status.success(),
-            "thurbox-cli {args:?} failed:\n{}",
+            "talos-cli {args:?} failed:\n{}",
             String::from_utf8_lossy(&output.stderr)
         );
     }
@@ -255,7 +255,7 @@ impl Tui {
         adjust: impl FnOnce(&mut Command),
     ) -> Self {
         let (master, slave) = openpty(rows, cols);
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox"));
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos"));
         profile.apply(&mut cmd);
         adjust(&mut cmd);
         cmd.stdin(Stdio::from(slave.try_clone().expect("dup slave")));
@@ -275,7 +275,7 @@ impl Tui {
                 Ok(())
             });
         }
-        let child = cmd.spawn().expect("spawn thurbox");
+        let child = cmd.spawn().expect("spawn talos");
 
         let raw = Arc::new(Mutex::new(Vec::new()));
         let screen = Arc::new(Mutex::new(vt100::Parser::new(rows, cols, 0)));
@@ -301,7 +301,7 @@ impl Tui {
             raw,
             screen,
             exited: None,
-            log: profile.path("data/thurbox.log"),
+            log: profile.path("data/talos.log"),
         }
     }
 
@@ -411,7 +411,7 @@ impl Tui {
     /// written, since stdout is the interface's.
     fn give_up(&self, what: &str) -> ! {
         panic!(
-            "timed out waiting for {what}; final frame:\n{}\n--- thurbox.log ---\n{}",
+            "timed out waiting for {what}; final frame:\n{}\n--- talos.log ---\n{}",
             self.frame(),
             self.log_tail()
         );
@@ -686,7 +686,7 @@ fn an_unavailable_control_socket_does_not_abort_the_tui() {
     let long_data = profile.path("data").join("x".repeat(100));
     std::fs::create_dir_all(&long_data).expect("long data path");
     let mut tui = Tui::spawn_with(&profile, 40, 120, |cmd| {
-        cmd.env("THURBOX_DATA_DIR", &long_data);
+        cmd.env("TALOS_DATA_DIR", &long_data);
     });
     tui.wait_for("interface from");
     tui.wait_for("No sessions yet");
@@ -731,8 +731,8 @@ fn a_queued_startup_notice_waits_for_an_active_error() {
     let long_data = profile.path("data").join("x".repeat(100));
     std::fs::create_dir_all(&long_data).expect("long data path");
     let mut tui = Tui::spawn_with(&profile, 40, 120, |cmd| {
-        cmd.env("THURBOX_DATA_DIR", &long_data);
-        cmd.env("THURBOX_UI_DIR", interface.path());
+        cmd.env("TALOS_DATA_DIR", &long_data);
+        cmd.env("TALOS_UI_DIR", interface.path());
     });
     tui.wait_for("interface from");
     tui.send(b"\x07");
@@ -779,7 +779,7 @@ fn stale_discovery_entries_do_not_hide_a_live_tui() {
     }
     let mut tui = Tui::spawn(&profile, 40, 120);
     tui.wait_for("No sessions yet");
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut cmd);
     let output = cmd
         .args(["--json", "ui", "instances"])
@@ -811,7 +811,7 @@ fn session_focus_refuses_a_tui_without_an_agent_pane() {
     .expect("disable agent pane");
     let mut tui = Tui::spawn(&profile, 40, 120);
     tui.wait_for("probe");
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut cmd);
     let sessions = cmd
         .args(["--json", "session", "list"])
@@ -819,7 +819,7 @@ fn session_focus_refuses_a_tui_without_an_agent_pane() {
         .expect("sessions");
     let rows: serde_json::Value = serde_json::from_slice(&sessions.stdout).expect("JSON");
     let session = rows[0]["id"].as_str().expect("session id");
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut cmd);
     let instances = cmd
         .args(["--json", "ui", "instances"])
@@ -833,7 +833,7 @@ fn session_focus_refuses_a_tui_without_an_agent_pane() {
         .find(|entry| entry["pid"] == tui.child.id())
         .and_then(|entry| entry["id"].as_str())
         .expect("target instance");
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut cmd);
     let output = cmd
         .args([
@@ -859,7 +859,7 @@ fn session_focus_refuses_a_tui_without_an_agent_pane() {
 #[test]
 fn search_cancel_has_the_same_effect_by_key_and_local_action() {
     let profile = Profile::new();
-    let mut headless = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut headless = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut headless);
     let schema = headless
         .args(["--json", "schema"])
@@ -871,7 +871,7 @@ fn search_cancel_has_the_same_effect_by_key_and_local_action() {
     let mut tui = Tui::spawn(&profile, 40, 120);
     tui.wait_for("No sessions yet");
     let cli = |args: &[&str]| {
-        let mut command = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut command = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         profile.apply(&mut command);
         let output = command
             .args(["--json", "ui"])
@@ -897,7 +897,7 @@ fn search_cancel_has_the_same_effect_by_key_and_local_action() {
         .unwrap()
         .iter()
         .any(|row| row["name"] == "search.cancel"));
-    let mut schema_cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut schema_cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut schema_cmd);
     let schema_output = schema_cmd
         .args(["--json", "schema", "--instance", instance])
@@ -999,7 +999,7 @@ fn local_ui_control_targets_one_of_two_live_instances() {
     let mut second = Tui::spawn(&profile, 40, 120);
     second.wait_for("probe");
     let cli = |args: &[&str]| {
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         profile.apply(&mut cmd);
         let output = cmd.args(["--json"]).args(args).output().expect("run cli");
         (
@@ -1174,7 +1174,7 @@ fn destructive_ui_action_needs_a_single_use_instance_bound_confirmation() {
     let Some((profile, mut tui)) = shell_session() else {
         return;
     };
-    let mut discover = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut discover = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut discover);
     let output = discover
         .args(["--json", "ui", "instances"])
@@ -1183,10 +1183,10 @@ fn destructive_ui_action_needs_a_single_use_instance_bound_confirmation() {
     assert!(output.status.success());
     let discovery: serde_json::Value =
         serde_json::from_slice(&output.stdout).expect("instance JSON");
-    let instance: thurbox::ui_control::Instance =
+    let instance: talos::ui_control::Instance =
         serde_json::from_value(discovery["instances"][0].clone()).expect("running interface");
     let list = || {
-        let mut command = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut command = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         profile.apply(&mut command);
         let output = command
             .args(["--json", "session", "list"])
@@ -1198,11 +1198,11 @@ fn destructive_ui_action_needs_a_single_use_instance_bound_confirmation() {
     let sessions = list();
     let session = sessions[0]["id"].as_str().expect("session id");
     tui.send(b"\x08");
-    let addressed = thurbox::ui_control::send(
+    let addressed = talos::ui_control::send(
         &instance,
-        &thurbox::ui_control::Request::Input {
+        &talos::ui_control::Request::Input {
             target: "sessions".into(),
-            input: thurbox::ui_control::InputOperation::Key { chord: "D".into() },
+            input: talos::ui_control::InputOperation::Key { chord: "D".into() },
         },
     )
     .expect("addressed key reply");
@@ -1216,9 +1216,9 @@ fn destructive_ui_action_needs_a_single_use_instance_bound_confirmation() {
         .unwrap()
         .iter()
         .any(|row| row["id"] == session));
-    let requested = thurbox::ui_control::send(
+    let requested = talos::ui_control::send(
         &instance,
-        &thurbox::ui_control::Request::Action {
+        &talos::ui_control::Request::Action {
             name: "sessions.force_delete".into(),
             args: serde_json::json!({"session_id": session}),
         },
@@ -1253,7 +1253,7 @@ fn destructive_ui_action_needs_a_single_use_instance_bound_confirmation() {
         .any(|row| row["id"] == session));
 
     let confirm = |ticket: &str| {
-        let mut command = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut command = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         profile.apply(&mut command);
         let output = command
             .args([
@@ -1284,23 +1284,23 @@ fn addressed_text_cannot_answer_a_destructive_confirmation() {
     let Some((profile, mut tui)) = shell_session() else {
         return;
     };
-    let mut command = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut command = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut command);
     let output = command
         .args(["--json", "ui", "instances"])
         .output()
         .unwrap();
     let instances: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let instance: thurbox::ui_control::Instance =
+    let instance: talos::ui_control::Instance =
         serde_json::from_value(instances["instances"][0].clone()).unwrap();
     tui.send(b"\x08");
     tui.send(b"D");
     tui.wait_for("Confirm");
-    let reply = thurbox::ui_control::send(
+    let reply = talos::ui_control::send(
         &instance,
-        &thurbox::ui_control::Request::Input {
+        &talos::ui_control::Request::Input {
             target: "confirm".into(),
-            input: thurbox::ui_control::InputOperation::Text { text: "y".into() },
+            input: talos::ui_control::InputOperation::Text { text: "y".into() },
         },
     )
     .expect("addressed text reply");
@@ -1316,16 +1316,16 @@ fn destructive_ui_action_fails_closed_when_the_audit_file_is_not_private() {
     let Some((profile, mut tui)) = shell_session() else {
         return;
     };
-    let mut command = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut command = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut command);
     let output = command
         .args(["--json", "ui", "instances"])
         .output()
         .expect("instances");
     let instances: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    let instance: thurbox::ui_control::Instance =
+    let instance: talos::ui_control::Instance =
         serde_json::from_value(instances["instances"][0].clone()).unwrap();
-    let mut command = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut command = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut command);
     let output = command
         .args(["--json", "session", "list"])
@@ -1337,16 +1337,16 @@ fn destructive_ui_action_fails_closed_when_the_audit_file_is_not_private() {
     std::fs::write(&audit, "").expect("audit file");
     std::fs::set_permissions(&audit, std::fs::Permissions::from_mode(0o644))
         .expect("weaken audit permissions");
-    let reply = thurbox::ui_control::send(
+    let reply = talos::ui_control::send(
         &instance,
-        &thurbox::ui_control::Request::Action {
+        &talos::ui_control::Request::Action {
             name: "sessions.force_delete".into(),
             args: serde_json::json!({"session_id": session}),
         },
     )
     .expect("action reply");
     assert_eq!(reply.result["error"]["code"], "audit_unavailable");
-    let mut command = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut command = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut command);
     let output = command
         .args(["--json", "session", "list"])
@@ -1369,7 +1369,7 @@ fn confirmation_rejects_another_instance_and_a_removed_target() {
     let mut second = Tui::spawn(&profile, 40, 120);
     second.wait_for("probe");
     let cli = |args: &[&str]| {
-        let mut command = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut command = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         profile.apply(&mut command);
         let output = command.args(["--json"]).args(args).output().expect("CLI");
         (
@@ -1427,7 +1427,7 @@ fn keyboard_force_delete_uses_the_shared_confirmation_float() {
     tui.send(b"\x08");
     tui.send(b"D");
     tui.wait_for("Confirm");
-    let mut list = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut list = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut list);
     let output = list
         .args(["--json", "session", "list"])
@@ -1448,7 +1448,7 @@ fn ui_state_and_watch_report_modal_changes_only_for_the_target_instance() {
     first.wait_for("No sessions yet");
     second.wait_for("No sessions yet");
     let cli = |args: &[&str]| -> serde_json::Value {
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         profile.apply(&mut cmd);
         let output = cmd.args(["--json"]).args(args).output().expect("run cli");
         assert!(
@@ -1482,7 +1482,7 @@ fn ui_state_and_watch_report_modal_changes_only_for_the_target_instance() {
         false
     );
 
-    let mut watch_cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut watch_cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut watch_cmd);
     let mut watcher = watch_cmd
         .args(["--json", "ui", "--instance", &first_id, "watch"])
@@ -1627,11 +1627,11 @@ return {
     );
     let profile = Profile::new();
     let mut tui = Tui::spawn_with(&profile, 40, 120, |cmd| {
-        cmd.env("THURBOX_UI_DIR", interface.path());
+        cmd.env("TALOS_UI_DIR", interface.path());
     });
     tui.wait_for("No sessions yet");
     let state = || {
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         profile.apply(&mut cmd);
         let output = cmd.args(["--json", "ui", "state"]).output().expect("state");
         assert!(output.status.success());
@@ -1674,11 +1674,11 @@ fn ui_state_reports_the_focused_switch_pane_after_it_is_drawn() {
     );
     let profile = Profile::new();
     let mut tui = Tui::spawn_with(&profile, 40, 120, |cmd| {
-        cmd.env("THURBOX_UI_DIR", interface.path());
+        cmd.env("TALOS_UI_DIR", interface.path());
     });
     tui.wait_for("No sessions yet");
     let state = || {
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         profile.apply(&mut cmd);
         let output = cmd.args(["--json", "ui", "state"]).output().expect("state");
         assert!(output.status.success());
@@ -1716,7 +1716,7 @@ fn ui_watch_exits_cleanly_when_its_reader_closes() {
     let profile = Profile::new();
     let mut tui = Tui::spawn(&profile, 40, 120);
     tui.wait_for("No sessions yet");
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut cmd);
     let mut watcher = cmd
         .args(["--json", "ui", "watch"])
@@ -1780,10 +1780,10 @@ fn ui_state_reports_an_explicit_error_when_the_snapshot_exceeds_the_reply_limit(
     }
     let profile = Profile::new();
     let mut tui = Tui::spawn_with(&profile, 40, 120, |cmd| {
-        cmd.env("THURBOX_UI_DIR", interface.path());
+        cmd.env("TALOS_UI_DIR", interface.path());
     });
     tui.wait_for("No active sessions");
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut cmd);
     let output = cmd.args(["--json", "ui", "state"]).output().expect("state");
     assert!(!output.status.success(), "large state must be rejected");
@@ -1828,11 +1828,11 @@ return {
     }
     let profile = Profile::new();
     let mut tui = Tui::spawn_with(&profile, 40, 120, |cmd| {
-        cmd.env("THURBOX_UI_DIR", interface.path());
+        cmd.env("TALOS_UI_DIR", interface.path());
     });
     tui.wait_for("No active sessions");
     let cli = |args: &[&str]| -> serde_json::Value {
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         profile.apply(&mut cmd);
         let output = cmd
             .args(["--json", "ui"])
@@ -1923,7 +1923,7 @@ return {
     );
     let profile = Profile::new();
     let mut tui = Tui::spawn_with(&profile, 40, 120, |cmd| {
-        cmd.env("THURBOX_UI_DIR", interface.path());
+        cmd.env("TALOS_UI_DIR", interface.path());
     });
     tui.wait_for("probe");
     tui.send(b"\x07");
@@ -2065,7 +2065,7 @@ fn survives_a_resize_storm_down_to_one_cell() {
         std::thread::sleep(Duration::from_millis(150));
         assert!(
             tui.alive(),
-            "thurbox died after a resize to {rows}x{cols}; frame:\n{}",
+            "talos died after a resize to {rows}x{cols}; frame:\n{}",
             tui.frame()
         );
     }
@@ -2109,7 +2109,7 @@ fn a_pane_that_fails_to_load_is_reported_and_the_rest_of_the_interface_runs() {
     let interface = interface_with("plugins/10_sessions.lua", "return {\n");
     let profile = Profile::new();
     let mut tui = Tui::spawn_with(&profile, 40, 120, |cmd| {
-        cmd.env("THURBOX_UI_DIR", interface.path());
+        cmd.env("TALOS_UI_DIR", interface.path());
     });
 
     tui.wait_for("reload failed");
@@ -2181,7 +2181,7 @@ fn the_interface_tab_explains_each_file_and_drives_every_action() {
     .expect("a pane asking to run programs");
     let profile = Profile::new();
     let mut tui = Tui::spawn_with(&profile, 40, 120, |cmd| {
-        cmd.env("THURBOX_UI_DIR", interface.path());
+        cmd.env("TALOS_UI_DIR", interface.path());
     });
     tui.wait_for("No sessions yet");
 
@@ -2277,7 +2277,7 @@ fn a_pane_can_speak_in_the_message_band_and_open_a_kernel_modal() {
     );
     let profile = Profile::new();
     let mut tui = Tui::spawn_with(&profile, 40, 120, |cmd| {
-        cmd.env("THURBOX_UI_DIR", interface.path());
+        cmd.env("TALOS_UI_DIR", interface.path());
     });
     tui.wait_for("No sessions yet");
 
@@ -2357,7 +2357,7 @@ fn the_right_button_reaches_on_context_and_the_left_one_still_reaches_on_click()
     .expect("add the second pane");
     let profile = Profile::new();
     let mut tui = Tui::spawn_with(&profile, 40, 120, |cmd| {
-        cmd.env("THURBOX_UI_DIR", interface.path());
+        cmd.env("TALOS_UI_DIR", interface.path());
     });
     tui.wait_for("tb-hook-none");
     tui.wait_for("tb-other-none");
@@ -2434,7 +2434,7 @@ fn a_float_opens_where_it_was_asked_and_closes_on_a_press_elsewhere() {
     std::fs::write(interface.path().join("plugins/91_pinned.lua"), PINNED).expect("add pinned");
     let profile = Profile::new();
     let mut tui = Tui::spawn_with(&profile, 40, 120, |cmd| {
-        cmd.env("THURBOX_UI_DIR", interface.path());
+        cmd.env("TALOS_UI_DIR", interface.path());
     });
     tui.wait_for("tb-opener-none-0");
     let (x, y) = tui.find("tb-opener-none-0");
@@ -2466,7 +2466,7 @@ fn a_press_on_a_band_pill_is_told_to_the_float_it_missed() {
     std::fs::write(interface.path().join("plugins/91_pinned.lua"), PINNED).expect("add pinned");
     let profile = Profile::new();
     let mut tui = Tui::spawn_with(&profile, 40, 120, |cmd| {
-        cmd.env("THURBOX_UI_DIR", interface.path());
+        cmd.env("TALOS_UI_DIR", interface.path());
     });
     tui.wait_for("tb-opener-none-0");
     let (x, y) = tui.find("tb-opener-none-0");
@@ -2521,7 +2521,7 @@ fn a_press_right_after_a_reload_never_reaches_a_pane_that_did_not_paint_it() {
     std::fs::write(plugins.join("08_tbnear.lua"), listening_pane("near", 8)).expect("add near");
     let profile = Profile::new();
     let mut tui = Tui::spawn_with(&profile, 40, 120, |cmd| {
-        cmd.env("THURBOX_UI_DIR", interface.path());
+        cmd.env("TALOS_UI_DIR", interface.path());
     });
     tui.wait_for("tb-gone-none");
     tui.wait_for("tb-near-none");
@@ -2557,7 +2557,7 @@ fn a_press_right_after_a_reload_never_reaches_a_pane_that_did_not_paint_it() {
 /// Both spellings of the path are granted: trust is keyed by the absolute path
 /// the binary resolved, and a tempdir reached through a symlink has two.
 fn trust(profile: &Profile, interface: &Path, file: &str, contents: &str) {
-    let digest = thurbox::kernel::bundled::digest(contents);
+    let digest = talos::kernel::bundled::digest(contents);
     let raw = interface.join(file);
     let canonical = raw.canonicalize().expect("canonicalize");
     std::fs::write(
@@ -2629,7 +2629,7 @@ fn a_refused_keystroke_reaches_the_plugin_with_the_reason_it_was_refused() {
     let profile = Profile::new();
     trust(&profile, interface.path(), "plugins/91_typist.lua", TYPIST);
     let mut tui = Tui::spawn_with(&profile, 40, 120, |cmd| {
-        cmd.env("THURBOX_UI_DIR", interface.path());
+        cmd.env("TALOS_UI_DIR", interface.path());
     });
     tui.wait_for("tb-typist 0");
 
@@ -2677,7 +2677,7 @@ fn named_repo(under: &Path, name: &str) -> PathBuf {
     std::fs::create_dir_all(&dir).expect("mkdir");
     git(&dir, &["init", "-q", "-b", "main"]);
     git(&dir, &["config", "user.email", "t@example.com"]);
-    git(&dir, &["config", "user.name", "thurbox-e2e"]);
+    git(&dir, &["config", "user.name", "talos-e2e"]);
     git(&dir, &["config", "commit.gpgsign", "false"]);
     std::fs::write(dir.join("README.md"), "# probe\n").expect("write");
     git(&dir, &["add", "."]);
@@ -2689,7 +2689,7 @@ fn named_repo(under: &Path, name: &str) -> PathBuf {
 /// agent pane focused and its prompt painted — the ground every scenario that
 /// drives a real terminal starts from. `None` where tmux is absent.
 ///
-/// The "agent" is `sh`, declared in the profile's own agents.toml — thurbox is
+/// The "agent" is `sh`, declared in the profile's own agents.toml — talos is
 /// agent-neutral, so a shell is as good an agent as any and the only one CI
 /// has.
 fn shell_session() -> Option<(Profile, Tui)> {
@@ -2719,7 +2719,7 @@ fn hosted_session_list() -> Option<(Profile, Tui)> {
                 "[[hosts]]\nname = \"example-ssh\"\ndestination = \"invalid.example\"\n",
             )
             .expect("hosts");
-            let db = rusqlite::Connection::open(profile.path("data/thurbox.db")).expect("database");
+            let db = rusqlite::Connection::open(profile.path("data/talos.db")).expect("database");
             db.execute(
                 "UPDATE sessions SET backend_type = 'ssh:example-ssh' WHERE name = 'probe'",
                 [],
@@ -2731,7 +2731,7 @@ fn hosted_session_list() -> Option<(Profile, Tui)> {
 }
 
 fn selected_session(profile: &Profile) -> Option<String> {
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut cmd);
     let output = cmd
         .args(["--json", "ui", "state"])
@@ -2792,7 +2792,7 @@ fn session_host_right_arrow_moves_to_first_session() {
     let Some((profile, mut tui)) = hosted_session_list() else {
         return;
     };
-    let id = thurbox::storage::Database::open(&profile.path("data/thurbox.db"))
+    let id = talos::storage::Database::open(&profile.path("data/talos.db"))
         .expect("database")
         .get_session_by_name("probe")
         .expect("read")
@@ -2932,7 +2932,7 @@ fn session_host_control_api_addresses_folds_and_reports_state() {
     let Some((profile, mut tui)) = hosted_session_list() else {
         return;
     };
-    let mut catalog = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut catalog = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut catalog);
     let output = catalog
         .args(["--json", "ui", "actions"])
@@ -2974,7 +2974,7 @@ fn session_host_control_api_addresses_folds_and_reports_state() {
         "host=example-ssh",
     ]);
     tui.wait_gone("probe");
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut cmd);
     let output = cmd
         .args(["--json", "ui", "state"])
@@ -3016,7 +3016,7 @@ fn session_host_row_folds_by_key_reveals_search_hits_and_survives_restart() {
         frame.contains("example-ssh") && !frame.contains("probe")
     });
     tui.send(b"jjj");
-    let local_id = thurbox::storage::Database::open(&profile.path("data/thurbox.db"))
+    let local_id = talos::storage::Database::open(&profile.path("data/talos.db"))
         .expect("database")
         .get_session_by_name("local-row")
         .expect("read local session")
@@ -3024,7 +3024,7 @@ fn session_host_row_folds_by_key_reveals_search_hits_and_survives_restart() {
         .id
         .to_string();
     tui.wait_until("navigation to skip the folded child", |_| {
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         profile.apply(&mut cmd);
         let output = cmd
             .args(["--json", "ui", "state"])
@@ -3097,7 +3097,7 @@ fn activating_a_search_hit_inside_a_folded_host_keeps_that_session_selected() {
     });
     tui.send(b"\r");
     tui.wait_gone("Search");
-    let probe_id = thurbox::storage::Database::open(&profile.path("data/thurbox.db"))
+    let probe_id = talos::storage::Database::open(&profile.path("data/talos.db"))
         .expect("database")
         .get_session_by_name("probe")
         .expect("read probe")
@@ -3108,7 +3108,7 @@ fn activating_a_search_hit_inside_a_folded_host_keeps_that_session_selected() {
         if !frame.contains("⇅ probe") {
             return false;
         }
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         profile.apply(&mut cmd);
         let output = cmd
             .args(["--json", "ui", "state"])
@@ -3163,7 +3163,7 @@ const LOCAL_HOST: &str = "host:\0local";
 /// The row the session list's cursor is on — a session id, or the target of
 /// a host or repo row, which `selected_session` never reports.
 fn selected_row(profile: &Profile) -> Option<String> {
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut cmd);
     let output = cmd
         .args(["--json", "ui", "state"])
@@ -3186,7 +3186,7 @@ fn wait_selected(tui: &Tui, profile: &Profile, row: &str) {
 }
 
 fn session_id(profile: &Profile, name: &str) -> String {
-    thurbox::storage::Database::open(&profile.path("data/thurbox.db"))
+    talos::storage::Database::open(&profile.path("data/talos.db"))
         .expect("database")
         .get_session_by_name(name)
         .expect("read")
@@ -3358,7 +3358,7 @@ fn session_repo_right_click_toggles_without_opening_menu() {
 }
 
 /// The same, with the binary's environment adjusted — for the cases where what
-/// is being tested is what thurbox does with the machine it thinks it is on.
+/// is being tested is what talos does with the machine it thinks it is on.
 fn shell_session_with(adjust: impl FnOnce(&mut Command)) -> Option<(Profile, Tui)> {
     shell_session_prepared(|_| {}, adjust)
 }
@@ -3430,7 +3430,7 @@ fn a_session_shows_its_terminal_and_takes_keystrokes() {
     // The product, end to end: a session created headlessly appears in the
     // list, its pane is attached and painted, and a keystroke sent to the
     // focused terminal reaches the process behind it. The "agent" is `sh`,
-    // declared in the profile's own agents.toml — thurbox is agent-neutral,
+    // declared in the profile's own agents.toml — talos is agent-neutral,
     // so a shell is as good an agent as any and the only one CI has.
     let Some((_profile, mut tui)) = shell_session() else {
         return;
@@ -3457,7 +3457,7 @@ fn deleting_an_agent_window_while_the_tui_is_open_relaunches_it_once() {
         return;
     };
 
-    let db = thurbox::storage::Database::open(&profile.path("data/thurbox.db"))
+    let db = talos::storage::Database::open(&profile.path("data/talos.db"))
         .expect("open profile database");
     let original = db
         .get_session_by_name("probe")
@@ -3582,7 +3582,7 @@ fn the_tui_picker_creates_a_session_on_rmux() {
     tui.wait_for("Session Name");
     tui.send(b"rmux-picker\r");
     tui.wait_for("rmux-picker");
-    let db = thurbox::storage::Database::open(&profile.path("data/thurbox.db"))
+    let db = talos::storage::Database::open(&profile.path("data/talos.db"))
         .expect("open profile database");
     let row = db
         .get_session_by_name("rmux-picker")
@@ -3631,7 +3631,7 @@ fn explicit_cli_choice_overrides_an_unavailable_local_preference() {
     .expect("set unavailable preference");
     let repo = repo(profile.root.path());
 
-    let mut unavailable = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut unavailable = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut unavailable);
     let unavailable = unavailable
         .args([
@@ -3654,7 +3654,7 @@ fn explicit_cli_choice_overrides_an_unavailable_local_preference() {
         String::from_utf8_lossy(&unavailable.stderr)
     );
 
-    let mut override_create = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut override_create = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     profile.apply(&mut override_create);
     let created = override_create
         .args([
@@ -3676,7 +3676,7 @@ fn explicit_cli_choice_overrides_an_unavailable_local_preference() {
         "{}",
         String::from_utf8_lossy(&created.stderr)
     );
-    let db = thurbox::storage::Database::open(&profile.path("data/thurbox.db"))
+    let db = talos::storage::Database::open(&profile.path("data/talos.db"))
         .expect("open profile database");
     let row = db
         .get_session_by_name("overridden")
@@ -3972,7 +3972,7 @@ fn a_shell_that_exited_behind_the_agent_is_replaced_when_raised() {
 }
 
 #[test]
-fn a_shell_whose_window_went_while_thurbox_was_closed_is_replaced() {
+fn a_shell_whose_window_went_while_talos_was_closed_is_replaced() {
     // The shell's pane id outlives the interface in the session's row, so a
     // restart re-adopts it. A window that went in the meantime (a tmux server
     // restart, a kill from outside) must not be adopted as a shell that never
@@ -4017,7 +4017,7 @@ fn a_shell_whose_window_went_while_thurbox_was_closed_is_replaced() {
 fn as_v2_32_0_split_shell(profile: &Profile, edited: bool) {
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/v2_32_0_split_shell");
     let ui = profile.path("config/ui");
-    let report = thurbox::kernel::bundled::materialize(&ui);
+    let report = talos::kernel::bundled::materialize(&ui);
     assert!(report.errors.is_empty(), "{:?}", report.errors);
 
     let manifest_path = ui.join(".bundled.json");
@@ -4033,7 +4033,7 @@ fn as_v2_32_0_split_shell(profile: &Profile, edited: bool) {
         let shipped = std::fs::read_to_string(fixture.join(relative)).expect("fixture");
         manifest.insert(
             relative.to_string(),
-            thurbox::kernel::bundled::digest(&shipped).into(),
+            talos::kernel::bundled::digest(&shipped).into(),
         );
         let on_disk = if edited && matches!(relative, "layout.lua" | "plugins/25_shell.lua") {
             format!("{shipped}-- my own line\n")
@@ -4269,7 +4269,7 @@ impl Tui {
         let mark = self.raw_len();
         self.send(b"\x03");
         // The interrupt has to LAND before the next keystroke is written, and
-        // these two used to be back-to-back. `\x03` travels pty -> thurbox ->
+        // these two used to be back-to-back. `\x03` travels pty -> talos ->
         // tmux -> `sh`, and the shell answers it by abandoning the line it was
         // reading and drawing a fresh prompt; a byte that arrives while it is
         // doing that is discarded. The symptom is the command's FIRST character
@@ -4550,7 +4550,7 @@ fn settled_since(tui: &Tui, mark: usize) -> String {
 #[test]
 fn an_app_osc52_copy_in_the_focused_session_reaches_the_outer_terminal() {
     // An agent's `/copy`, nvim's OSC 52 provider, lazygit: each writes the
-    // clipboard by printing OSC 52 into its own pane. Thurbox is the process on
+    // clipboard by printing OSC 52 into its own pane. Talos is the process on
     // the user's machine that reads those bytes, so it is the one that has to
     // put them on the user's clipboard — tmux never hands a control-mode client
     // a selection. It was dropped: tmux kept a paste buffer and nothing reached
@@ -4836,7 +4836,7 @@ fn an_app_cannot_read_back_another_sessions_copy() {
     assert!(status.success(), "exit must be clean: {status:?}");
 }
 
-/// The mouse text selection reaches a Lua pane through `thurbox.selection`.
+/// The mouse text selection reaches a Lua pane through `talos.selection`.
 ///
 /// The coordinator recomputes the selection every frame for `copy_selection`;
 /// publishing it into the snapshot is what lets a pane see it at all. This is the
@@ -4846,7 +4846,7 @@ fn an_app_cannot_read_back_another_sessions_copy() {
 /// and the probe stays `selwire:[]`, so this fails on the timeout rather than
 /// passing quietly.
 ///
-/// The probe is deliberately NOT `pure`: `thurbox.selection` is a bare scalar, so
+/// The probe is deliberately NOT `pure`: `talos.selection` is a bare scalar, so
 /// it moves no epoch and bumps no state version — a pure pane reading it live
 /// would be served its cached tree until some other signal ticked. The real
 /// consumer (`41_notes`) reads it in `on_key`, which is never cached; a pane that
@@ -4863,14 +4863,14 @@ fn the_text_selection_reaches_a_pane_as_a_published_field() {
   render = function()
     return {
       type = "text",
-      text = "selwire:[" .. (thurbox.selection or "") .. "]",
+      text = "selwire:[" .. (talos.selection or "") .. "]",
       id = "selwire",
     }
   end,
 }"#,
     );
     let Some((_profile, mut tui)) = shell_session_with(|cmd| {
-        cmd.env("THURBOX_UI_DIR", interface.path());
+        cmd.env("TALOS_UI_DIR", interface.path());
     }) else {
         return;
     };
@@ -4888,7 +4888,7 @@ fn the_text_selection_reaches_a_pane_as_a_published_field() {
     tui.drag(at, 12);
 
     // The assertion: the pane repainted with the dragged text, which it could
-    // only have read from `thurbox.selection`.
+    // only have read from `talos.selection`.
     tui.wait_for("selwire:[tb-select-me]");
 
     let status = tui.quit();
@@ -4922,7 +4922,7 @@ fn a_chord_reads_the_selection_dragged_in_its_own_batch() {
   },
   on_action = function(action)
     if action == "selchord.read" then
-      state.seen = "selchord:[" .. (thurbox.selection or "") .. "]"
+      state.seen = "selchord:[" .. (talos.selection or "") .. "]"
       return true
     end
     return false
@@ -4930,7 +4930,7 @@ fn a_chord_reads_the_selection_dragged_in_its_own_batch() {
 }"#,
     );
     let Some((_profile, mut tui)) = shell_session_with(|cmd| {
-        cmd.env("THURBOX_UI_DIR", interface.path());
+        cmd.env("TALOS_UI_DIR", interface.path());
     }) else {
         return;
     };
@@ -4941,7 +4941,7 @@ fn a_chord_reads_the_selection_dragged_in_its_own_batch() {
     let at = tui.find("tb-select-me");
 
     // Drag over the echoed line and press ctrl+g in one batch. The handler
-    // reads `thurbox.selection` while it runs — which is inside this batch.
+    // reads `talos.selection` while it runs — which is inside this batch.
     tui.drag_then_chord(at, 12, 0x07);
 
     tui.wait_for("selchord:[tb-select-me]");
@@ -5165,7 +5165,7 @@ fn the_focus_cycle_skips_a_centre_alternate_and_its_key_still_opens_it() {
     // default occupant — and the alternate is opened by its own key.
     let interface = interface_plus("91_stand_in.lua", CENTRE_ALTERNATE);
     let Some((_profile, mut tui)) = shell_session_with(|cmd| {
-        cmd.env("THURBOX_UI_DIR", interface.path());
+        cmd.env("TALOS_UI_DIR", interface.path());
     }) else {
         return;
     };
@@ -5350,7 +5350,7 @@ fn a_drag_over_a_tracking_terminal_reaches_the_program_inside() {
     // The wheel above already goes to a terminal that asked for the mouse, and
     // the buttons did not: a program that tracks the mouse and selects text
     // itself (Claude Code copies on select this way) never heard a press,
-    // because thurbox spent every drag on its own selection. Once a program
+    // because talos spent every drag on its own selection. Once a program
     // has asked, the gesture is its: press, the moves while the button is
     // down, and the release all reach the pty, in the encoding it asked for
     // and with coordinates local to its pane.
@@ -5387,7 +5387,7 @@ fn a_drag_over_a_tracking_terminal_reaches_the_program_inside() {
 fn a_bare_move_reaches_a_terminal_that_asked_for_every_motion() {
     // `?1003` is the one tracking mode that wants motion with no button down
     // — hover-driven TUIs are built on it — and a bare move used to stop at
-    // thurbox's own hover. With no button down there is no gesture for a
+    // talos's own hover. With no button down there is no gesture for a
     // capture to own, so the move is routed by position, like the wheel.
     let Some((_profile, mut tui)) = shell_session() else {
         return;
@@ -5750,7 +5750,7 @@ const REMOTE_NAME: &str = "afar-on-bad-link";
 /// A stand-in for `ssh` that runs the "remote" command on this machine.
 ///
 /// The point is not to imitate a network. It is to reproduce the one thing a
-/// real `ssh` puts between thurbox and the multiplexer: **a process that copies
+/// real `ssh` puts between talos and the multiplexer: **a process that copies
 /// the bytes**, which a test can then stop.
 ///
 /// That relay has to be built rather than inherited, because a local tmux has
@@ -6019,12 +6019,12 @@ fn a_resize_is_not_paid_for_on_the_render_thread_when_the_link_is_wedged() {
     assert!(tui.quit().success());
 }
 
-// --- links handed back to the terminal thurbox itself runs in ----------------
+// --- links handed back to the terminal talos itself runs in ----------------
 
 impl Tui {
     /// A `Ctrl`-modified press and release at a 0-based cell. SGR adds 16 to
     /// the button number for Control, which is what a terminal sends for the
-    /// chord thurbox answers as a link open.
+    /// chord talos answers as a link open.
     fn ctrl_press(&mut self, (x, y): (u16, u16)) {
         let (px, py) = (x + 1, y + 1);
         self.send(format!("\x1b[<16;{px};{py}M").as_bytes());
@@ -6061,9 +6061,9 @@ impl Tui {
 }
 
 /// On a host with no browser, both kinds of link are handed to the outer
-/// terminal — and the chord thurbox keeps for itself says what it did instead.
+/// terminal — and the chord talos keeps for itself says what it did instead.
 ///
-/// The escape is the only route to a browser for a thurbox reached over ssh:
+/// The escape is the only route to a browser for a talos reached over ssh:
 /// the machine it runs on has none, so the terminal the user is sitting at has
 /// to be told the cells are a link. That worked for an agent's OSC 8 runs and
 /// not for the bare URLs agents print far more often, which left the common
@@ -6107,7 +6107,7 @@ fn both_kinds_of_link_reach_the_outer_terminal_on_a_host_with_no_browser() {
         "the bare URL must be re-printed for the outer terminal too"
     );
 
-    // 2. The chord thurbox does answer is never silent: it cannot open a
+    // 2. The chord talos does answer is never silent: it cannot open a
     //    browser here, so it carries the URL back over OSC 52 and says so.
     for (needle, offset, url) in [
         ("RICHLINK", 0, "https://example.test/rich"),
@@ -6162,17 +6162,17 @@ fn type_and_see_echoes(tui: &mut Tui, keys: usize) {
 
 /// The loop's `(echoes, echo_frames)` counters, once its published perf
 /// snapshot has counted at least `at_least` echoes — or as they stand when it
-/// gives up. Published every few seconds while `THURBOX_PERF_LOG` is set.
+/// gives up. Published every few seconds while `TALOS_PERF_LOG` is set.
 fn echo_counters(profile: &Profile, at_least: u64) -> (u64, u64) {
     let deadline = Instant::now() + WAIT;
     let mut seen = (0, 0);
     while Instant::now() < deadline {
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         profile.apply(&mut cmd);
         let out = cmd
             .args(["perf", "--json"])
             .output()
-            .expect("thurbox-cli perf");
+            .expect("talos-cli perf");
         if let Ok(json) = serde_json::from_slice::<serde_json::Value>(&out.stdout) {
             let counter = |name: &str| json["counters"][name].as_u64().unwrap_or(0);
             seen = (counter("echoes"), counter("echo_frames"));
@@ -6213,7 +6213,7 @@ fn echo_session(command: &str, extra: impl FnOnce(&Profile, &Path)) -> Option<(P
     extra(&profile, &repo);
     profile.cli(&["config", "accept-interface"]);
     let tui = Tui::spawn_with(&profile, 40, 120, |cmd| {
-        cmd.env("THURBOX_PERF_LOG", "1");
+        cmd.env("TALOS_PERF_LOG", "1");
     });
     tui.wait_for("ready> ");
     tui.wait_until("the agent pane to be the focused one", |frame| {
@@ -6384,7 +6384,7 @@ fn creating_a_session_runs_a_handful_of_tmux_processes() {
 // --- what a paste looks like to the program it lands in ---------------------
 
 /// A terminal's own paste — Cmd+V, Ctrl+Shift+V — as the outer terminal sends
-/// it to thurbox, which turned bracketed paste on for itself.
+/// it to talos, which turned bracketed paste on for itself.
 fn terminal_paste(text: &str) -> Vec<u8> {
     [b"\x1b[200~", text.as_bytes(), b"\x1b[201~"].concat()
 }
@@ -6524,7 +6524,7 @@ const SEED_CLIPBOARD: &str = "TBX_E2E_SEED_CLIPBOARD";
 
 /// Not a test: the process that owns the X clipboard for
 /// [`a_pasted_end_marker_cannot_submit_a_line`]. An X selection lives only as
-/// long as a client serves it, and the native read thurbox makes is the one
+/// long as a client serves it, and the native read talos makes is the one
 /// route a terminal does not sanitise first, so this holds it from a process
 /// of its own — this test binary, re-run on this one test — until it is
 /// killed. Without the variable it does nothing, so `--ignored` runs are safe.

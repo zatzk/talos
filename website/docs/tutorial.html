@@ -1,14 +1,14 @@
 ---
 layout: docs.njk
-title: 'Tutorial — Thurbox Docs'
-description: 'Onboarding walkthrough with screenshots: add a repository, create your first worktree session, and the keys and thurbox-cli commands you use every day.'
+title: 'Tutorial — Talos Docs'
+description: 'Onboarding walkthrough with screenshots: add a repository, create your first worktree session, and the keys and talos-cli commands you use every day.'
 currentPage: 'tutorial'
 breadcrumb: 'Tutorial'
 extraCss: ['tutorial.css']
 ---
 <h1>Tutorial: your first sessions</h1>
 <p>
-  The first ten minutes of Thurbox &mdash; from an empty screen to two coding agents running side by
+  The first ten minutes of Talos &mdash; from an empty screen to two coding agents running side by
   side, each on its own git worktree, plus the handful of commands you will use every day.
 </p>
 <p class="tutorial-note">
@@ -23,8 +23,8 @@ extraCss: ['tutorial.css']
   Before you start
   <a href="#before-you-start" class="heading-anchor">#</a>
 </h2>
-<p>Install Thurbox &mdash; both the TUI and the headless companion binary:</p>
-<pre data-wrap><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/install.sh | sh</code></pre>
+<p>Install Talos &mdash; both the TUI and the headless companion binary:</p>
+<pre data-wrap><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/zatzk/talos/main/scripts/install.sh | sh</code></pre>
 <p>
   Windows, Homebrew, AUR, Nix, winget and Chocolatey are on the
   <a href="installation.html">Installation</a> page. You also need:
@@ -32,17 +32,17 @@ extraCss: ['tutorial.css']
 <ul>
   <li>
     <strong>tmux &ge; 3.2</strong> (or <a href="https://github.com/psmux/psmux">psmux &ge; 3.3.7</a> on native
-    Windows, or opt-in <a href="installation.html#rmux">RMUX &ge; 0.10.0</a>) &mdash; it is what keeps your agents alive when Thurbox is closed
+    Windows, or opt-in <a href="installation.html#rmux">RMUX &ge; 0.10.0</a>) &mdash; it is what keeps your agents alive when Talos is closed
   </li>
   <li><strong>git</strong></li>
   <li>
     <strong>at least one coding-agent CLI</strong> &mdash; <code>claude</code>, <code>codex</code>,
     <code>agy</code>, <code>opencode</code>, <code>aider</code>, <code>copilot</code>, &hellip;
-    Thurbox launches whichever you have; it is not tied to any of them
+    Talos launches whichever you have; it is not tied to any of them
   </li>
 </ul>
 <p>
-  Nothing to configure. On first launch Thurbox seeds <code>~/.config/thurbox/</code> with the agents
+  Nothing to configure. On first launch Talos seeds <code>~/.config/talos/</code> with the agents
   it knows, the themes, and the interface itself.
 </p>
 
@@ -50,12 +50,12 @@ extraCss: ['tutorial.css']
   1. Launch it
   <a href="#launch" class="heading-anchor">#</a>
 </h2>
-<pre><code class="language-bash">thurbox</code></pre>
+<pre><code class="language-bash">talos</code></pre>
 <figure class="shot">
   <img
     loading="lazy"
     src="../assets/tutorial/01-first-launch.png"
-    alt="An empty Thurbox: the session list on the left, an empty agent pane on the right"
+    alt="An empty Talos: the session list on the left, an empty agent pane on the right"
   />
   <figcaption>First launch &mdash; no sessions yet, and the list says so.</figcaption>
 </figure>
@@ -78,7 +78,7 @@ extraCss: ['tutorial.css']
   <figcaption>The repo step. On a fresh install, memory holds one row you did not add.</figcaption>
 </figure>
 <p>
-  The list is Thurbox's <strong>repo memory</strong> &mdash; the repositories you have used before.
+  The list is Talos's <strong>repo memory</strong> &mdash; the repositories you have used before.
   The one row already there is your own interface directory, offered because editing the panes is a
   thing you might want a session for.
 </p>
@@ -223,8 +223,8 @@ extraCss: ['tutorial.css']
   <figcaption>The branch name, prefilled from the name you just gave.</figcaption>
 </figure>
 <p>
-  Then the agent. This is the list from <code>~/.config/thurbox/agents.toml</code> &mdash; the
-  built-ins Thurbox seeds, plus any CLI you have described yourself. With only one agent defined,
+  Then the agent. This is the list from <code>~/.config/talos/agents.toml</code> &mdash; the
+  built-ins Talos seeds, plus any CLI you have described yourself. With only one agent defined,
   the step is skipped.
 </p>
 <figure class="shot">
@@ -267,7 +267,7 @@ extraCss: ['tutorial.css']
 </ul>
 <p>
   Press <kbd>Ctrl</kbd>+<kbd>Q</kbd> whenever you like: it detaches. tmux keeps every agent running,
-  and relaunching <code>thurbox</code> puts you back where you were &mdash; after a crash, a reboot,
+  and relaunching <code>talos</code> puts you back where you were &mdash; after a crash, a reboot,
   or a week away.
 </p>
 
@@ -382,8 +382,8 @@ extraCss: ['tutorial.css']
   <a href="#command-line" class="heading-anchor">#</a>
 </h2>
 <p>
-  <code>thurbox-cli</code> drives the same sessions with no TUI, against the same database &mdash; so
-  anything you do here shows up in a running Thurbox within a tick, and vice versa. It is on your
+  <code>talos-cli</code> drives the same sessions with no TUI, against the same database &mdash; so
+  anything you do here shows up in a running Talos within a tick, and vice versa. It is on your
   <code>PATH</code> inside every session, which is what lets an agent orchestrate other agents (see
   <a href="orchestration.html">Orchestration</a>).
 </p>
@@ -394,33 +394,33 @@ extraCss: ['tutorial.css']
   down a pipe.
 </p>
 <pre data-wrap><code class="language-bash"># What is running
-thurbox-cli                                # live state: sessions, mail, counts
-thurbox-cli session list
-thurbox-cli session list --json | jq       # the full record, for a script
+talos-cli                                # live state: sessions, mail, counts
+talos-cli session list
+talos-cli session list --json | jq       # the full record, for a script
 
 # Start one headlessly, on its own worktree branch
-thurbox-cli session create --name docs --repo-path ~/code/web-app
-thurbox-cli session create --name rate-limit --repo-path ~/code/api-server \
+talos-cli session create --name docs --repo-path ~/code/web-app
+talos-cli session create --name rate-limit --repo-path ~/code/api-server \
     --agent claude --worktree-branch rate-limit
 
 # Talk to one, and read what it printed
-thurbox-cli session send &lt;uuid&gt; "run the tests and fix what fails"
-thurbox-cli session capture &lt;uuid&gt;
+talos-cli session send &lt;uuid&gt; "run the tests and fix what fails"
+talos-cli session capture &lt;uuid&gt;
 
 # Clean up (soft by default — `session restore` brings it back)
-thurbox-cli session delete &lt;uuid&gt;</code></pre>
+talos-cli session delete &lt;uuid&gt;</code></pre>
 <figure class="shot">
   <img
     loading="lazy"
     src="../assets/tutorial/15-cli.png"
-    alt="thurbox-cli session list, a headless session create, and the list again"
+    alt="talos-cli session list, a headless session create, and the list again"
   />
   <figcaption>A session created with no TUI running at all &mdash; the same database either way.</figcaption>
 </figure>
 <p>
-  <code>thurbox-cli config show</code> prints every resolved path,
-  <code>thurbox-cli plugin dir</code> prints the interface directory, and
-  <code>thurbox-cli --help</code> lists the rest (<code>automation</code>, <code>task</code>,
+  <code>talos-cli config show</code> prints every resolved path,
+  <code>talos-cli plugin dir</code> prints the interface directory, and
+  <code>talos-cli --help</code> lists the rest (<code>automation</code>, <code>task</code>,
   <code>message</code>, <code>extension</code>, <code>editor</code>, <code>notify</code>).
 </p>
 

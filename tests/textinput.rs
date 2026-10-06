@@ -12,10 +12,10 @@
 //! reaches a field only under the kitty keyboard protocol — tested here as it
 //! arrives then.
 
-use thurbox::kernel::host::{KeyPress, LuaHost, Published, RenderContext};
-use thurbox::kernel::registry::Registry;
-use thurbox::kernel::snapshot::Snapshot;
-use thurbox::kernel::theme::Themes;
+use talos::kernel::host::{KeyPress, LuaHost, Published, RenderContext};
+use talos::kernel::registry::Registry;
+use talos::kernel::snapshot::Snapshot;
+use talos::kernel::theme::Themes;
 
 /// A field holding `start` (caret at its `|`) inside a probe pane in a copy of
 /// the bundled interface, so the module under test is the one that ships.
@@ -28,7 +28,7 @@ impl Field {
     fn new(start: &str) -> Self {
         let (value, cursor) = parse(start);
         let dir = tempfile::tempdir().expect("tempdir");
-        let report = thurbox::kernel::bundled::materialize(dir.path());
+        let report = talos::kernel::bundled::materialize(dir.path());
         assert!(report.errors.is_empty(), "{:?}", report.errors);
         std::fs::write(
             dir.path().join("plugins").join("95_probe.lua"),
@@ -118,10 +118,10 @@ fn publish(host: &LuaHost) {
     let mut registry = Registry::default();
     let (bindings, settings) = host.declarations();
     registry.declare(bindings, settings);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     host.publish(&Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot: &Snapshot::default(),
         attach_errors: &Default::default(),
         inflight: &[],

@@ -15,10 +15,10 @@ use std::path::PathBuf;
 use std::process::{Command, Output};
 
 use serde_json::Value;
-use thurbox::session::SessionId;
-use thurbox::sync::SharedSession;
+use talos::session::SessionId;
+use talos::sync::SharedSession;
 
-/// A throwaway thurbox instance: its own config, data and home, so no test here
+/// A throwaway talos instance: its own config, data and home, so no test here
 /// reads or writes the operator's.
 struct Env {
     root: tempfile::TempDir,
@@ -38,23 +38,23 @@ impl Env {
     }
 
     fn run(&self, args: &[&str]) -> Output {
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         cmd.args(args);
         cmd.env("HOME", self.path("home"));
         cmd.env("USERPROFILE", self.path("home"));
-        cmd.env("THURBOX_CONFIG_DIR", self.path("config"));
-        cmd.env("THURBOX_DATA_DIR", self.path("data"));
-        cmd.env_remove("THURBOX_SOCKET");
-        cmd.env_remove("THURBOX_SOCKET_FOR");
+        cmd.env("TALOS_CONFIG_DIR", self.path("config"));
+        cmd.env("TALOS_DATA_DIR", self.path("data"));
+        cmd.env_remove("TALOS_SOCKET");
+        cmd.env_remove("TALOS_SOCKET_FOR");
         // The one test here that spawns a pane starts a real server on the
         // socket this instance's relocated data dir derives. tmux never unlinks
         // a socket, so killing that server still leaves the file behind — in a
         // directory of this instance's own it goes away with the tempdir, in
         // the shared one it would be one more dead socket per run.
         cmd.env("TMUX_TMPDIR", self.path("tmux"));
-        cmd.env_remove("THURBOX_SESSION");
-        cmd.env_remove("THURBOX_SESSION_ID");
-        cmd.output().expect("run thurbox-cli")
+        cmd.env_remove("TALOS_SESSION");
+        cmd.env_remove("TALOS_SESSION_ID");
+        cmd.output().expect("run talos-cli")
     }
 }
 
@@ -96,7 +96,7 @@ fn sole_document(out: &Output) -> Value {
 fn seed_session_in(env: &Env, name: &str, cwd: Option<&std::path::Path>) -> String {
     let id = seed_session(env, name, "claude");
     if let Some(dir) = cwd {
-        let db = thurbox::storage::Database::open(&env.path("data").join("thurbox.db"))
+        let db = talos::storage::Database::open(&env.path("data").join("talos.db"))
             .expect("open the instance database");
         let parsed: SessionId = id.parse().expect("seeded id");
         let mut row = db
@@ -110,7 +110,7 @@ fn seed_session_in(env: &Env, name: &str, cwd: Option<&std::path::Path>) -> Stri
 }
 
 fn seed_session(env: &Env, name: &str, agent: &str) -> String {
-    let db = thurbox::storage::Database::open(&env.path("data").join("thurbox.db"))
+    let db = talos::storage::Database::open(&env.path("data").join("talos.db"))
         .expect("open the instance database");
     let row = SharedSession {
         id: SessionId::default(),
@@ -134,8 +134,8 @@ fn seed_session(env: &Env, name: &str, agent: &str) -> String {
 
 /// Open the instance database directly, for the columns no verb sets from
 /// outside a real spawn.
-fn open_db(env: &Env) -> thurbox::storage::Database {
-    thurbox::storage::Database::open(&env.path("data").join("thurbox.db"))
+fn open_db(env: &Env) -> talos::storage::Database {
+    talos::storage::Database::open(&env.path("data").join("talos.db"))
         .expect("open the instance database")
 }
 
@@ -149,7 +149,7 @@ fn have_tmux() -> bool {
         .unwrap_or(false)
 }
 
-/// A `--command` session: the shape thurbox advertises for drivers (firstmate
+/// A `--command` session: the shape talos advertises for drivers (firstmate
 /// creates every task as `--command $SHELL --arg -i`), named after the
 /// command's file stem and with the launch recipe that makes it one.
 fn seed_command_session(env: &Env, name: &str) -> String {
@@ -157,7 +157,7 @@ fn seed_command_session(env: &Env, name: &str) -> String {
     let db = open_db(env);
     db.set_launch_recipe(
         id.parse().expect("seeded id"),
-        &thurbox::session::LaunchRecipe {
+        &talos::session::LaunchRecipe {
             command: "/bin/bash".into(),
             args: vec!["-i".into()],
             env: Default::default(),
@@ -199,11 +199,11 @@ fn session_doctor_on_a_broken_session_prints_one_document_and_exits_non_zero() {
     );
 }
 
-/// `doctor` must not fail a session thurbox never wired an agent for.
+/// `doctor` must not fail a session talos never wired an agent for.
 ///
 /// A `--command` session is by construction uncovered and, until something
 /// types an agent into it, unreported — so the old `Coverage::None` + not
-/// reported => Fail turned the exact session shape thurbox advertises for
+/// reported => Fail turned the exact session shape talos advertises for
 /// drivers into "hook wiring is broken". Worse, bare `session doctor`
 /// diagnoses every active session, so one shell session failed the whole
 /// machine.
@@ -233,7 +233,7 @@ fn session_doctor_expects_no_hooks_from_a_command_session() {
 /// The row has to be able to say "this pane runs claude".
 ///
 /// A driver that applied `agent launch-args claude` inside a `--command bash`
-/// session left thurbox reading coverage against `bash`: `hook_coverage:
+/// session left talos reading coverage against `bash`: `hook_coverage:
 /// "none"`, no reportable states, and `hook_blocked_is_heuristic: false` —
 /// asserting the block signal is structured when it is claude's text match on a
 /// notification body, which is the single caveat a supervisor most needs.
@@ -504,7 +504,7 @@ fn exec_exit_passthrough_carries_the_commands_own_code() {
     let id = seed_session_in(&env, "worker", Some(&dir));
 
     // Without the flag: the command failed, the invocation did not. Exit 0,
-    // because thurbox was asked to run something and ran it.
+    // because talos was asked to run something and ran it.
     let plain = env.run(&["session", "exec", "worker", "--", "sh", "-c", "exit 7"]);
     assert_eq!(
         plain.status.code(),
@@ -560,7 +560,7 @@ fn exec_exit_passthrough_carries_the_commands_own_code() {
 /// question four ways, and `fail` is the one that was missing.
 ///
 /// Both orchestrators tested against this branch hand-rolled the same
-/// duplicate refusal, each with its own list-then-create race, because thurbox
+/// duplicate refusal, each with its own list-then-create race, because talos
 /// offered adopt and replace but no way to *refuse*. Gas City's
 /// `RPP-LIFECYCLE-002` mandates that a duplicate start exit non-zero, so the
 /// exit code is part of the contract, not decoration.
@@ -750,7 +750,7 @@ fn a_failed_reports_as_write_leaves_the_new_session_in_place() {
 /// because either would be a guess about which session was meant.
 ///
 /// This is the same rule the reference resolver follows, and it has to hold
-/// here too: thurbox does not enforce uniqueness by default, so a database
+/// here too: talos does not enforce uniqueness by default, so a database
 /// with two same-named rows is a state `create` can legitimately meet.
 #[test]
 fn an_ambiguous_name_is_never_adopted_or_replaced() {

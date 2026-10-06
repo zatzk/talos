@@ -1,0 +1,16 @@
+# Drives talos-automations.service on a 1-minute cadence, surviving reboots.
+# See talos-automations.service for install instructions.
+
+[Unit]
+Description=Fire due talos automations every minute
+Documentation=https://github.com/zatzk/talos
+
+[Timer]
+# First run shortly after login, then every minute.
+OnBootSec=1min
+OnUnitActiveSec=1min
+AccuracySec=15s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

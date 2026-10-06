@@ -1,8 +1,8 @@
-//! `thurbox-cli update` — download, verify, and replace the installed binaries
+//! `talos-cli update` — download, verify, and replace the installed binaries
 //! with the latest GitHub release.
 //!
 //! Gated behind the `[features] auto_update` flag (on by default for 1.0,
-//! since thurbox now keeps itself current — it makes a network call and
+//! since talos now keeps itself current — it makes a network call and
 //! replaces files on disk). When the flag is off, `update` prints a one-line
 //! hint on how to enable it instead of reaching the network. `--force`
 //! re-downloads and replaces even when up to date or on a development build.
@@ -43,7 +43,7 @@ fn run_with(args: UpdateArgs, enabled: bool) -> CommandOutput {
                 "update_enabled": false,
                 "summary": hint,
             }),
-            format!("thurbox {current}\n{hint}"),
+            format!("talos {current}\n{hint}"),
         );
     }
 
@@ -53,7 +53,7 @@ fn run_with(args: UpdateArgs, enabled: bool) -> CommandOutput {
                 ("from", from.clone()),
                 ("to", to.clone()),
                 ("updated", "true".to_string()),
-                ("note", "restart thurbox to apply".to_string()),
+                ("note", "restart talos to apply".to_string()),
             ]);
             CommandOutput::new(
                 json!({
@@ -61,7 +61,7 @@ fn run_with(args: UpdateArgs, enabled: bool) -> CommandOutput {
                     "latest": to,
                     "updated": true,
                     "update_enabled": true,
-                    "summary": format!("Updated {from} → {to}. Restart thurbox to apply."),
+                    "summary": format!("Updated {from} → {to}. Restart talos to apply."),
                 }),
                 human,
             )
@@ -76,7 +76,7 @@ fn run_with(args: UpdateArgs, enabled: bool) -> CommandOutput {
                     "summary": "Up to date — running the latest release.",
                 }),
                 format!(
-                "thurbox {current} (latest: {latest})\nUp to date — running the latest release."
+                "talos {current} (latest: {latest})\nUp to date — running the latest release."
             ),
             )
         }
@@ -85,8 +85,8 @@ fn run_with(args: UpdateArgs, enabled: bool) -> CommandOutput {
             // ways across, and pin by the running version rather than deriving
             // its major — the exact tag is what an installer wants anyway.
             let note = format!(
-                "v{latest} is a new major release. thurbox does not cross a major \
-                 version automatically — run `thurbox-cli update --force` to take \
+                "v{latest} is a new major release. talos does not cross a major \
+                 version automatically — run `talos-cli update --force` to take \
                  it, or reinstall pinned to v{current} to stay where you are."
             );
             CommandOutput::new(
@@ -98,7 +98,7 @@ fn run_with(args: UpdateArgs, enabled: bool) -> CommandOutput {
                     "major_upgrade": true,
                     "summary": note,
                 }),
-                format!("thurbox {current} (latest: {latest})\n{note}"),
+                format!("talos {current} (latest: {latest})\n{note}"),
             )
         }
         Ok(crate::agent::self_update::UpdateOutcome::SkippedDevBuild { current }) => {
@@ -110,7 +110,7 @@ fn run_with(args: UpdateArgs, enabled: bool) -> CommandOutput {
                     "summary": "Development build — skipped. Use --force to update anyway.",
                 }),
                 format!(
-                "thurbox {current}\nDevelopment build — skipped (use --force to update anyway)."
+                "talos {current}\nDevelopment build — skipped (use --force to update anyway)."
             ),
             )
         }
@@ -121,7 +121,7 @@ fn run_with(args: UpdateArgs, enabled: bool) -> CommandOutput {
                 "update_enabled": true,
                 "error": e,
             }),
-            format!("thurbox {current}\nUpdate failed: {e}"),
+            format!("talos {current}\nUpdate failed: {e}"),
             format!("update failed: {e}"),
         ),
     }

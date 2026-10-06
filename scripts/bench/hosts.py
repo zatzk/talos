@@ -2,7 +2,7 @@
 
 Each adapter creates sessions the way that host's own documentation says to do
 it headlessly, and nothing cleverer: ``tmux new-window``, Herdr's ``tab create``
-plus ``pane run``, ``thurbox-cli session create --command``. The scenarios only
+plus ``pane run``, ``talos-cli session create --command``. The scenarios only
 ever talk to this interface, so a number in the report is never one host's
 special path against another's general one.
 
@@ -212,7 +212,7 @@ class Tmux(Host):
 
 HERDR_CONFIG = f"""\
 # Hermetic benchmark config. `onboarding = false` is what finishing the
-# first-run welcome writes, answered here for the same reason thurbox's v2
+# first-run welcome writes, answered here for the same reason talos's v2
 # question is. The headless size matches the size tmux sessions are created at.
 # No network. Everything else default.
 onboarding = false
@@ -342,20 +342,20 @@ class Herdr(Host):
         return {"herdr": self.herdr("--version").stdout.strip()}
 
 
-# --- thurbox -------------------------------------------------------------------
+# --- talos -------------------------------------------------------------------
 
 
-THURBOX_SETTINGS = """\
+TALOS_SETTINGS = """\
 # Hermetic benchmark config: the two switches that reach the network are off.
-# Everything else is thurbox's default.
+# Everything else is talos's default.
 [features]
 version_check = false
 auto_update = false
 """
 
 
-class Thurbox(Host):
-    name = "thurbox"
+class Talos(Host):
+    name = "talos"
     # Ctrl+Q, the kernel's reserved quit: the interface exits and tmux keeps
     # the sessions.
     detach_keys = b"\x11"
@@ -363,24 +363,24 @@ class Thurbox(Host):
     def __init__(self, sandbox, tools):
         super().__init__(sandbox, tools)
         env = sandbox.env
-        env["THURBOX_CONFIG_DIR"] = os.path.join(env["XDG_CONFIG_HOME"], "thurbox")
-        env["THURBOX_DATA_DIR"] = os.path.join(env["XDG_DATA_HOME"], "thurbox")
+        env["TALOS_CONFIG_DIR"] = os.path.join(env["XDG_CONFIG_HOME"], "talos")
+        env["TALOS_DATA_DIR"] = os.path.join(env["XDG_DATA_HOME"], "talos")
         # Named outright, like scripts/dev/lib/sandbox-env.sh does, so teardown
         # can find it by name.
-        env["THURBOX_SOCKET"] = "bench-thurbox"
-        os.makedirs(env["THURBOX_CONFIG_DIR"], exist_ok=True)
-        os.makedirs(env["THURBOX_DATA_DIR"], exist_ok=True)
-        with open(os.path.join(env["THURBOX_CONFIG_DIR"], "settings.toml"), "w") as f:
-            f.write(THURBOX_SETTINGS)
-        self.cli = tools["thurbox-cli"]
-        self.tui = tools["thurbox"]
-        self.tmux_base = [tools["tmux"], "-L", "bench-thurbox"]
+        env["TALOS_SOCKET"] = "bench-talos"
+        os.makedirs(env["TALOS_CONFIG_DIR"], exist_ok=True)
+        os.makedirs(env["TALOS_DATA_DIR"], exist_ok=True)
+        with open(os.path.join(env["TALOS_CONFIG_DIR"], "settings.toml"), "w") as f:
+            f.write(TALOS_SETTINGS)
+        self.cli = tools["talos-cli"]
+        self.tui = tools["talos"]
+        self.tmux_base = [tools["tmux"], "-L", "bench-talos"]
         # The one-time "this is the v2 interface" question a profile is asked on
         # its first launch. A returning user never sees it, so it is answered
         # here rather than timed.
-        self.thurbox("config", "accept-interface")
+        self.talos("config", "accept-interface")
 
-    def thurbox(self, *args, check=True):
+    def talos(self, *args, check=True):
         return self.sb.run([self.cli] + list(args), check=check)
 
     def create(self, name):
@@ -389,7 +389,7 @@ class Thurbox(Host):
         args += ["--command", agent[0]]
         for a in agent[1:]:
             args += ["--arg", a]
-        self.thurbox(*args)
+        self.talos(*args)
         self.names.append(name)
 
     def server_pids(self):
@@ -405,18 +405,18 @@ class Thurbox(Host):
 
     def capture(self, name, lines):
         n = str(lines if lines is not None else 10_000_000)
-        return self.thurbox("session", "capture", name, "--lines", n, "--text").stdout
+        return self.talos("session", "capture", name, "--lines", n, "--text").stdout
 
     def teardown(self):
         self._kill_tmux_server(self.tmux_base)
 
     def recover(self):
-        # What brings a thurbox session back after its tmux server died is the
+        # What brings a talos session back after its tmux server died is the
         # interface, which respawns every row it surveys without a pane.
         return "client"
 
     def layout_after_restart(self):
-        out = self.thurbox("session", "list", "--json", check=False)
+        out = self.talos("session", "list", "--json", check=False)
         if out.returncode != 0:
             return {"listed": 0}
         rows = json.loads(out.stdout)
@@ -425,8 +425,8 @@ class Thurbox(Host):
 
     def versions(self):
         # Only the version and schema: the rest of the answer is paths.
-        out = json.loads(self.thurbox("version", "--json").stdout)
-        return {"thurbox": f"{out['version']} (schema v{out['schema_version']})"}
+        out = json.loads(self.talos("version", "--json").stdout)
+        return {"talos": f"{out['version']} (schema v{out['schema_version']})"}
 
 
-HOSTS = {"tmux": Tmux, "herdr": Herdr, "thurbox": Thurbox}
+HOSTS = {"tmux": Tmux, "herdr": Herdr, "talos": Talos}

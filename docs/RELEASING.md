@@ -1,20 +1,20 @@
 # Releasing
 
 Releases are automated (`cd.yml`, driven by cocogitto) and the mechanics are in
-the `thurbox-release` skill. This file is for the part automation cannot check: **what a release
+the `talos-release` skill. This file is for the part automation cannot check: **what a release
 may and may not change about the artifacts**, because most users never read
 release notes — `[features] auto_update` defaults to `true`, so the TUI replaces
 its own binaries on startup.
 
 ## The rule that matters
 
-> **Never remove `thurbox` or `thurbox-cli` from a release archive.**
+> **Never remove `talos` or `talos-cli` from a release archive.**
 
 The updater in the *already installed* binary decides what to install, and it
 hard-fails on a known binary that is missing from the tarball:
 
     // src/agent/self_update.rs
-    const BINARIES: [&str; 2] = ["thurbox", "thurbox-cli"];
+    const BINARIES: [&str; 2] = ["talos", "talos-cli"];
     // …
     if !src.exists() {
         return Err(format!("release tarball is missing `{name}`"));
@@ -23,7 +23,7 @@ hard-fails on a known binary that is missing from the tarball:
 `run_auto_update` is best-effort — "failures are logged and swallowed" — so the
 symptom is not an error anybody sees. It is **auto-update silently ceasing to
 work, permanently, on every install already out there**, with the only trace in
-`thurbox.log`. There is no way to push a fix to a client whose updater has
+`talos.log`. There is no way to push a fix to a client whose updater has
 stopped running, so this mistake cannot be corrected by a later release.
 
 Renaming what a binary *does* is fine. Renaming or dropping the file is not.
@@ -49,12 +49,12 @@ expect a new tool to reach the existing population.
 
 ## v1 is a branch, not a binary
 
-`thurbox` runs the plugin kernel; `src/app` and `src/ui` are gone. v1 is
+`talos` runs the plugin kernel; `src/app` and `src/ui` are gone. v1 is
 unsupported and its code stays on the **`v1.x`** branch. Its last patches were
 released by dispatching `cd.yml` from that ref with an explicit `version` (e.g. `1.8.7`) — `cog bump
 --auto` computes from tags and would try to move the 2.x line instead.
 
-The archive still contains exactly `thurbox` and `thurbox-cli`, which is what the
+The archive still contains exactly `talos` and `talos-cli`, which is what the
 rule at the top of this file requires. The kernel inherited the *name*; nothing was
 added or removed, so no installed updater notices anything but a new version.
 
@@ -76,7 +76,7 @@ It is taken in one `DELETE … RETURNING`, so it acts once.
 
 `agent::version_check::crosses_major` stops `perform_update` installing a release
 whose major is higher than the running binary's; it is reported instead
-(`UpdateOutcome::SkippedMajor`, `thurbox-cli update --force` to take it anyway).
+(`UpdateOutcome::SkippedMajor`, `talos-cli update --force` to take it anyway).
 This is what makes "stay on 1.x" a property of the binary rather than a setting
 the user has to remember.
 
@@ -107,7 +107,7 @@ compares the version being cut against every existing tag and, when it is behind
 the highest, publishes the GitHub Release with `make_latest: false` and skips
 Homebrew, AUR, Chocolatey and winget. The tag, the four-platform build and the
 release assets are unchanged — what is withheld is every pointer that means "the
-current thurbox" rather than a version. Without it a 1.8.x cut would take the
+current talos" rather than a version. Without it a 1.8.x cut would take the
 `releases/latest` pointer the installers resolve and rewrite the tap and the
 PKGBUILDs to it, walking 2.x users backwards. The test is the version, not the
 ref, so a hotfix from any branch that really is the newest still ships
@@ -129,15 +129,15 @@ ref already checked out, but from `v1.x` it tries to push that branch's tip onto
 `flake.nix` builds whatever ref it is pointed at, and nothing in `cd.yml`
 touches it. A flake cannot read git tags, so it cannot know which release a
 commit is. It takes the base from `Cargo.toml`, drops the `-dev`, and adds the
-commit's date: `0.0.0-unstable-2026-09-22`. `thurbox-cli version` also shows
+commit's date: `0.0.0-unstable-2026-09-22`. `talos-cli version` also shows
 the short hash.
 
 That string works because of two separate checks. `build.rs` turns on the
 `dev_build` cfg only for a version containing `-dev`, and that cfg moves a
-binary onto the `thurbox-dev` socket and data directory. A Nix install has to
+binary onto the `talos-dev` socket and data directory. A Nix install has to
 share the release's sessions, so it can't carry `-dev`. The runtime
 `is_dev_build()` also treats a `0.0.0` version as unreleased, and that keeps
-auto-update and `thurbox-cli update` from trying to replace a binary in the
+auto-update and `talos-cli update` from trying to replace a binary in the
 read-only Nix store. Anyone who wants a release pins the flake input to its
 tag. The binary still reports `0.0.0-unstable-…`, dated to the tagged commit. Being unreleased has one
 more effect: `official_ref()` fetches official extensions from `main` rather
@@ -145,11 +145,11 @@ than from a tag, which is the same thing a source build does.
 
 ## Checklist for a release that changes artifacts
 
-- [ ] `thurbox` and `thurbox-cli` are still in **both** archive steps of `cd.yml`
+- [ ] `talos` and `talos-cli` are still in **both** archive steps of `cd.yml`
       (the `tar czf` line and the `Compress-Archive` line).
 - [ ] A newly added binary is in both archive steps *and* in every channel:
-      `packaging/homebrew/Formula/thurbox.rb`, `packaging/aur/thurbox/PKGBUILD`,
-      `packaging/aur/thurbox-bin/PKGBUILD`,
+      `packaging/homebrew/Formula/talos.rb`, `packaging/aur/talos/PKGBUILD`,
+      `packaging/aur/talos-bin/PKGBUILD`,
       `packaging/winget/manifests/*installer.yaml`, `scripts/install.sh`,
       `scripts/install.ps1`, and `nix/package.nix` (`cargoBuildFlags` and the
       wrapper loop).

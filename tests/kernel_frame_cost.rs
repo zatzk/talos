@@ -7,9 +7,9 @@
 //! no error anywhere. That failure is invisible to every other test in the
 //! suite, which is why it gets its own file.
 
-use thurbox::kernel::snapshot::SnapshotStore;
-use thurbox::kernel::theme::Themes;
-use thurbox::storage::Database;
+use talos::kernel::snapshot::SnapshotStore;
+use talos::kernel::theme::Themes;
+use talos::storage::Database;
 
 #[test]
 fn a_snapshot_refresh_moves_the_version() {
@@ -17,7 +17,7 @@ fn a_snapshot_refresh_moves_the_version() {
     // built last time. If a refresh left it still, every such reader would keep
     // showing what the database said before.
     let db = Database::open_in_memory().expect("db");
-    let mut store = SnapshotStore::with_database(db, &thurbox::backend::wiring::configured().0);
+    let mut store = SnapshotStore::with_database(db, &talos::backend::wiring::configured().0);
 
     let before = store.version();
     store.refresh();
@@ -34,7 +34,7 @@ fn every_refresh_moves_it_again() {
     // that finds identical rows has changed something a plugin reads. A
     // version that only moved on *row* changes would freeze that label.
     let db = Database::open_in_memory().expect("db");
-    let mut store = SnapshotStore::with_database(db, &thurbox::backend::wiring::configured().0);
+    let mut store = SnapshotStore::with_database(db, &talos::backend::wiring::configured().0);
 
     let mut seen = store.version();
     for _ in 0..5 {
@@ -50,7 +50,7 @@ fn reading_the_snapshot_leaves_the_version_alone() {
     // The other half, and the one that makes gating worth anything: if merely
     // looking moved the signal, nothing could ever be reused.
     let db = Database::open_in_memory().expect("db");
-    let mut store = SnapshotStore::with_database(db, &thurbox::backend::wiring::configured().0);
+    let mut store = SnapshotStore::with_database(db, &talos::backend::wiring::configured().0);
     store.refresh();
 
     let settled = store.version();
@@ -72,7 +72,7 @@ fn quiescence_moves_the_version_only_when_it_re_derives_something() {
     // stuck-`working` fallback would invalidate every cached tree ~40 times a
     // second for nothing.
     let db = Database::open_in_memory().expect("db");
-    let mut store = SnapshotStore::with_database(db, &thurbox::backend::wiring::configured().0);
+    let mut store = SnapshotStore::with_database(db, &talos::backend::wiring::configured().0);
     store.refresh();
 
     let settled = store.version();
@@ -133,9 +133,9 @@ fn a_theme_refresh_never_restarts_the_version() {
 
 // --- the gated publish ------------------------------------------------------
 
-use thurbox::kernel::host::{Epoch, LuaHost, Published};
-use thurbox::kernel::registry::Registry;
-use thurbox::kernel::snapshot::{SessionRow, Snapshot};
+use talos::kernel::host::{Epoch, LuaHost, Published};
+use talos::kernel::registry::Registry;
+use talos::kernel::snapshot::{SessionRow, Snapshot};
 
 fn interface() -> (tempfile::TempDir, LuaHost) {
     // A pane that reports what it can see of the published tables, so a stale
@@ -147,8 +147,8 @@ fn interface() -> (tempfile::TempDir, LuaHost) {
         plugins.join("10_probe.lua"),
         r#"return { name = "probe", slot = "center", render = function()
              local names = {}
-             for _, s in ipairs(thurbox.sessions or {}) do names[#names + 1] = s.name end
-             return { text = table.concat(names, ",") .. "|" .. tostring(thurbox.theme.name) }
+             for _, s in ipairs(talos.sessions or {}) do names[#names + 1] = s.name end
+             return { text = table.concat(names, ",") .. "|" .. tostring(talos.theme.name) }
            end }"#,
     )
     .expect("write");
@@ -162,7 +162,7 @@ fn row(id: &str, name: &str) -> SessionRow {
         id: id.into(),
         name: name.into(),
         agent: "claude".into(),
-        status: thurbox::session::SessionState::Idle,
+        status: talos::session::SessionState::Idle,
         cwd: None,
         repo: None,
         repos: Vec::new(),
@@ -194,7 +194,7 @@ fn publish_at_with(
     epoch: Epoch,
     snapshot: &Snapshot,
     themes: &Themes,
-    inflight: &[thurbox::kernel::command::InFlight],
+    inflight: &[talos::kernel::command::InFlight],
 ) {
     publish_at_printing(host, epoch, snapshot, themes, inflight, &Default::default());
 }
@@ -204,14 +204,14 @@ fn publish_at_printing(
     epoch: Epoch,
     snapshot: &Snapshot,
     themes: &Themes,
-    inflight: &[thurbox::kernel::command::InFlight],
+    inflight: &[talos::kernel::command::InFlight],
     printing: &std::collections::HashSet<String>,
 ) {
     let mut registry = Registry::default();
     let (bindings, settings) = host.declarations();
     registry.declare(bindings, settings);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     host.publish(&Published {
         epoch,
         snapshot,
@@ -244,7 +244,7 @@ fn probe(host: &LuaHost) -> String {
     let node = host
         .render(
             index,
-            thurbox::kernel::host::RenderContext {
+            talos::kernel::host::RenderContext {
                 width: 80,
                 height: 4,
                 focused: false,
@@ -413,7 +413,7 @@ fn two_panes() -> (tempfile::TempDir, LuaHost) {
     std::fs::create_dir_all(&plugins).expect("mkdir");
     let body = r#"render = function()
              local names = {}
-             for _, s in ipairs(thurbox.sessions or {}) do names[#names + 1] = s.name end
+             for _, s in ipairs(talos.sessions or {}) do names[#names + 1] = s.name end
              return { text = table.concat(names, ",") }
            end }"#;
     std::fs::write(
@@ -437,7 +437,7 @@ fn tree_of(host: &LuaHost, name: &str) -> String {
         "{:?}",
         host.render(
             index,
-            thurbox::kernel::host::RenderContext {
+            talos::kernel::host::RenderContext {
                 width: 40,
                 height: 4,
                 focused: false,
@@ -532,7 +532,7 @@ fn a_moved_epoch_re_renders_a_pure_pane() {
 fn accepting_a_command_must_move_the_epoch_to_reach_a_pure_pane() {
     // The session list drops a row the moment its `delete` is accepted, so that
     // a delete does not sit there wearing a tag until the worker is done. It
-    // reads that from `thurbox.commands` — and it is a PURE pane, so an accepted
+    // reads that from `talos.commands` — and it is a PURE pane, so an accepted
     // command that leaves every published signal standing is served the tree
     // built before the command existed. The row then survives until whatever
     // moves a signal next: the animation clock 125ms later, or the completion.
@@ -554,7 +554,7 @@ fn accepting_a_command_must_move_the_epoch_to_reach_a_pure_pane() {
             "{:?}",
             host.render(
                 sessions,
-                thurbox::kernel::host::RenderContext {
+                talos::kernel::host::RenderContext {
                     width: 40,
                     height: 10,
                     focused: true,
@@ -585,13 +585,13 @@ fn accepting_a_command_must_move_the_epoch_to_reach_a_pure_pane() {
         "the session list never settled, so this test cannot observe the cache"
     );
 
-    let inflight = vec![thurbox::kernel::command::InFlight {
+    let inflight = vec![talos::kernel::command::InFlight {
         id: 1,
         kind: "delete",
         session: "aaa".to_string(),
         subject: None,
         host: None,
-        phase: thurbox::kernel::command::Phase::Running,
+        phase: talos::kernel::command::Phase::Running,
         error: None,
     }];
 
@@ -628,7 +628,7 @@ fn a_different_rect_or_focus_re_renders_a_pure_pane() {
     let at = |width: u16, focused: bool| {
         host.render(
             index,
-            thurbox::kernel::host::RenderContext {
+            talos::kernel::host::RenderContext {
                 width,
                 height: 4,
                 focused,
@@ -706,7 +706,7 @@ fn writing_the_same_value_to_the_store_is_not_a_change() {
         r#"return { name = "pure", slot = "left", pure = true,
              render = function()
                local names = {}
-               for _, s in ipairs(thurbox.sessions or {}) do names[#names + 1] = s.name end
+               for _, s in ipairs(talos.sessions or {}) do names[#names + 1] = s.name end
                return { text = table.concat(names, ",") }
              end }"#,
     )
@@ -774,7 +774,7 @@ fn a_still_animation_clock_lets_a_pure_pane_settle() {
     let at = |elapsed: f64| {
         host.render(
             index,
-            thurbox::kernel::host::RenderContext {
+            talos::kernel::host::RenderContext {
                 width: 40,
                 height: 4,
                 focused: false,
@@ -837,7 +837,7 @@ fn a_re_stamped_snapshot_does_not_move_the_version_within_a_second() {
     // 2.5 times a second, which capped how long any pure pane could be cached
     // and was the dominant reason an idle interface kept re-rendering.
     let db = Database::open_in_memory().expect("db");
-    let mut store = SnapshotStore::with_database(db, &thurbox::backend::wiring::configured().0);
+    let mut store = SnapshotStore::with_database(db, &talos::backend::wiring::configured().0);
     store.refresh();
 
     let settled = store.version();
@@ -863,7 +863,7 @@ fn the_published_instant_is_whole_seconds() {
     // field means "when these rows were read, to the second", and every reader
     // of it floors to seconds anyway.
     let db = Database::open_in_memory().expect("db");
-    let mut store = SnapshotStore::with_database(db, &thurbox::backend::wiring::configured().0);
+    let mut store = SnapshotStore::with_database(db, &talos::backend::wiring::configured().0);
     store.refresh();
     assert_eq!(
         store.current().taken_at_ms % 1000,
@@ -917,8 +917,8 @@ fn asking_terminals_for_metadata_is_not_itself_a_change() {
     // frame. If merely asking counted as a change it would move the version ~40
     // times a second and invalidate every cached tree — the exact failure that
     // made the `store` write comparison worth 27%.
-    let mut terminals = thurbox::kernel::terminal::Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+    let mut terminals = talos::kernel::terminal::Terminals::with_registry(std::sync::Arc::new(
+        talos::backend::wiring::configured().0,
     ));
 
     let settled = terminals.meta_version();
@@ -938,8 +938,8 @@ fn reading_attach_failures_is_not_itself_a_change() {
     // map on every publish, so — like `meta` above — the read must not be
     // mistaken for a write. (`failures` takes `&self` today, so this also
     // guards the day someone needs it to sync something first — as `meta` does.)
-    let terminals = thurbox::kernel::terminal::Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+    let terminals = talos::kernel::terminal::Terminals::with_registry(std::sync::Arc::new(
+        talos::backend::wiring::configured().0,
     ));
     let settled = terminals.failed_version();
 
@@ -994,7 +994,7 @@ fn render_at(host: &LuaHost, name: &str, elapsed: f64) -> String {
         "{:?}",
         host.render(
             index,
-            thurbox::kernel::host::RenderContext {
+            talos::kernel::host::RenderContext {
                 width: 40,
                 height: 4,
                 focused: false,
@@ -1185,7 +1185,7 @@ fn a_pane_that_starts_reading_the_clock_is_keyed_on_it_from_then_on() {
 #[test]
 fn the_bundled_centre_pane_is_not_re_rendered_by_the_clock() {
     // Against the real interface, because the saving is only real if the panes
-    // thurbox actually ships fall on the right side of it — and both sides are
+    // talos actually ships fall on the right side of it — and both sides are
     // asserted below. The session list draws a spinner and must stay
     // clock-keyed; the agent pane draws a surface and must not.
     let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui");

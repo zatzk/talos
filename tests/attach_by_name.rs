@@ -14,9 +14,9 @@
 
 use std::process::Command;
 
-use thurbox::kernel::snapshot::{SessionRow, Snapshot};
-use thurbox::kernel::terminal::Terminals;
-use thurbox::session::SessionState;
+use talos::kernel::snapshot::{SessionRow, Snapshot};
+use talos::kernel::terminal::Terminals;
+use talos::session::SessionState;
 
 /// The guard every tmux server in this file is reaped by — see its own doc.
 #[path = "support/tmux_server.rs"]
@@ -25,7 +25,7 @@ mod tmux_server;
 use tmux_server::TmuxServer;
 
 /// A socket of this test's own, so it can never see — or kill — a real session.
-const SOCKET: &str = "thurbox-attach-test";
+const SOCKET: &str = "talos-attach-test";
 
 fn have_tmux() -> bool {
     Command::new("tmux")
@@ -45,9 +45,9 @@ fn tmux(args: &[&str]) -> std::process::Output {
 }
 
 /// The tmux session name the local backend groups its windows under. Mirrors
-/// `backend::tmux_compat::server::TMUX_SESSION`, which is private — and is `thurbox-dev` here,
+/// `backend::tmux_compat::server::TMUX_SESSION`, which is private — and is `talos-dev` here,
 /// because a test build carries the same `dev_build` marker a dev binary does.
-const SESSION: &str = "thurbox-dev";
+const SESSION: &str = "talos-dev";
 
 fn row(name: &str) -> SessionRow {
     SessionRow {
@@ -107,7 +107,7 @@ async fn a_session_with_no_pane_id_is_found_by_its_window_name() {
     ]);
 
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let rows = snapshot(vec![row("demo")]);
     // Attaching runs on a worker, so it lands on a later sync rather than this
@@ -151,7 +151,7 @@ async fn a_window_that_appears_later_is_still_picked_up() {
     tmux(&["new-session", "-d", "-s", SESSION, "-n", "bash", "sh"]);
 
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let rows = snapshot(vec![row("demo")]);
     terminals.sync(&rows, 24, 80);
@@ -192,7 +192,7 @@ fn a_remote_row_is_not_resolved_by_name() {
     // be fixed by discovery — and readying a remote backend to try would put an
     // ssh connect on the render thread.
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let mut remote = row("demo");
     remote.backend = "ssh:nowhere".into();
@@ -254,7 +254,7 @@ async fn two_sessions_sharing_a_name_both_attach_by_their_pane_ids() {
     let rows = snapshot(vec![first, second]);
 
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
     let mut both = false;
@@ -297,7 +297,7 @@ async fn two_windows_of_the_same_name_are_refused_rather_than_guessed() {
     }
 
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     terminals.sync(&snapshot(vec![row("demo")]), 24, 80);
     let attached = terminals.is_attached("11111111-1111-1111-1111-111111111111");
@@ -336,7 +336,7 @@ async fn a_stale_pane_id_gives_way_to_the_window_that_is_really_there() {
     ]);
 
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let mut stale = row("demo");
     stale.backend_id = Some("%999".into());

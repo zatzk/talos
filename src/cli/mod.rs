@@ -1,4 +1,4 @@
-//! Command-line interface dispatcher for the `thurbox-cli` binary.
+//! Command-line interface dispatcher for the `talos-cli` binary.
 //!
 //! Output is human-readable in a terminal and TOON down a pipe, because what
 //! is usually on the other end of that pipe is an agent. Force a format with
@@ -139,7 +139,7 @@ impl std::fmt::Display for CommandError {
     }
 }
 
-/// Drive thurbox's sessions, tasks, automations and interface without the TUI.
+/// Drive talos's sessions, tasks, automations and interface without the TUI.
 ///
 /// Run with no subcommand for the current state of this machine's sessions.
 // `version` is spelled out rather than left bare: clap's implicit form reads
@@ -149,7 +149,7 @@ impl std::fmt::Display for CommandError {
 // `version_check::current_version`.
 #[derive(Parser, Debug)]
 #[command(
-    name = "thurbox-cli",
+    name = "talos-cli",
     version = crate::agent::version_check::current_version(),
     about,
     after_help = EXAMPLES
@@ -200,15 +200,15 @@ pub struct Cli {
 /// guess the shape of an invocation.
 const EXAMPLES: &str = "\
 Examples:
-  thurbox-cli                                  live state: sessions, inbox, tasks
-  thurbox-cli session list                     every session, with status and branch
-  thurbox-cli session create --name fix-ci --repo-path . --worktree-branch fix/ci
-  thurbox-cli session capture <id> --lines 50  what an agent's pane is showing
-  thurbox-cli ui instances --json            running local interface IDs
-  thurbox-cli agent launch-args claude          what to run so its hooks report
-  thurbox-cli message send --to <id> --kind result --body 'done'
-  thurbox-cli session list --json | jq         full records for a script
-  thurbox-cli doctor                           is the multiplexer/agent installed?
+  talos-cli                                  live state: sessions, inbox, tasks
+  talos-cli session list                     every session, with status and branch
+  talos-cli session create --name fix-ci --repo-path . --worktree-branch fix/ci
+  talos-cli session capture <id> --lines 50  what an agent's pane is showing
+  talos-cli ui instances --json            running local interface IDs
+  talos-cli agent launch-args claude          what to run so its hooks report
+  talos-cli message send --to <id> --kind result --body 'done'
+  talos-cli session list --json | jq         full records for a script
+  talos-cli doctor                           is the multiplexer/agent installed?
 
 Output is human-readable in a terminal and TOON when piped; --json restores the
 full JSON record on any command.";
@@ -220,7 +220,7 @@ pub enum Command {
         #[command(subcommand)]
         action: editor::Action,
     },
-    /// The agent registry: how thurbox would launch a registered agent.
+    /// The agent registry: how talos would launch a registered agent.
     Agent {
         #[command(subcommand)]
         action: agents::Action,
@@ -265,12 +265,12 @@ pub enum Command {
     Update(update::UpdateArgs),
     /// Diagnose OS desktop notifications; `--test` fires a sample.
     Notify(notify::NotifyArgs),
-    /// Print the perf snapshot a running TUI publishes (THURBOX_PERF_LOG or
+    /// Print the perf snapshot a running TUI publishes (TALOS_PERF_LOG or
     /// the perf HUD must be active in that TUI); `--plugins` for the per-pane
     /// table.
     Perf(perf::PerfArgs),
     /// Stream the session event log — one line per transition, so nothing
-    /// driving thurbox has to poll.
+    /// driving talos has to poll.
     ///
     /// Every writer appends its event in the same transaction as the change, so
     /// two transitions in the same instant are two events. Each carries a
@@ -278,7 +278,7 @@ pub enum Command {
     /// `from_state` → `to_state`, and the gating fields `session get`
     /// publishes. `--json` for one JSON object per line.
     Watch(watch::WatchArgs),
-    /// What thurbox runs besides sessions (the automation heartbeat keeper).
+    /// What talos runs besides sessions (the automation heartbeat keeper).
     Runtime {
         #[command(subcommand)]
         action: runtime::Action,
@@ -371,7 +371,7 @@ pub enum Outcome {
 /// The backend registry an invocation drives sessions through: built by the
 /// process's composition root, once, and only when a command first needs it.
 ///
-/// Most invocations never touch a backend — every agent hook runs `thurbox-cli
+/// Most invocations never touch a backend — every agent hook runs `talos-cli
 /// session signal` — while building the registry reads `hosts.toml` and, on
 /// Windows and inside WSL, runs `wsl.exe` to discover distros. So the root
 /// hands down how to build it, and the commands that act on a session ask.
@@ -543,7 +543,7 @@ fn dispatch(
         Command::Ui { instance, action } => ui::run(instance, action)?,
         Command::Schema { instance } => ui::schema(instance)?,
         // Reads the machine, not the database: what is installed is not
-        // something thurbox recorded.
+        // something talos recorded.
         Command::Doctor => doctor::run()?,
     })
 }

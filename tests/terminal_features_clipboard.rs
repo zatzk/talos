@@ -1,12 +1,12 @@
-//! Configuring thurbox's tmux server leaves exactly one `*:clipboard` entry in
+//! Configuring talos's tmux server leaves exactly one `*:clipboard` entry in
 //! `terminal-features`, however often it runs (issue #1278).
 //!
 //! The session config is applied on every spawn and every startup, and the
-//! server outlives thurbox, so an unconditional `set -as` grew the server-wide
+//! server outlives talos, so an unconditional `set -as` grew the server-wide
 //! list by one entry per run, without bound.
 //!
 //! Driven through the real headless spawn path on a throwaway socket, because
-//! what is under test is what tmux ends up holding, not the string thurbox
+//! what is under test is what tmux ends up holding, not the string talos
 //! would send.
 //!
 //! Skipped when tmux is absent: a missing multiplexer is an environment fact.
@@ -21,7 +21,7 @@ mod tmux_server;
 
 use tmux_server::TmuxServer;
 
-const SOCKET: &str = "thurbox-terminal-features-e2e";
+const SOCKET: &str = "talos-terminal-features-e2e";
 
 fn have_tmux() -> bool {
     Command::new("tmux")
@@ -44,8 +44,8 @@ fn stage(server: &TmuxServer, args: &[&str]) {
     );
 }
 
-/// A server started the way a pre-fix thurbox or the operator's own config
-/// would leave it, before thurbox touches it.
+/// A server started the way a pre-fix talos or the operator's own config
+/// would leave it, before talos touches it.
 fn start_bare(server: &TmuxServer) {
     stage(
         server,
@@ -68,11 +68,11 @@ fn clipboard_entries(features: &[String]) -> usize {
 
 fn spawn(n: usize, dir: &std::path::Path) {
     let id = format!("11111111-1111-4111-8111-{n:012}");
-    let spawned = thurbox::backend::SessionBackend::create_window(
-        &thurbox::backend::tmux::TmuxBackend::new(),
-        &thurbox::backend::WindowSpec {
-            owner: thurbox::backend::Owner::new(&id, &format!("features-{n}")),
-            role: thurbox::backend::WindowRole::Agent,
+    let spawned = talos::backend::SessionBackend::create_window(
+        &talos::backend::tmux::TmuxBackend::new(),
+        &talos::backend::WindowSpec {
+            owner: talos::backend::Owner::new(&id, &format!("features-{n}")),
+            role: talos::backend::WindowRole::Agent,
             command: "sh",
             args: &["-c".to_string(), "sleep 300".to_string()],
             cwd: Some(dir),
@@ -94,7 +94,7 @@ async fn repeated_setup_adds_clipboard_once_and_keeps_every_other_feature() {
 
     let dir = tempfile::tempdir().expect("tempdir");
     let server = TmuxServer::pin(SOCKET);
-    thurbox::paths::set_test_dir(dir.path());
+    talos::paths::set_test_dir(dir.path());
 
     spawn(1, dir.path());
     // A feature the operator added by hand, which a fix must not disturb.
@@ -130,8 +130,8 @@ async fn repeated_setup_adds_clipboard_once_and_keeps_every_other_feature() {
     );
 }
 
-/// The slot thurbox writes is one a user's `~/.tmux.conf` — which thurbox's
-/// server reads — could have claimed too. Theirs wins: thurbox's entry is only
+/// The slot talos writes is one a user's `~/.tmux.conf` — which talos's
+/// server reads — could have claimed too. Theirs wins: talos's entry is only
 /// written into an empty slot.
 #[tokio::test(flavor = "multi_thread")]
 async fn a_slot_the_user_already_set_is_left_alone() {
@@ -142,7 +142,7 @@ async fn a_slot_the_user_already_set_is_left_alone() {
 
     let dir = tempfile::tempdir().expect("tempdir");
     let server = TmuxServer::pin(SOCKET);
-    thurbox::paths::set_test_dir(dir.path());
+    talos::paths::set_test_dir(dir.path());
 
     start_bare(&server);
     stage(
@@ -162,9 +162,9 @@ async fn a_slot_the_user_already_set_is_left_alone() {
     assert_eq!(terminal_features(&server), before);
 }
 
-/// A server a pre-fix thurbox already filled with duplicates is left as found:
+/// A server a pre-fix talos already filled with duplicates is left as found:
 /// the entries are identical and harmless, and the list is shared server state
-/// thurbox does not own — so it stops growing rather than being rewritten.
+/// talos does not own — so it stops growing rather than being rewritten.
 #[tokio::test(flavor = "multi_thread")]
 async fn existing_duplicates_stop_growing_and_are_not_removed() {
     if !have_tmux() {
@@ -174,7 +174,7 @@ async fn existing_duplicates_stop_growing_and_are_not_removed() {
 
     let dir = tempfile::tempdir().expect("tempdir");
     let server = TmuxServer::pin(SOCKET);
-    thurbox::paths::set_test_dir(dir.path());
+    talos::paths::set_test_dir(dir.path());
 
     // One appended `*:clipboard` per pre-fix run.
     start_bare(&server);

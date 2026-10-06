@@ -1,4 +1,4 @@
-//! Self-update: download, verify, and replace the installed thurbox binaries.
+//! Self-update: download, verify, and replace the installed talos binaries.
 //!
 //! This is the auto-update feature (gated behind `[features] auto_update`, on
 //! by default for 1.0 — see [`crate::session::settings::FeatureFlags`]). It
@@ -9,7 +9,7 @@
 //!   release is downloaded + installed in place (atomic renames against the
 //!   install dir — the running process is untouched); the new version applies on
 //!   the next launch, and the result is surfaced as a status toast.
-//! - **CLI** — `thurbox-cli update` does the same on demand (`--force` bypasses
+//! - **CLI** — `talos-cli update` does the same on demand (`--force` bypasses
 //!   the up-to-date / dev-build guards).
 //!
 //! It reuses the version-check plumbing ([`fetch_latest_release`],
@@ -42,15 +42,15 @@ use crate::agent::version_check::{
     crosses_major, current_version, decide_update, fetch_latest_release,
 };
 
-/// GitHub release-download base for the thurbox repo (same repo as
+/// GitHub release-download base for the talos repo (same repo as
 /// `scripts/install.sh`); the per-release directory is `<base>/v{version}/`.
-const RELEASE_BASE: &str = "https://github.com/Thurbeen/thurbox/releases/download";
+const RELEASE_BASE: &str = "https://github.com/zatzk/talos/releases/download";
 
 /// The binaries shipped in a release archive, replaced in place on update.
 ///
 /// Stems, not file names: the archive and the install directory both spell them
 /// with the platform's executable suffix, which [`install_binaries`] appends.
-const BINARIES: [&str; 2] = ["thurbox", "thurbox-cli"];
+const BINARIES: [&str; 2] = ["talos", "talos-cli"];
 
 /// Outcome of an update attempt.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -122,7 +122,7 @@ pub struct FetchedArchive {
     /// The archive file, inside a scratch directory that is removed when this
     /// value drops.
     pub path: PathBuf,
-    /// The artifact's file name (`thurbox-v1.2.3-<target>.tar.gz` / `.zip`).
+    /// The artifact's file name (`talos-v1.2.3-<target>.tar.gz` / `.zip`).
     pub name: String,
     _scratch: ScratchDir,
 }
@@ -167,18 +167,18 @@ pub fn current_target() -> Result<&'static str, String> {
 
 /// Release tarball filename for `version` (no leading `v`) + `target`.
 fn tarball_name(version: &str, target: &str) -> String {
-    format!("thurbox-v{version}-{target}.tar.gz")
+    format!("talos-v{version}-{target}.tar.gz")
 }
 
 /// Release zip filename for `version` (no leading `v`) + `target` — the Windows
 /// artifact `cd.yml` builds with `Compress-Archive`.
 fn zip_name(version: &str, target: &str) -> String {
-    format!("thurbox-v{version}-{target}.zip")
+    format!("talos-v{version}-{target}.zip")
 }
 
 /// Release checksums filename for `version` (no leading `v`).
 fn checksums_name(version: &str) -> String {
-    format!("thurbox-v{version}-checksums.txt")
+    format!("talos-v{version}-checksums.txt")
 }
 
 /// The download URL of whichever archive [`archive_name`] picks for `target`.
@@ -272,7 +272,7 @@ fn verify_sha256(file: &Path, expected: &str) -> Result<(), String> {
 /// to have — `tar.exe` only arrived in Windows 10 1803, and `unzip` never did.
 /// `-LiteralPath` where `install.ps1` writes `-Path` because these are paths and
 /// not wildcards: a `[` in an install directory would otherwise be read as a
-/// character class. Progress is silenced because the child shares thurbox's
+/// character class. Progress is silenced because the child shares talos's
 /// console, and the startup update runs while the interface owns the screen:
 /// `Expand-Archive` would draw its progress bar over the frame, where `tar`
 /// prints nothing on success. Anything else is the release tarball and goes to
@@ -376,12 +376,12 @@ fn set_executable(_path: &Path) -> Result<(), String> {
 }
 
 /// Where to send someone whose install directory refused the replace. On
-/// Windows a refusal is as likely to be another thurbox holding the file as a
+/// Windows a refusal is as likely to be another talos holding the file as a
 /// permission problem, and only the reader can tell which, so the hint names
 /// both.
 #[cfg(windows)]
 const REINSTALL_HINT: &str =
-    "the binary may be in use — close thurbox and try again, or re-run install.ps1";
+    "the binary may be in use — close talos and try again, or re-run install.ps1";
 #[cfg(not(windows))]
 const REINSTALL_HINT: &str = "reinstall with scripts/install.sh";
 
@@ -406,20 +406,20 @@ fn commit_binary(staged: &Path, dest: &Path) -> Result<(), String> {
 ///
 /// **Why not a rename.** `std::fs::rename` is `MoveFileEx(REPLACE_EXISTING)`,
 /// which has to delete the destination, and Windows will not delete an image a
-/// process has mapped: replacing the binary thurbox is running from comes back
+/// process has mapped: replacing the binary talos is running from comes back
 /// *Access is denied*. `ReplaceFile` does not delete the destination — it
 /// renames it to the backup name, which a mapped image permits — so the swap
-/// succeeds while thurbox runs, and the running process keeps its old image
+/// succeeds while talos runs, and the running process keeps its old image
 /// just as it keeps its inode on Unix. Without a backup name `ReplaceFile` has
 /// to delete after all, and fails the same way the rename does.
 ///
 /// **What an interrupted replace leaves.** Download, verification and staging
 /// all happen before this, so an interruption anywhere up to here leaves the
-/// installed binary untouched. The swap is one system call: a thurbox killed,
+/// installed binary untouched. The swap is one system call: a talos killed,
 /// crashed or closed while it runs cannot stop the kernel halfway through, so
 /// `dest` names the old binary or the new one. The old image is kept in every
 /// case, which is also what would make a power loss inside the call recoverable
-/// by a rename rather than a reinstall. A second update while some thurbox is
+/// by a rename rather than a reinstall. A second update while some talos is
 /// still running from that backup is refused by `ReplaceFile` before it touches
 /// `dest`, and reported here as the failure it is.
 ///
@@ -470,8 +470,8 @@ fn replace_file_script(staged: &Path, dest: &Path, backup: &Path) -> String {
 /// `exe_suffix` is the platform's executable suffix appended to each
 /// [`BINARIES`] stem — `std::env::consts::EXE_SUFFIX`, passed in rather than
 /// read here so the Windows shape is reachable from a test on any platform.
-/// Windows spells the binaries `thurbox.exe` in both the zip and the install
-/// directory, and a suffix-blind version looked for a `thurbox` that is in
+/// Windows spells the binaries `talos.exe` in both the zip and the install
+/// directory, and a suffix-blind version looked for a `talos` that is in
 /// neither, reporting the archive as missing it (issue #1172).
 ///
 /// Returns the names actually replaced (binaries absent from either side are
@@ -495,11 +495,11 @@ fn install_binaries(
             return Err(format!("extracted `{name}` is empty"));
         }
         if !dest.exists() {
-            // e.g. thurbox-cli not co-located next to the running thurbox.
+            // e.g. talos-cli not co-located next to the running talos.
             skipped.push(name);
             continue;
         }
-        // The last update's backup, kept because a thurbox was running from it.
+        // The last update's backup, kept because a talos was running from it.
         // That one has normally exited by now; if it has not, the delete fails,
         // and `ReplaceFile` refuses the swap below and says why.
         #[cfg(windows)]
@@ -637,11 +637,11 @@ mod tests {
         );
         assert_eq!(
             archive_name("1.2.3", "x86_64-pc-windows-msvc"),
-            "thurbox-v1.2.3-x86_64-pc-windows-msvc.zip"
+            "talos-v1.2.3-x86_64-pc-windows-msvc.zip"
         );
         assert_eq!(
             archive_name("1.2.3", "x86_64-unknown-linux-musl"),
-            "thurbox-v1.2.3-x86_64-unknown-linux-musl.tar.gz"
+            "talos-v1.2.3-x86_64-unknown-linux-musl.tar.gz"
         );
     }
 
@@ -660,7 +660,7 @@ mod tests {
         ] {
             assert_eq!(
                 archive_name("1.2.3", target),
-                format!("thurbox-v1.2.3-{target}.zip"),
+                format!("talos-v1.2.3-{target}.zip"),
                 "{target} must ask for the zip"
             );
         }
@@ -700,9 +700,9 @@ mod tests {
     fn artifact_names_and_urls_match_install_sh() {
         assert_eq!(
             tarball_name("0.114.0", "x86_64-unknown-linux-musl"),
-            "thurbox-v0.114.0-x86_64-unknown-linux-musl.tar.gz"
+            "talos-v0.114.0-x86_64-unknown-linux-musl.tar.gz"
         );
-        assert_eq!(checksums_name("0.114.0"), "thurbox-v0.114.0-checksums.txt");
+        assert_eq!(checksums_name("0.114.0"), "talos-v0.114.0-checksums.txt");
         let url = archive_url("0.114.0", "aarch64-apple-darwin");
         assert!(url.starts_with(RELEASE_BASE), "got: {url}");
         assert!(url.contains("/v0.114.0/"), "got: {url}");
@@ -711,7 +711,7 @@ mod tests {
         // The URL follows the artifact, so Windows asks for the zip it is sent.
         let url = archive_url("0.114.0", "x86_64-pc-windows-msvc");
         assert!(
-            url.ends_with("/v0.114.0/thurbox-v0.114.0-x86_64-pc-windows-msvc.zip"),
+            url.ends_with("/v0.114.0/talos-v0.114.0-x86_64-pc-windows-msvc.zip"),
             "got: {url}"
         );
     }
@@ -724,12 +724,12 @@ mod tests {
     fn extractor_for_picks_expand_archive_for_a_zip() {
         let into = Path::new("/install/dir");
 
-        let (program, args) = extractor_for(Path::new("/tmp/thurbox-v1.2.3-win.zip"), into);
+        let (program, args) = extractor_for(Path::new("/tmp/talos-v1.2.3-win.zip"), into);
         assert_eq!(program, "powershell.exe");
         let script = args.last().unwrap().to_string_lossy().into_owned();
         assert!(script.contains("Expand-Archive"), "{script}");
         assert!(
-            script.contains("-LiteralPath '/tmp/thurbox-v1.2.3-win.zip'"),
+            script.contains("-LiteralPath '/tmp/talos-v1.2.3-win.zip'"),
             "{script}"
         );
         assert!(
@@ -752,7 +752,7 @@ mod tests {
         assert!(flags.contains(&"-NonInteractive".to_string()), "{flags:?}");
 
         // Everything else is the release tarball, and goes where it always did.
-        let (program, args) = extractor_for(Path::new("/tmp/thurbox-v1.2.3-musl.tar.gz"), into);
+        let (program, args) = extractor_for(Path::new("/tmp/talos-v1.2.3-musl.tar.gz"), into);
         assert_eq!(program, "tar");
         let args: Vec<String> = args
             .iter()
@@ -762,7 +762,7 @@ mod tests {
             args,
             vec![
                 "-xzf",
-                "/tmp/thurbox-v1.2.3-musl.tar.gz",
+                "/tmp/talos-v1.2.3-musl.tar.gz",
                 "-C",
                 "/install/dir"
             ]
@@ -779,40 +779,40 @@ mod tests {
     #[test]
     fn replace_file_script_keeps_the_old_image_as_a_backup() {
         let script = replace_file_script(
-            Path::new(r"C:\bin\.thurbox.exe.new"),
-            Path::new(r"C:\bin\thurbox.exe"),
-            Path::new(r"C:\bin\.thurbox.exe.old"),
+            Path::new(r"C:\bin\.talos.exe.new"),
+            Path::new(r"C:\bin\talos.exe"),
+            Path::new(r"C:\bin\.talos.exe.old"),
         );
         // .NET's order is (replacement, replaced, backup). The backup is not
         // optional: Windows PowerShell rejects `$null` there, and a backup-less
         // `ReplaceFile` has to delete the destination — what a mapped image
         // forbids. One statement, so a refused swap is the exit code `-Command`
         // returns.
-        let call = r"[System.IO.File]::Replace('C:\bin\.thurbox.exe.new', 'C:\bin\thurbox.exe', 'C:\bin\.thurbox.exe.old')";
+        let call = r"[System.IO.File]::Replace('C:\bin\.talos.exe.new', 'C:\bin\talos.exe', 'C:\bin\.talos.exe.old')";
         assert_eq!(script, call);
     }
 
     #[test]
     fn parse_checksum_picks_the_matching_line() {
         let body = "\
-aaaa1111  thurbox-v0.114.0-x86_64-apple-darwin.tar.gz
-bbbb2222  thurbox-v0.114.0-x86_64-unknown-linux-musl.tar.gz
-cccc3333  thurbox-v0.114.0-aarch64-apple-darwin.tar.gz
+aaaa1111  talos-v0.114.0-x86_64-apple-darwin.tar.gz
+bbbb2222  talos-v0.114.0-x86_64-unknown-linux-musl.tar.gz
+cccc3333  talos-v0.114.0-aarch64-apple-darwin.tar.gz
 ";
         assert_eq!(
-            parse_checksum(body, "thurbox-v0.114.0-x86_64-unknown-linux-musl.tar.gz").as_deref(),
+            parse_checksum(body, "talos-v0.114.0-x86_64-unknown-linux-musl.tar.gz").as_deref(),
             Some("bbbb2222")
         );
         assert_eq!(
-            parse_checksum(body, "thurbox-v0.114.0-aarch64-apple-darwin.tar.gz").as_deref(),
+            parse_checksum(body, "talos-v0.114.0-aarch64-apple-darwin.tar.gz").as_deref(),
             Some("cccc3333")
         );
     }
 
     #[test]
     fn parse_checksum_missing_entry_is_none() {
-        let body = "aaaa1111  thurbox-v0.114.0-x86_64-apple-darwin.tar.gz\n";
-        assert!(parse_checksum(body, "thurbox-v9.9.9-x86_64-unknown-linux-musl.tar.gz").is_none());
+        let body = "aaaa1111  talos-v0.114.0-x86_64-apple-darwin.tar.gz\n";
+        assert!(parse_checksum(body, "talos-v9.9.9-x86_64-unknown-linux-musl.tar.gz").is_none());
         assert!(parse_checksum("", "anything").is_none());
     }
 
@@ -857,26 +857,26 @@ cccc3333  thurbox-v0.114.0-aarch64-apple-darwin.tar.gz
         for name in BINARIES {
             std::fs::write(extract.path().join(name), b"NEW").unwrap();
         }
-        // Only `thurbox` is installed; `thurbox-cli` is not co-located.
-        std::fs::write(install.path().join("thurbox"), b"OLD").unwrap();
+        // Only `talos` is installed; `talos-cli` is not co-located.
+        std::fs::write(install.path().join("talos"), b"OLD").unwrap();
 
         let replaced = install_binaries(extract.path(), install.path(), "").unwrap();
-        assert_eq!(replaced, vec!["thurbox".to_string()]);
-        assert!(!install.path().join("thurbox-cli").exists());
+        assert_eq!(replaced, vec!["talos".to_string()]);
+        assert!(!install.path().join("talos-cli").exists());
     }
 
     #[test]
     fn install_binaries_errors_when_tarball_missing_a_binary() {
         let install = tempfile::TempDir::new().unwrap();
         let extract = tempfile::TempDir::new().unwrap();
-        std::fs::write(install.path().join("thurbox"), b"OLD").unwrap();
+        std::fs::write(install.path().join("talos"), b"OLD").unwrap();
         // extract dir has neither binary
         let err = install_binaries(extract.path(), install.path(), "").unwrap_err();
         assert!(err.contains("missing"), "got: {err}");
     }
 
     /// Windows spells both the archive entries and the installed binaries
-    /// `thurbox.exe`, so a suffix-blind install looked for a `thurbox` that is in
+    /// `talos.exe`, so a suffix-blind install looked for a `talos` that is in
     /// neither and called the archive incomplete (issue #1172). Driven by the
     /// suffix rather than `cfg(windows)`, so the Windows shape is covered on the
     /// platform CI actually runs.

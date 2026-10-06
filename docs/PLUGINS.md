@@ -1,11 +1,11 @@
-# Writing a thurbox plugin
+# Writing a talos plugin
 
 > **The API is settled in its essentials, not frozen.** The four node kinds and
 > the snapshot-read/command-write split are load-bearing and asserted by tests.
-> What still moves is the published `thurbox.*` shape: a field can be added,
+> What still moves is the published `talos.*` shape: a field can be added,
 > renamed or dropped in a minor release. `plugins.lock` records the commit each
 > installed pane resolved to, so pin what you install and re-run
-> `thurbox-cli plugin check` after an upgrade.
+> `talos-cli plugin check` after an upgrade.
 >
 > **Plugins are trusted code.** They run in-process with whatever capabilities
 > the kernel grants, exactly like an extension's shell scripts. Install one the
@@ -21,10 +21,10 @@ Four commands, and you have a pane on screen. None of them need the interface to
 be running.
 
 ```bash
-thurbox-cli plugin dir          # where plugins live, and which rule chose it
-thurbox-cli plugin new notes    # a starter that already loads
-thurbox-cli plugin check        # does it load? exits non-zero if not
-thurbox-cli plugin list         # every file, where it came from, is it drawn
+talos-cli plugin dir          # where plugins live, and which rule chose it
+talos-cli plugin new notes    # a starter that already loads
+talos-cli plugin check        # does it load? exits non-zero if not
+talos-cli plugin list         # every file, where it came from, is it drawn
 ```
 
 `plugin new` writes [`examples/lua/plugin.lua`](../examples/lua/plugin.lua) under your
@@ -32,46 +32,46 @@ chosen name — a pane that renders, declares a key and a setting, and comments 
 one rule that catches everybody (see **Traps**). Edit it, run `check`, and it is
 live on the next save: the interface watches the directory.
 
-**Which directory?** Two rules — `THURBOX_UI_DIR` if it is set, otherwise your own
-copy at `~/.config/thurbox/ui`. `plugin dir` reports the one in force *and why*,
+**Which directory?** Two rules — `TALOS_UI_DIR` if it is set, otherwise your own
+copy at `~/.config/talos/ui`. `plugin dir` reports the one in force *and why*,
 because "my edit did nothing" is almost always the other one.
 
 That third path follows the same rule every other config path does: a **dev
-build** (version `0.0.0-dev`) reads `~/.config/thurbox-dev/ui` instead, beside its
+build** (version `0.0.0-dev`) reads `~/.config/talos-dev/ui` instead, beside its
 own `settings.toml` and `agents.toml`, so hacking on the interface from a checkout
-cannot touch the copy your installed thurbox uses. Two things make this easy to
+cannot touch the copy your installed talos uses. Two things make this easy to
 misread, and both are worth knowing before you conclude a path is wrong:
 
-- **`THURBOX_CONFIG_DIR` wins over both**, and thurbox *injects it into every
-  session it spawns*. So a `thurbox-cli` run from inside a thurbox session
+- **`TALOS_CONFIG_DIR` wins over both**, and talos *injects it into every
+  session it spawns*. So a `talos-cli` run from inside a talos session
   resolves against **that session's** config dir, not the dev default — a dev
   binary invoked there will correctly report the release `ui` directory.
 - **Standing in a checkout changes nothing.** A `./ui` beside the working directory
   used to win automatically, which is what made the interface the one config that
   ignored the dev/release split. To work on a checkout's interface, ask for it:
-  `THURBOX_UI_DIR=ui`, or `just tui-ui` in the repository.
+  `TALOS_UI_DIR=ui`, or `just tui-ui` in the repository.
 
-`thurbox-cli config show` prints the resolved `ui_dir` and `ui_json` alongside
+`talos-cli config show` prints the resolved `ui_dir` and `ui_json` alongside
 every other config path, which is the quickest way to see which set is in play.
 
 Plugins may declare `ui_state = function() return { open = state.open == true,
-selection = state.cursor or 1 } end`. The local `thurbox-cli ui state` snapshot
+selection = state.cursor or 1 } end`. The local `talos-cli ui state` snapshot
 calls it on the TUI loop and includes at most 16 scalar fields per plugin, with
 short string keys and values. It is a public projection: return only state a
 local controller needs, never terminal text, credentials, or the whole `store`.
 
 **Editing the interface from some other session.** The interface directory is a
 config path of yours, so a coding agent working in an unrelated repository has no
-reason to know it exists. thurbox handles that for you: the built-in **ui-skill**
-extension is on by default and drops one `SKILL.md` (`thurbox-ui`) into each
+reason to know it exists. talos handles that for you: the built-in **ui-skill**
+extension is on by default and drops one `SKILL.md` (`talos-ui`) into each
 coding CLI's personal skill directory, so the agent loads the short form of this
 page *when* a request is about changing the TUI, in any session. No extra repo
 attached to every session, where it would sit in front of the agent whether or
 not the work is about the TUI.
 
 ```bash
-thurbox-cli extension deactivate ui-skill   # not wanted; takes every copy back
-thurbox-cli extension activate ui-skill     # and back on
+talos-cli extension deactivate ui-skill   # not wanted; takes every copy back
+talos-cli extension activate ui-skill     # and back on
 ```
 
 ```text
@@ -91,7 +91,7 @@ Ten mistakes that are invisible until runtime. Each cost real time in the
 changes that built the bundled panes.
 
 **Declaring `pure` when your render is not.** A pane may declare that its render
-is a function of `thurbox.*` and `ctx` and nothing else:
+is a function of `talos.*` and `ctx` and nothing else:
 
 ```lua
 return {
@@ -232,8 +232,8 @@ levers, in the order they pay:
    single largest saving available, and doubly so for floats, which render
    every frame even while closed.
 2. **Memoize derived models on published-table identity.** Every gated group
-   (`thurbox.sessions`, `thurbox.theme`, `thurbox.registry`, `thurbox.diffs`,
-   `thurbox.bookmarks`, …) keeps the *same table object* until its data moves,
+   (`talos.sessions`, `talos.theme`, `talos.registry`, `talos.diffs`,
+   `talos.bookmarks`, …) keeps the *same table object* until its data moves,
    so `rawequal(published, cache.src)` is a sound one-comparison staleness
    test. Build once into an upvalue, rebuild on identity change. Never key a
    cache on anything time-based.
@@ -256,7 +256,7 @@ levers, in the order they pay:
 `F12` (the perf HUD) is the check: `renders` climbing on an untouched screen
 means a pane is not settling. To find **which** pane, read the `panes` table
 under the counters — one row per plugin, most expensive first, the worst in red
-and a `!` on any pane with a hint — then run `thurbox-cli perf --plugins` for
+and a `!` on any pane with a hint — then run `talos-cli perf --plugins` for
 render p50/p95/max, handler time, reuse, `run` durations, `store` writes per
 render and tree size, with each hint spelled out (`--json` to script it). The
 hints name the traps above: not `pure` yet rendering every frame, a float
@@ -270,7 +270,7 @@ and the search strip's per-session content memo.
 `AGENTS.md` and `README.md` are delivered into the interface directory itself, so a
 session pointed at it has the rules to hand without finding this file. `AGENTS.md`
 is the one a coding CLI loads on its own; it is deliberately short and covers what
-is easy to get wrong — that "install a plugin" is `thurbox-cli plugin install` and
+is easy to get wrong — that "install a plugin" is `talos-cli plugin install` and
 not a package manager, that `plugin check` gates every edit, and that adding a pane
 is two edits. `CLAUDE.md` and `GEMINI.md` beside them point at it rather than
 repeating it.
@@ -291,7 +291,7 @@ interface you edit — there is no second, privileged copy running underneath.
 | turn one off | settings → Interface, select it, `space` |
 | get back a working interface after a bad edit | [When something goes wrong](#when-something-goes-wrong) |
 
-**Deleting is how you remove.** A file thurbox wrote and can no longer find is
+**Deleting is how you remove.** A file talos wrote and can no longer find is
 recorded as removed and is not written again — not on the next start, and not by
 an upgrade that changes it. Nothing is lost by it: the shipped copy is in the
 binary, so `r` in the Interface tab puts it back, and the same key discards your edits
@@ -335,15 +335,15 @@ that throws costs its own pane and nothing else.
 
 | Global | What it is |
 |---|---|
-| `thurbox` | Everything readable: sessions, tasks, automations, repos, agents, hosts, theme, registry, diffs, links |
+| `talos` | Everything readable: sessions, tasks, automations, repos, agents, hosts, theme, registry, diffs, links |
 | `command(kind, opts)` | The only way to change anything. Enqueues and returns |
 | `state` | Private to your plugin. Survives a reload; **not** a restart |
 | `store` | Shared by every plugin — the bus between them. Same lifetime as `state` |
 | `files.list/read` | Directory entries and file text, rooted at a session's directory |
 | `text.width/truncate/pad` | Display width in terminal COLUMNS, and the two cuts that spend a budget in it |
-| `thurbox.settings` | The settings in force: every `[features]` switch, plus the panel breakpoints and scrollback. Read your own switch and decline to draw when it is off — the kernel gates only what it owns |
-| `thurbox.search` | The content search's answer: lines found in every session's terminals, scrollback included, ranked, each with how far back it is (`back`) and the scroll offset that shows it (`scroll`). Served only while `store.want_content` holds a query (optionally narrowed by `store["want_content.sessions"]`), off the render thread; an empty query reads every history into the cache and matches nothing, so an open search strip is ready before the first keystroke; nil until the first answer lands |
-| `thurbox.bookmarks/browse/branches/worktrees` | The creation flow's reads: remembered repositories, a directory listing, a base-branch list, the worktrees a repo already has — each served only while `store.want_bookmarks`/`want_browse`/`want_branches`/`want_worktrees` asks for it |
+| `talos.settings` | The settings in force: every `[features]` switch, plus the panel breakpoints and scrollback. Read your own switch and decline to draw when it is off — the kernel gates only what it owns |
+| `talos.search` | The content search's answer: lines found in every session's terminals, scrollback included, ranked, each with how far back it is (`back`) and the scroll offset that shows it (`scroll`). Served only while `store.want_content` holds a query (optionally narrowed by `store["want_content.sessions"]`), off the render thread; an empty query reads every history into the cache and matches nothing, so an open search strip is ready before the first keystroke; nil until the first answer lands |
+| `talos.bookmarks/browse/branches/worktrees` | The creation flow's reads: remembered repositories, a directory listing, a base-branch list, the worktrees a repo already has — each served only while `store.want_bookmarks`/`want_browse`/`want_branches`/`want_worktrees` asks for it |
 | `require` | Loads **any** `.lua` under the interface directory, and nothing outside it |
 
 That is worth stating on its own, because it is easy to read `require` as "the
@@ -366,7 +366,7 @@ absent from the environment, so there is nothing to call. `io`, `os`, `debug`,
 `dofile`, `loadfile`, `print` and `warn` are all withheld.
 
 You will hear about it before you run it. `selene ui` checks `ui/` against
-`thurbox.yml`, and `lua-language-server --check ui` against `.luarc.json` — between
+`talos.yml`, and `lua-language-server --check ui` against `.luarc.json` — between
 them every withheld capability is declared absent, so reaching for one is a lint
 error rather than a nil-index at the moment someone opens your pane. `stylua ui`
 formats. All three run in CI; selene and stylua also run on commit.
@@ -380,9 +380,9 @@ fixed list of option names and collects the rest into an event payload, and a
 theme role no palette defines is nil. All three render something plausible and
 report nothing.
 
-`ui/lib/thurbox.d.lua` is those names written down as lua-language-server types:
+`ui/lib/talos.d.lua` is those names written down as lua-language-server types:
 every node prop and the values it accepts, `ctx`, the `hit`/`key`/`wheel`
-payloads, the declaration table, every published `thurbox.*` row, every command
+payloads, the declaration table, every published `talos.*` row, every command
 verb's options, and the theme roles. `.luarc.json` loads it, so an editor opened
 on the repository — or on your own interface directory — has it already.
 
@@ -390,12 +390,12 @@ lua-language-server will not flag an **extra** key in a table constructor, so th
 file is written to catch a typo the other way round:
 
 ```lua
----@type thurbox.TextNode
+---@type talos.TextNode
 local row = { type = "text", txet = "hello" }
--- Missing required fields in type `thurbox.TextNode`: `text`
+-- Missing required fields in type `talos.TextNode`: `text`
 
 command("open", { url = "https://example.com" })
--- Missing required fields in type `thurbox.cmd.Open`: `text`
+-- Missing required fields in type `talos.cmd.Open`: `text`
 
 local colour = theme.warning
 -- Undefined field `warning`.
@@ -408,11 +408,11 @@ check the table against. The second and third need nothing — `command` and
 Those three examples are literally `tests/fixtures/lua_types/`, and
 `scripts/ci/check-lua-types.sh` fails if any of them stops being reported.
 
-`selene` checks the same names from the other side, against `thurbox.yml`. That
-file declares **fields**, not only tables, so `thurbox.platform.os`,
-`thurbox.granted.program`, `thurbox.metrics.system.cpu_percent` and
-`thurbox.hover.role` are all checked reads and a misspelt one is an error. A path
-stops being checked at the first `[…]` — `thurbox.sessions[i].name` is yours to
+`selene` checks the same names from the other side, against `talos.yml`. That
+file declares **fields**, not only tables, so `talos.platform.os`,
+`talos.granted.program`, `talos.metrics.system.cpu_percent` and
+`talos.hover.role` are all checked reads and a misspelt one is an error. A path
+stops being checked at the first `[…]` — `talos.sessions[i].name` is yours to
 get wrong — which is why a list is declared only as far as the list itself.
 `tests/fixtures/lua_std/` and `scripts/ci/check-lua-std.sh` are that half's
 probes: `reads.lua` reads every field on `granted`, `platform`, `metrics`,
@@ -683,11 +683,11 @@ per change**, off the render path, with the tables current: a session appeared,
 disappeared, changed status, name or branch; the selection or the focused pane
 moved; a command a plugin issued finished or failed; a program you started
 ended; the interface reloaded. The
-whole list, with each payload, is `thurbox-cli plugin events` and the last
+whole list, with each payload, is `talos-cli plugin events` and the last
 section of `F1`.
 
 The kernel **derives** these by diffing the snapshot, so a session made by
-`thurbox-cli`, a cron tick or a second thurbox fires the same `session.created`
+`talos-cli`, a cron tick or a second talos fires the same `session.created`
 as one the creation flow made. The four `session.post_*` names are the exception
 and the reason there are two spellings: they fire only for an operation *this*
 interface performed, with that operation's facts, and share their names with
@@ -751,8 +751,8 @@ and `store.selected`, never on focus). A command and a key for one action are
 one row; a user may later bind a chord to a command from `F1`, at which point it
 is a key like any other.
 
-The running interface publishes these declarations through `thurbox-cli ui
-actions` and `thurbox-cli schema`. A plugin action keeps its existing
+The running interface publishes these declarations through `talos-cli ui
+actions` and `talos-cli schema`. A plugin action keeps its existing
 `on_action(action)` callback; a typed invocation may pass a read-only second
 argument table. Declare argument and effect metadata alongside keys when an
 action takes input:
@@ -765,7 +765,7 @@ actions = { { name = "mine.search", effect = "ui-write", args = {
 
 Supported argument kinds are `string` and `uuid`; `required = true` refuses
 an omitted argument. Action IDs reserved by the kernel cannot be claimed by a
-plugin. `thurbox-cli plugin check` warns about raw `on_click` handlers and
+plugin. `talos-cli plugin check` warns about raw `on_click` handlers and
 menu or click action names missing from the catalog. Key and scroll handlers
 remain available through addressed `ui input` for the active pane; give
 repeatable controls a declared semantic action.
@@ -821,7 +821,7 @@ including the copy-to-clipboard fallback that carries the url back over ssh — 
 a pane's link and a transcript's link cannot open in two different places.
 
 What the other verbs do not do: the node's **drawn cells are re-printed wrapped
-in OSC 8**, so `Ctrl+Click` over them is answered by the terminal thurbox itself
+in OSC 8**, so `Ctrl+Click` over them is answered by the terminal talos itself
 runs in. That matters because a pane hands the kernel cells and can emit no
 escape of its own, and because on a remote host the outer terminal is the only
 leg with a browser to reach. The chord is resolved against `url:` nodes directly
@@ -964,7 +964,7 @@ An entry is shown only if its action is **declared**, in `keys` or in
 dead entry. A rule left with nothing to separate is dropped with it. A `label`
 that is not a string is ignored, and the entry shows its action's name. Entries
 appear on a row's menu only, never on the menu for empty space. The check reads
-`thurbox.registry.keys` and `thurbox.registry.commands`, the palette's
+`talos.registry.keys` and `talos.registry.commands`, the palette's
 chord-less rows.
 
 The pane opens the menu with `target` set to the row that was pressed. Read it
@@ -1079,10 +1079,10 @@ command("theme",   { text = "tokyo-night" })
 
 **Commands never block and never return a result.** They are accepted instantly
 and their effect appears in a later snapshot. Work in flight is readable at
-`thurbox.commands`, so you can draw it rather than leaving an unexplained gap:
+`talos.commands`, so you can draw it rather than leaving an unexplained gap:
 
 ```lua
-for _, item in ipairs(thurbox.commands) do
+for _, item in ipairs(talos.commands) do
   -- item.kind, item.session, item.subject, item.host, item.phase, item.error
 end
 ```
@@ -1187,7 +1187,7 @@ interface — turning it off is enough to get a working one back, and for a pane
 wrote it is the *only* way back, since `r` has no shipped copy to restore
 ([When something goes wrong](#when-something-goes-wrong)).
 
-**`d` is not that.** It deletes. For a file thurbox ships that is recoverable
+**`d` is not that.** It deletes. For a file talos ships that is recoverable
 (`r` writes the shipped copy back); for **a file you wrote there is no copy**,
 and the removal is permanent. The confirmation says which one you are about to
 do — read it.
@@ -1214,7 +1214,7 @@ render = function(ctx)
     return needs_trust(ctx)
   end
   run("status", "git status --porcelain", { session = id, ttl = 2 })
-  local got = (thurbox.runs or {}).status
+  local got = (talos.runs or {}).status
   if got and got.state == "done" and got.ok then
     -- got.stdout, got.stderr, got.status, got.truncated, got.timed_out
   end
@@ -1234,7 +1234,7 @@ Interface tab shows which files ask to run programs, which are trusted, and
 whether a trusted file has changed since you trusted it. Revoking takes effect on
 the next frame.
 
-This is not a sandbox and does not pretend to be one. A program thurbox runs for
+This is not a sandbox and does not pretend to be one. A program talos runs for
 you has your authority, and no gate here changes that — what trust buys is that
 nothing runs *unasked*, per plugin, revocably. Treat a plugin you did not write
 the way you would treat a shell profile someone sent you.
@@ -1258,7 +1258,7 @@ focusable = true,                  -- or it can never be typed at
 input = "session",                 -- keys you do not handle go to the surface
 
 render = function(ctx)
-  if not thurbox.granted.program then
+  if not talos.granted.program then
     return needs_trust(ctx)        -- absent until you are trusted; draw that
   end
   -- Every frame. Asking for a pane you already have is a map lookup, not a
@@ -1341,7 +1341,7 @@ end,
 
 It fires once, on the transition, and only for **your** panes.
 
-**Why `thurbox.granted` and not `if not program then`.** A capability is normally
+**Why `talos.granted` and not `if not program then`.** A capability is normally
 withheld by *absence* — that is rule 4, and it is why `run` is simply not a
 function until you are trusted. A program pane is asked for through `command`,
 which every plugin has, so absence cannot express it: without `granted` a pane
@@ -1426,7 +1426,7 @@ its trust stands, then where it came from when that is not "shipped, unchanged"
 | | State | Means |
 |---|---|---|
 | `✗` | `failed` | on disk, did not load. Select the row and the **error is under the list** |
-| `⊘` | `deleted` | thurbox ships it, you deleted it, delivery has stopped writing it |
+| `⊘` | `deleted` | talos ships it, you deleted it, delivery has stopped writing it |
 | `◌` | `not placed` | it loaded, and `layout.lua` places nothing in its slot — so it never draws |
 | `◍` | `off` | present and intact, deliberately not loaded |
 | `●` | `on screen` | drawing now |
@@ -1445,7 +1445,7 @@ something there:
 
 | Key | Does |
 |---|---|
-| `r` | **restore** — write the copy thurbox ships back over the file. On an edited file it asks first and says what is lost: nothing keeps a pane's edits, and an edited `layout.lua` is moved to `layout.lua.bak`. A deleted file comes back on the first press |
+| `r` | **restore** — write the copy talos ships back over the file. On an edited file it asks first and says what is lost: nothing keeps a pane's edits, and an edited `layout.lua` is moved to `layout.lua.bak`. A deleted file comes back on the first press |
 | `space` | **turn off / turn on** — the file is untouched, simply not loaded |
 | `d` | **delete** — asked twice, and the confirmation says whether it can be undone |
 | `t` | **trust** / **revoke** — grant or withdraw the capabilities the file declares |
@@ -1455,9 +1455,9 @@ rather than at the next start, and each says what it did.
 
 ### What `r` can put back, and what it cannot
 
-`r` means "put back what thurbox ships, and forget what happened to this file",
+`r` means "put back what talos ships, and forget what happened to this file",
 which is why it covers both undo cases for a shipped pane — an edit and a
-deletion. It has **nothing to put back for a file thurbox never shipped**, and it
+deletion. It has **nothing to put back for a file talos never shipped**, and it
 says so rather than doing something. So which recovery you have depends on where
 the file came from, and the row's own tail is what tells you:
 
@@ -1466,8 +1466,8 @@ the file came from, and the row's own tail is what tells you:
 | no tail at all | a bundled pane, as shipped | `r`, though there is nothing to undo |
 | `edited` | a bundled pane you changed | `r` — the shipped copy is in the binary |
 | `removed` | a bundled pane you deleted | `r` |
-| `yours` | one you wrote | **`space`**, then fix the file. `r` reports that thurbox ships no version of it |
-| `from <src>` | an installed pane | `thurbox-cli plugin sync` — the manager that put it there puts it back. `r` says so and refuses |
+| `yours` | one you wrote | **`space`**, then fix the file. `r` reports that talos ships no version of it |
+| `from <src>` | an installed pane | `talos-cli plugin sync` — the manager that put it there puts it back. `r` says so and refuses |
 
 A pane you wrote yourself is therefore the one case with no restore, and `space`
 is what you reach for: turning it off is enough to get a working interface back
@@ -1477,15 +1477,15 @@ load it, so its error reappears only when you turn it back on.
 
 `layout.lua` and the `lib/` modules are the files whose mistakes cost the whole
 screen rather than one pane; both are ordinary rows here, and both are restorable
-with `r` while they are the ones thurbox shipped. If the *whole* directory will
+with `r` while they are the ones talos shipped. If the *whole* directory will
 not load, the embedded copies are already running — so you are fixing the file
 from inside a working interface, not from a blank one.
 
 ### The same answers without a terminal
 
-- `thurbox-cli plugin list` — the inventory above, as text.
-- `thurbox-cli plugin dir` — the directory in force, and which rule chose it.
-- `thurbox-cli plugin check` — loads the interface the way `thurbox` does and
+- `talos-cli plugin list` — the inventory above, as text.
+- `talos-cli plugin dir` — the directory in force, and which rule chose it.
+- `talos-cli plugin check` — loads the interface the way `talos` does and
   exits non-zero on a failure, including on a pane that loaded but which no
   arrangement places (it prints the `layout.lua` line to add).
 
@@ -1509,14 +1509,14 @@ Two example panes under `examples/panes/`, neither of them bundled, plus two mor
 easier to believe from a pane you added yourself than from prose.
 
 **They are examples, not a catalogue.** They are here to be read and copied from,
-not a set thurbox maintains on your behalf — installing one is a convenience over
+not a set talos maintains on your behalf — installing one is a convenience over
 `cp`, and it becomes yours the moment you edit it. For panes meant to be *used*
 rather than read, see [Panes that give a v1 surface back](#panes-that-give-a-v1-surface-back)
 below.
 
 | Example | What it is |
 |---|---|
-| `tasks` | v1's tasks pane, rebuilt as a plugin. Reads `thurbox.tasks`, writes `task` commands, needs no capability |
+| `tasks` | v1's tasks pane, rebuilt as a plugin. Reads `talos.tasks`, writes `task` commands, needs no capability |
 | `top` | CPU, memory and load as gauges, parsed from `top`. Asks for `run`, so it needs your trust |
 
 | Example file | What it is |
@@ -1529,9 +1529,9 @@ below.
 Together they are one demo:
 
 ```bash
-thurbox-cli plugin install tasks
-thurbox-cli plugin install top
-cp examples/lua/layout.lua ~/.config/thurbox/ui/layout.lua
+talos-cli plugin install tasks
+talos-cli plugin install top
+cp examples/lua/layout.lua ~/.config/talos/ui/layout.lua
 ```
 
 Each install prints the `layout.lua` line the pane needs, because a pane whose slot
@@ -1556,7 +1556,7 @@ a pane that loads and never draws. `plugin check` **fails** on exactly that and
 prints the line to add, so it is caught rather than puzzled over:
 
 ```console
-$ thurbox-cli plugin check
+$ talos-cli plugin check
   ✓ loads — sessions, agent, confirm, search, new_session, tasks
   ✗ plugins/80_tasks.lua — loaded, but nothing places slot "tasks"
       add it to layout.lua's children: { slot = "tasks" }
@@ -1590,7 +1590,7 @@ entries first when it runs out of width, and orders left to right by the same nu
 moment you install one — but it does not fail either, because you may have meant it.
 
 **The number you declare is a default, not the last word.** Whoever installs your pane
-can reorder the band from the `pills` section of their own `~/.config/thurbox/ui.json`,
+can reorder the band from the `pills` section of their own `~/.config/talos/ui.json`,
 so they never have to edit a file you ship:
 
 ```json
@@ -1613,7 +1613,7 @@ says which of the two mistakes it was, because an action the palette can reach a
 misspelt one look identical from the outside.
 
 ```console
-$ thurbox-cli plugin check
+$ talos-cli plugin check
   ✓ loads — …, notes
   ! plugins/90_notes.lua — pill "Notes" is not drawn: "notes.open" is a command with no key, …
   ! plugins/90_notes.lua — pill "Memory" is not drawn: nothing loaded declares "notes.opne" — …
@@ -1627,11 +1627,11 @@ one chord both load and both are placed, and one of them simply never fires — 
 earlier declaration keeps the key, or a user's rebinding does. Inside your own
 interface that is yours to notice; a *published* pane cannot know which keys its
 users have spent — the code-review pane below takes `Ctrl+X` and `F7` because both
-are free in the interface thurbox ships, which says nothing about yours. So
+are free in the interface talos ships, which says nothing about yours. So
 `plugin check` reports it, with both claimants and the one that wins:
 
 ```console
-$ thurbox-cli plugin check
+$ talos-cli plugin check
   ✓ loads — sessions, agent, confirm, search, new_session, restore, notes, scratch
   ! plugins/91_scratch.lua — f7 is claimed by both notes.toggle and scratch.toggle; notes.toggle wins (declared in plugins/90_notes.lua)
 ```
@@ -1646,21 +1646,21 @@ bundled panes can each bind `j`.
 ## Panes that give a v1 surface back
 
 Two of the surfaces v2 dropped are maintained as panes, each in its own repository
-rather than in the interface directory thurbox ships. They are not examples: they are
+rather than in the interface directory talos ships. They are not examples: they are
 what a plugin looks like when it has to carry v1's behaviour, and they are the answer
 to "code review is gone" and "the info panel is gone".
 
 | Pane | What it gives back |
 |---|---|
-| [`thurbox-code-review`](https://github.com/Thurbeen/thurbox-code-review) | v1's diff reviewer — the branch, a commit or the working changes, a changed-files tree, notes you send back to the agent. Reclaims `Ctrl+X` / `F7` |
-| [`thurbox-info-panel`](https://github.com/Thurbeen/thurbox-info-panel) | v1's info panel — session, git, agent, usage and system readouts in a column beside the terminal. Reclaims `F2` |
+| [`talos-code-review`](https://github.com/zatzk/talos-code-review) | v1's diff reviewer — the branch, a commit or the working changes, a changed-files tree, notes you send back to the agent. Reclaims `Ctrl+X` / `F7` |
+| [`talos-info-panel`](https://github.com/zatzk/talos-info-panel) | v1's info panel — session, git, agent, usage and system readouts in a column beside the terminal. Reclaims `F2` |
 
 Both carry more than one file, so both install by **cloning** the repository
 ([A plugin that carries more than Lua](#a-plugin-that-carries-more-than-lua)):
 
 ```bash
-thurbox-cli plugin install git+https://github.com/Thurbeen/thurbox-code-review
-thurbox-cli plugin install git+https://github.com/Thurbeen/thurbox-info-panel
+talos-cli plugin install git+https://github.com/zatzk/talos-code-review
+talos-cli plugin install git+https://github.com/zatzk/talos-info-panel
 ```
 
 They differ in the two ways that matter here, which is most of why they are worth
@@ -1676,7 +1676,7 @@ reading:
   snapshot, including the metrics the kernel gathers on its own workers. The review
   pane asks for `run`, and only for the two targets the kernel does not compute (the
   uncommitted working changes, and a single commit) — untrusted it still draws the
-  kernel's `thurbox.diffs`, and the target picker names the choices it cannot serve
+  kernel's `talos.diffs`, and the target picker names the choices it cannot serve
   rather than hiding them. That is the shape to copy for an optional capability.
 
 The third missing surface, the file viewer, has no pane — by nobody having written
@@ -1697,9 +1697,9 @@ pin  = "v2.1.0"                 # omit to take the newest at install time
 
 TOML because that is what every hand-edited registry here is, and because a bad
 edit is a parse error naming its line rather than a nil three frames later. A bare
-name resolves to `examples/panes/<name>` in the thurbox repository at **this binary's
+name resolves to `examples/panes/<name>` in the talos repository at **this binary's
 release tag**, the same rule `extension install <name>` follows against
-`extensions/<name>` — a pane reads `thurbox.*`, which is a contract that moves, so
+`extensions/<name>` — a pane reads `talos.*`, which is a contract that moves, so
 what a bare name fetches matches the binary asking for it. (For extensions the
 rule currently resolves to nothing: `extensions/` holds only the two built-ins,
 which install themselves. Panes are where bare names still have something to
@@ -1709,7 +1709,7 @@ actually depend on is better named by a URL, a path, or a repository you control
 That tag is also why a bare name can stop resolving: the examples lived under
 `ui-plugins/` before they moved to `examples/panes/`, so a `plugins.lock` written
 by a binary from before the move records a tag whose tree has no `examples/panes/`
-and `plugin sync` reports the pane as not found. Re-run `thurbox-cli plugin install
+and `plugin sync` reports the pane as not found. Re-run `talos-cli plugin install
 <name>` to re-lock it at the current tag, or name a URL or a path in
 `plugins.toml` instead — which is the same advice as the paragraph above, for the
 same reason.
@@ -1723,7 +1723,7 @@ remote output lossily, so a binary through it is **corrupted rather than refused
 So a plugin with a payload is a **repository**, and installing it clones it:
 
 ```bash
-thurbox-cli plugin install git+https://github.com/you/thurbox-widget
+talos-cli plugin install git+https://github.com/you/talos-widget
 ```
 
 Everything the repository holds arrives, in the layout you chose — Lua in whatever
@@ -1755,15 +1755,15 @@ The spec entry names the pane inside the working copy:
 
 ```toml
 [[plugin]]
-src  = "git+https://github.com/you/thurbox-widget"
-file = "thurbox-widget/plugins/40_widget.lua"
+src  = "git+https://github.com/you/talos-widget"
+file = "talos-widget/plugins/40_widget.lua"
 ```
 
 You rarely write that by hand — `install` finds it, taking the single `.lua` in the
 repository's `plugins/` directory, and asks for `--as plugins/<file>` when there is
 more than one. Its place in the load order still comes from the `40_` prefix, so
 where a plugin came from does not change where it sits. Its own modules are
-requirable by path: `require("thurbox-widget.lib.util")`.
+requirable by path: `require("talos-widget.lib.util")`.
 
 The lock records the **commit**, not the branch. `main` moves; a commit does not, so
 the same spec and lock reproduce the same bytes on another machine. That is also why
@@ -1800,12 +1800,12 @@ do is run any of it: nothing executes at install time, and a program still needs
 `program` capability you grant per file. Treat a repository you did not write the way
 you would treat one you were about to `make` in.
 
-**Picking the right build.** `thurbox.platform` gives you `os` and `arch`, so a
+**Picking the right build.** `talos.platform` gives you `os` and `arch`, so a
 plugin shipping several binaries chooses for itself:
 
 ```lua
-local p = thurbox.platform
-local exe = thurbox.ui_dir .. "/thurbox-widget/bin/" .. p.os .. "-" .. p.arch .. "/widget"
+local p = talos.platform
+local exe = talos.ui_dir .. "/talos-widget/bin/" .. p.os .. "-" .. p.arch .. "/widget"
 ```
 
 Deliberately not a manifest field. A substitution template states one rule; a pane
@@ -1822,7 +1822,7 @@ the interface does not reload too often, it **stops reloading at all** while you
 busy. A pane that fetches or builds its own engine on first run is exactly the case
 that tempts you into it.
 
-**Key releases do not reach a program pane.** thurbox asks its own terminal only for
+**Key releases do not reach a program pane.** talos asks its own terminal only for
 `DISAMBIGUATE_ESCAPE_CODES`, not `REPORT_EVENT_TYPES`, and the loop handles
 `KeyEventKind::Press` alone — so a program that distinguishes press from release
 (anything using the kitty keyboard protocol's `CSI > 3 u`) sees presses only, and a
@@ -1831,7 +1831,7 @@ Worth knowing before you build a pane whose program wants held keys.
 
 **If you publish one:** shipping a program under a copyleft licence obliges your
 repository to carry that program's corresponding source. That is your obligation, not
-thurbox's, but the mechanism invites it. URLs and filesystem paths work too,
+talos's, but the mechanism invites it. URLs and filesystem paths work too,
 and a URL ending in `.lua` installs that single file (with `--as` naming where it
 lands).
 
@@ -1840,11 +1840,11 @@ every file delivered. You hand-edit the spec; nothing hand-edits the lock. Commi
 both and the same interface reproduces elsewhere.
 
 ```bash
-thurbox-cli plugin install <src> [--as FILE] [--pin V]  # and record it
-thurbox-cli plugin sync                                 # make the directory match the spec
-thurbox-cli plugin update [name]                        # advance a pin, when you ask
-thurbox-cli plugin remove <name>                        # file, spec entry and record
-thurbox-cli plugin available                            # what installs by bare name
+talos-cli plugin install <src> [--as FILE] [--pin V]  # and record it
+talos-cli plugin sync                                 # make the directory match the spec
+talos-cli plugin update [name]                        # advance a pin, when you ask
+talos-cli plugin remove <name>                        # file, spec entry and record
+talos-cli plugin available                            # what installs by bare name
 ```
 
 `sync` is the one to reach for after editing the spec by hand, and it is the one an

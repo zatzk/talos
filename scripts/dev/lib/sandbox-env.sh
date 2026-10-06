@@ -1,14 +1,14 @@
 # shellcheck shell=sh
 #
 # Shared dev-sandbox isolation helper — the single source of truth for running a
-# thurbox *dev build* (`0.0.0-dev` => `dev_build` cfg, which uses the
-# `thurbox-dev` tmux socket) against an isolated environment, without polluting
-# your real thurbox config/sessions.
+# talos *dev build* (`0.0.0-dev` => `dev_build` cfg, which uses the
+# `talos-dev` tmux socket) against an isolated environment, without polluting
+# your real talos config/sessions.
 #
 # Two isolation flavors:
 #
-#   tbx_sandbox_init      — *thurbox-only* isolation (DEFAULT for sandbox.sh):
-#                           redirects only THURBOX_CONFIG_DIR / THURBOX_DATA_DIR
+#   tbx_sandbox_init      — *talos-only* isolation (DEFAULT for sandbox.sh):
+#                           redirects only TALOS_CONFIG_DIR / TALOS_DATA_DIR
 #                           (+ TMUX_TMPDIR), leaving HOME/XDG real so your real,
 #                           authenticated agent CLIs (claude/codex/antigravity/…) work.
 #   tbx_sandbox_init_full — *full* isolation: also overrides HOME + XDG_* under
@@ -18,7 +18,7 @@
 # Source it (don't execute) AFTER setting REPO_ROOT (or TBX_REPO_ROOT). Written
 # in POSIX sh so both the bash caller (sandbox.sh) and the
 # /usr/bin/env sh caller (record.sh) can source it. Both flavors prepend the
-# repo's target/debug to PATH so an agent hook's `thurbox-cli` resolves to *this*
+# repo's target/debug to PATH so an agent hook's `talos-cli` resolves to *this*
 # dev binary (and writes to the sandbox DB the dev TUI reads).
 #
 # Build the binaries BEFORE calling init so cargo still resolves your ~/.cargo
@@ -37,11 +37,11 @@ export TBX_REPO_ROOT
 # The sandbox's tmux socket name (the dev build's default — mirrors
 # src/backend/instance.rs TMUX_SOCKET for a dev_build). It lives inside the sandbox's
 # private TMUX_TMPDIR, so killing it can never reach a real server. Exported to
-# thurbox as THURBOX_SOCKET by the init flavors below: a sandbox relocates
-# THURBOX_DATA_DIR, and thurbox derives a socket of its own from a relocated
+# talos as TALOS_SOCKET by the init flavors below: a sandbox relocates
+# TALOS_DATA_DIR, and talos derives a socket of its own from a relocated
 # data dir, so the teardown below would otherwise be killing a name nothing
 # created.
-export TBX_DEV_SOCKET="thurbox-dev"
+export TBX_DEV_SOCKET="talos-dev"
 
 # Populated by an init call.
 export TBX_SANDBOX_ROOT=""
@@ -50,7 +50,7 @@ export TBX_SANDBOX_FRESH=0
 # tbx_sandbox_tmux_dir <profile> — short, stable tmux socket dir for a persistent
 # profile (kept off the deep target/ path; AF_UNIX socket paths are length-limited).
 tbx_sandbox_tmux_dir() {
-    echo "${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/thurbox-sbx-${1:-default}"
+    echo "${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/talos-sbx-${1:-default}"
 }
 
 # _tbx_resolve_root <fresh|persistent> [profile] — common setup shared by both
@@ -62,7 +62,7 @@ _tbx_resolve_root() {
 
     case "$mode" in
         fresh)
-            TBX_SANDBOX_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/thurbox-sandbox.XXXXXX")"
+            TBX_SANDBOX_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/talos-sandbox.XXXXXX")"
             TBX_SANDBOX_FRESH=1
             TMUX_TMPDIR="$TBX_SANDBOX_ROOT/tmux"
             ;;
@@ -83,41 +83,41 @@ _tbx_resolve_root() {
     export TMUX_TMPDIR
     mkdir -p "$TMUX_TMPDIR"
     # Name the socket outright (see TBX_DEV_SOCKET) so teardown/clean can find
-    # it whichever flavor of isolation ran. THURBOX_SOCKET_FOR — the tag that
-    # tells thurbox an injected socket from an operator's own — has to go with
-    # it: a sandbox started from inside a thurbox pane inherits one naming the
+    # it whichever flavor of isolation ran. TALOS_SOCKET_FOR — the tag that
+    # tells talos an injected socket from an operator's own — has to go with
+    # it: a sandbox started from inside a talos pane inherits one naming the
     # operator's data dir, and socket_for then rules the name above inherited
     # and derives one from the sandbox's own data dir instead. The sandbox
     # would run on a server nothing here can name, and the teardown below would
     # kill an empty one — a leaked tmux server (with its agents and heartbeat)
     # per sandbox run.
-    THURBOX_SOCKET="$TBX_DEV_SOCKET"
-    export THURBOX_SOCKET
-    unset THURBOX_SOCKET_FOR
+    TALOS_SOCKET="$TBX_DEV_SOCKET"
+    export TALOS_SOCKET
+    unset TALOS_SOCKET_FOR
     PATH="$TBX_REPO_ROOT/target/debug:$PATH"
     export PATH
 }
 
-# tbx_sandbox_init <fresh|persistent> [profile] — THURBOX-ONLY isolation.
-# Real HOME/XDG (so authenticated agent CLIs work); only thurbox's config/data
-# are redirected into the sandbox via the THURBOX_*_DIR overrides paths.rs honors.
+# tbx_sandbox_init <fresh|persistent> [profile] — TALOS-ONLY isolation.
+# Real HOME/XDG (so authenticated agent CLIs work); only talos's config/data
+# are redirected into the sandbox via the TALOS_*_DIR overrides paths.rs honors.
 tbx_sandbox_init() {
     _tbx_resolve_root "$@" || return $?
-    THURBOX_CONFIG_DIR="$TBX_SANDBOX_ROOT/thurbox-config"
-    THURBOX_DATA_DIR="$TBX_SANDBOX_ROOT/thurbox-data"
-    export THURBOX_CONFIG_DIR THURBOX_DATA_DIR
-    mkdir -p "$THURBOX_CONFIG_DIR" "$THURBOX_DATA_DIR"
+    TALOS_CONFIG_DIR="$TBX_SANDBOX_ROOT/talos-config"
+    TALOS_DATA_DIR="$TBX_SANDBOX_ROOT/talos-data"
+    export TALOS_CONFIG_DIR TALOS_DATA_DIR
+    mkdir -p "$TALOS_CONFIG_DIR" "$TALOS_DATA_DIR"
 }
 
 # tbx_sandbox_init_full <fresh|persistent> [profile] — FULL isolation.
 # Overrides HOME + XDG_* under the sandbox too (hermetic; agents boot fresh with
-# no creds). For the demo recorder. Uses the dev_build `thurbox-dev`
-# XDG subdir (no THURBOX_*_DIR override needed).
+# no creds). For the demo recorder. Uses the dev_build `talos-dev`
+# XDG subdir (no TALOS_*_DIR override needed).
 tbx_sandbox_init_full() {
     _tbx_resolve_root "$@" || return $?
-    # Hermetic: drop any inherited THURBOX_*_DIR overrides — paths.rs honors them
+    # Hermetic: drop any inherited TALOS_*_DIR overrides — paths.rs honors them
     # ahead of XDG, so an inherited one would silently defeat the isolation.
-    unset THURBOX_CONFIG_DIR THURBOX_DATA_DIR
+    unset TALOS_CONFIG_DIR TALOS_DATA_DIR
     HOME="$TBX_SANDBOX_ROOT/home"
     XDG_CONFIG_HOME="$TBX_SANDBOX_ROOT/config"
     XDG_DATA_HOME="$TBX_SANDBOX_ROOT/data"

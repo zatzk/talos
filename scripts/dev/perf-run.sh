@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Run the real thurbox under a reproducible load and report what it cost.
+# Run the real talos under a reproducible load and report what it cost.
 #
 # `benches/frame_cost.rs` measures the pieces of a frame in isolation; this runs
 # the whole binary — real tmux panes, a real vt100 grid per session, the real
@@ -20,9 +20,9 @@
 # Fully isolated: a private HOME, XDG root and TMUX_TMPDIR (so the cleanup
 # `kill-server` can never reach a real server), the sandbox helper every other
 # dev script uses. The agent is `sh` printing on a timer, so the measurement is
-# of thurbox and not of whichever coding CLI happened to be installed.
+# of talos and not of whichever coding CLI happened to be installed.
 #
-# thurbox needs a terminal, and it must be a terminal of a KNOWN SIZE — a frame
+# talos needs a terminal, and it must be a terminal of a KNOWN SIZE — a frame
 # costs what its cells cost, so a run at whatever the invoking window happens to
 # be is not comparable with the last one. So it runs inside an outer tmux
 # session created at an exact size, on the same private socket.
@@ -40,7 +40,7 @@ DURATION=30
 COLS=200
 ROWS=50
 JSON=0
-# Whether the run carries THURBOX_PERF_LOG. On, the loop keeps histograms and
+# Whether the run carries TALOS_PERF_LOG. On, the loop keeps histograms and
 # republishes a JSON snapshot to SQLite every few seconds -- which is itself
 # work, and work a default run does not do. CPU here is measured from
 # /proc, so the log can be turned off and the headline number still stands;
@@ -100,13 +100,13 @@ usage: perf-run.sh [options]
               a non-printing one animates a progress line, as a real agent does
   --idle      nothing prints — measures the settled floor
   --debug     measure the dev profile instead of release
-  --no-perf-log  run without THURBOX_PERF_LOG (CPU only, no percentiles) --
+  --no-perf-log  run without TALOS_PERF_LOG (CPU only, no percentiles) --
                  the control for "is the instrumentation the cost?"
   -b N        every agent prints N lines as it starts, to fill its scrollback
   --scrollback N  set scrollback_lines for the run
   --search Q  open global search and type Q before measuring
   --typing    with --search, keep erasing and retyping Q while measuring
-  --bin-dir D measure the thurbox/thurbox-cli in D instead of building
+  --bin-dir D measure the talos/talos-cli in D instead of building
   --json      one machine-readable line instead of the report
 EOF
     exit 2
@@ -151,10 +151,10 @@ say() { [ "$JSON" = "1" ] || echo "$@" >&2; }
 # So it refuses, and says how to get the number instead. A benchmark that also
 # generates load has no business running unattended inside a validation step --
 # the reading would be meaningless there anyway, since the gate's own build is
-# what the machine is busy doing. THURBOX_GATE is the sentinel to export around
+# what the machine is busy doing. TALOS_GATE is the sentinel to export around
 # any such step; it is deliberately not named after one tool, because the next
 # gate is a different tool and the hazard is the same.
-if [ -n "${THURBOX_GATE:-}" ] && [ -z "${THURBOX_PERF_ALLOW_IN_GATE:-}" ]; then
+if [ -n "${TALOS_GATE:-}" ] && [ -z "${TALOS_PERF_ALLOW_IN_GATE:-}" ]; then
     cat >&2 <<'REFUSE'
 perf-run.sh: refusing to run inside a validation step.
 
@@ -171,7 +171,7 @@ To take a reading by hand, on a machine you are not otherwise using:
     just perf -n 19 -p 3 -s 255x62
     just perf -n 19 -p 3 -s 255x62 -u 0     # the paired control
 
-Set THURBOX_PERF_ALLOW_IN_GATE=1 to override this, if you really mean to.
+Set TALOS_PERF_ALLOW_IN_GATE=1 to override this, if you really mean to.
 REFUSE
     exit 2
 fi
@@ -188,11 +188,11 @@ if [ -n "$PREBUILT" ]; then
 elif [ "$PROFILE" = release ]; then
     BIN_DIR="$REPO_ROOT/target/release"
     say "building (release)…"
-    cargo build --release --bin thurbox --bin thurbox-cli >/dev/null 2>&1
+    cargo build --release --bin talos --bin talos-cli >/dev/null 2>&1
 else
     BIN_DIR="$REPO_ROOT/target/debug"
     say "building (dev)…"
-    cargo build --bin thurbox --bin thurbox-cli >/dev/null 2>&1
+    cargo build --bin talos --bin talos-cli >/dev/null 2>&1
 fi
 
 # --- an isolated world ------------------------------------------------------
@@ -204,7 +204,7 @@ PATH="$BIN_DIR:$PATH"
 export PATH
 trap 'tbx_sandbox_teardown' EXIT
 
-# The agent. `sh` rather than a coding CLI: this measures thurbox's cost of
+# The agent. `sh` rather than a coding CLI: this measures talos's cost of
 # *carrying* output, and a real agent would add its own — plus its rate would be
 # whatever the model felt like, which is not a controlled variable.
 AGENT_DIR="$TBX_SANDBOX_ROOT/agent"
@@ -224,7 +224,7 @@ while :; do
     n=\$((n + 1))
     printf '  %4d | rewrote src/kernel/host/publish.rs and re-ran the suite\n' "\$n"
     if [ $URL_EVERY -gt 0 ] && [ \$((n % $URL_EVERY)) -eq 0 ]; then
-        printf '  see https://github.com/Thurbeen/thurbox/pull/%d for the rest\n' "\$n"
+        printf '  see https://github.com/zatzk/talos/pull/%d for the rest\n' "\$n"
     fi
     sleep $(awk "BEGIN { printf \"%.4f\", 1 / $RATE }")
 done
@@ -238,7 +238,7 @@ EOF
 cat > "$AGENT_DIR/ticking" <<EOF
 #!/bin/sh
 # A session that reports itself \`working\` and animates a progress line, which
-# is what every real agent does while a turn runs -- and what keeps thurbox's
+# is what every real agent does while a turn runs -- and what keeps talos's
 # output-quiescence fallback from folding the state back to idle.
 $BACKFILL_CMD
 n=0
@@ -250,12 +250,12 @@ done
 EOF
 chmod +x "$AGENT_DIR/noisy" "$AGENT_DIR/quiet" "$AGENT_DIR/ticking"
 
-mkdir -p "$XDG_CONFIG_HOME/thurbox-dev"
+mkdir -p "$XDG_CONFIG_HOME/talos-dev"
 if [ -n "$SCROLLBACK" ]; then
     printf 'config_version = 1\nscrollback_lines = %s\n' "$SCROLLBACK" \
-        > "$XDG_CONFIG_HOME/thurbox-dev/settings.toml"
+        > "$XDG_CONFIG_HOME/talos-dev/settings.toml"
 fi
-cat > "$XDG_CONFIG_HOME/thurbox-dev/agents.toml" <<EOF
+cat > "$XDG_CONFIG_HOME/talos-dev/agents.toml" <<EOF
 default = "quiet"
 
 [[agents]]
@@ -293,10 +293,10 @@ git -C "$REPO" -c user.email=perf@example.com -c user.name=perf commit -q \
 # created underneath it instead and adopted through the ordinary `data_version`
 # poll, which is also closer to what a real profile does.
 
-LOG_DIR="$XDG_DATA_HOME/thurbox-dev"
-say "starting thurbox at ${COLS}x${ROWS}…"
-LAUNCH="'$BIN_DIR/thurbox'"
-[ "$PERF_LOG" = "1" ] && LAUNCH="THURBOX_PERF_LOG=1 $LAUNCH"
+LOG_DIR="$XDG_DATA_HOME/talos-dev"
+say "starting talos at ${COLS}x${ROWS}…"
+LAUNCH="'$BIN_DIR/talos'"
+[ "$PERF_LOG" = "1" ] && LAUNCH="TALOS_PERF_LOG=1 $LAUNCH"
 tmux -L "$TBX_DEV_SOCKET" new-session -d -s perf-harness -x "$COLS" -y "$ROWS" \
     "$LAUNCH"
 sleep 3
@@ -304,18 +304,18 @@ sleep 3
 # THE process, not A process. Two traps here, and both report a number that
 # looks entirely plausible:
 #
-#   * `pgrep -f "$BIN_DIR/thurbox"` also matches `$BIN_DIR/thurbox-cli`, whose
+#   * `pgrep -f "$BIN_DIR/talos"` also matches `$BIN_DIR/talos-cli`, whose
 #     path has it as a prefix;
-#   * `pgrep -x thurbox` matches the developer's OWN running thurbox, which on
+#   * `pgrep -x talos` matches the developer's OWN running talos, which on
 #     this machine is the likeliest process of that name. Every measurement then
 #     reports their real instance's CPU -- the same ~17% for an idle harness, a
 #     printing one, one session or twenty, because the harness was never the
 #     thing being measured.
 #
-# So the sandbox is what identifies it: only this run's thurbox has this run's
+# So the sandbox is what identifies it: only this run's talos has this run's
 # private XDG_DATA_HOME in its environment.
 PID=""
-for candidate in $(pgrep -x thurbox 2>/dev/null || true); do
+for candidate in $(pgrep -x talos 2>/dev/null || true); do
     if tr '\0' '\n' < "/proc/$candidate/environ" 2>/dev/null |
         grep -qxF "XDG_DATA_HOME=$XDG_DATA_HOME"; then
         PID="$candidate"
@@ -323,8 +323,8 @@ for candidate in $(pgrep -x thurbox 2>/dev/null || true); do
     fi
 done
 if [ -z "$PID" ]; then
-    echo "perf-run.sh: thurbox did not start. Last log lines:" >&2
-    tail -20 "$LOG_DIR"/thurbox.log* 2>/dev/null >&2 || true
+    echo "perf-run.sh: talos did not start. Last log lines:" >&2
+    tail -20 "$LOG_DIR"/talos.log* 2>/dev/null >&2 || true
     exit 1
 fi
 
@@ -340,7 +340,7 @@ for i in $(seq 1 "$SESSIONS"); do
     else
         agent=quiet
     fi
-    created="$(thurbox-cli session create \
+    created="$(talos-cli session create \
         --name "perf-session-$i" \
         --repo-path "$REPO" \
         --agent "$agent" --json)"
@@ -354,10 +354,10 @@ for i in $(seq 1 "$SESSIONS"); do
 done
 
 # A status hook's write, without a hook. `session signal` takes its identity
-# from the injected `THURBOX_SESSION`, so setting it here is exactly what an
+# from the injected `TALOS_SESSION`, so setting it here is exactly what an
 # agent's own hook does from inside its pane. The agents above keep it there.
 for id in $WORKING_IDS; do
-    THURBOX_SESSION="$id" thurbox-cli session signal --state working >/dev/null
+    TALOS_SESSION="$id" talos-cli session signal --state working >/dev/null
 done
 
 # Settle: adopting a pane, taking the first snapshot and painting the first
@@ -365,8 +365,8 @@ done
 # startup once as if it happened every second.
 sleep 8
 if ! kill -0 "$PID" 2>/dev/null; then
-    echo "perf-run.sh: thurbox exited during the settle. Last log lines:" >&2
-    tail -20 "$LOG_DIR"/thurbox.log* 2>/dev/null >&2 || true
+    echo "perf-run.sh: talos exited during the settle. Last log lines:" >&2
+    tail -20 "$LOG_DIR"/talos.log* 2>/dev/null >&2 || true
     exit 1
 fi
 
@@ -430,15 +430,15 @@ all_pct="$(awk "BEGIN { printf \"%.2f\", ($AFTER_ALL - $BEFORE_ALL) * 100 / $HZ 
 # The loop's own view, from the last window it logged. `perf_window` is emitted
 # every PERF_WINDOW_TICKS iterations, so the last complete one is the steady
 # state; earlier ones can still contain the startup.
-WINDOW="$(grep -h perf_window "$LOG_DIR"/thurbox.log* 2>/dev/null | tail -1 || true)"
-SNAPSHOT="$(thurbox-cli perf 2>/dev/null || true)"
+WINDOW="$(grep -h perf_window "$LOG_DIR"/talos.log* 2>/dev/null | tail -1 || true)"
+SNAPSHOT="$(talos-cli perf 2>/dev/null || true)"
 
 # The sandbox is `fresh`, so teardown takes the log with it. Copy it out first:
 # a `perf_window` line is a summary, and the question after reading one is always
 # "what else did it say" -- a slow op, a warning, a panic on a reader thread.
 KEPT_LOG="$REPO_ROOT/target/perf-run.log"
 mkdir -p "$REPO_ROOT/target"
-cat "$LOG_DIR"/thurbox.log* > "$KEPT_LOG" 2>/dev/null || true
+cat "$LOG_DIR"/talos.log* > "$KEPT_LOG" 2>/dev/null || true
 
 tmux -L "$TBX_DEV_SOCKET" kill-session -t perf-harness >/dev/null 2>&1 || true
 
@@ -470,7 +470,7 @@ fi
 
 cat <<EOF
 
-thurbox under load — $SESSIONS sessions, $PRINTING printing at ${RATE}/s (url every ${URL_EVERY}, ${WORKING} working), ${COLS}x${ROWS}, ${DURATION}s
+talos under load — $SESSIONS sessions, $PRINTING printing at ${RATE}/s (url every ${URL_EVERY}, ${WORKING} working), ${COLS}x${ROWS}, ${DURATION}s
 
   CPU, render thread    ${main_pct}% of a core
   CPU, whole process    ${all_pct}% of a core

@@ -1,4 +1,4 @@
-//! What `thurbox-cli session capture` reports about a live pane.
+//! What `talos-cli session capture` reports about a live pane.
 //!
 //! Driven against a real tmux server on a private socket, because the thing
 //! under test is what tmux actually answers: a pane with known contents, a
@@ -12,10 +12,10 @@
 use std::process::Command;
 
 use serde_json::Value;
-use thurbox::cli::sessions::{run, Action};
-use thurbox::session::SessionId;
-use thurbox::storage::Database;
-use thurbox::sync::SharedSession;
+use talos::cli::sessions::{run, Action};
+use talos::session::SessionId;
+use talos::storage::Database;
+use talos::sync::SharedSession;
 
 /// The guard every tmux server in this file is reaped by — see its own doc.
 #[path = "support/tmux_server.rs"]
@@ -24,16 +24,16 @@ mod tmux_server;
 use tmux_server::TmuxServer;
 
 /// A socket of this test's own, so it can never see — or kill — a real session.
-const SOCKET: &str = "thurbox-capture-test";
+const SOCKET: &str = "talos-capture-test";
 
 /// The tmux session name the local backend groups its windows under. Mirrors
-/// `backend::tmux_compat::server::TMUX_SESSION`, which is private — and is `thurbox-dev` here,
+/// `backend::tmux_compat::server::TMUX_SESSION`, which is private — and is `talos-dev` here,
 /// because a test build carries the same `dev_build` marker a dev binary does.
-const SESSION: &str = "thurbox-dev";
+const SESSION: &str = "talos-dev";
 
 /// Printed by the pane, and carried in the argv that printed it — so one string
 /// proves both the capture and the foreground-process resolution.
-const MARKER: &str = "thurbox-capture-probe";
+const MARKER: &str = "talos-capture-probe";
 
 /// Newlines the probe prints after its marker line. The pane starts empty and
 /// nothing else writes to it, so the cursor lands on exactly this row.
@@ -100,7 +100,7 @@ fn capture_when_ready(
     db: &Database,
     id: SessionId,
     ansi: bool,
-) -> thurbox::cli::output::CommandOutput {
+) -> talos::cli::output::CommandOutput {
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
     loop {
         let out = run(
@@ -110,7 +110,7 @@ fn capture_when_ready(
                 ansi,
             },
             db,
-            &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+            &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
         )
         .expect("capture should succeed for a live local pane");
         if out["output"].as_str().unwrap_or_default().contains(MARKER)
@@ -231,7 +231,7 @@ fn capture_of_a_remote_session_goes_to_its_host_or_says_why_it_cannot() {
     db.upsert_session(&row).expect("persist");
 
     // A remote session's pane lives on its host's own tmux server. `capture`
-    // used to refuse that outright, which made `--host` a shape thurbox could
+    // used to refuse that outright, which made `--host` a shape talos could
     // create and then not drive; it now delegates to the host's own CLI.
     //
     // This fixture has no `hosts.toml` entry for `devbox`, which is the one
@@ -246,7 +246,7 @@ fn capture_of_a_remote_session_goes_to_its_host_or_says_why_it_cannot() {
             ansi: false,
         },
         &db,
-        &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+        &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
     )
     .expect_err("no hosts.toml entry means there is nowhere to delegate to");
     assert!(err.contains("ssh:devbox"), "got {err}");
@@ -270,7 +270,7 @@ fn capture_still_rejects_an_unusable_uuid() {
                     ansi: false,
                 },
                 &db,
-                &thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0),
+                &talos::cli::Backends::ready(talos::backend::wiring::configured().0),
             )
             .is_err(),
             "{uuid} should not capture"

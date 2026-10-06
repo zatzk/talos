@@ -541,7 +541,7 @@ type TreeKey = (Epoch, u16, u16, bool, u64);
 /// redrawn: a Textual widget calls `self.set_interval(1/60, self.refresh)` on
 /// *itself*, a Bubble Tea spinner returns its own tick command, fidget.nvim's
 /// `Anime` is the closure that reads `now`, and lualine redraws the statusline
-/// alone. thurbox's panes do not ask — the kernel calls them — so the coupling
+/// alone. talos's panes do not ask — the kernel calls them — so the coupling
 /// has to be observed instead: a tree can only depend on the clock if the render
 /// that built it read `ctx.elapsed`, and the ctx table's metatable is what
 /// notices. A pane that did not read it is served across an animation tick.
@@ -759,7 +759,7 @@ pub struct LuaHost {
     clock_read: Rc<std::cell::Cell<bool>>,
     /// Published groups, each with the epoch it was built at.
     ///
-    /// The outer `thurbox` table is still assembled fresh every frame from
+    /// The outer `talos` table is still assembled fresh every frame from
     /// these; only the nested group values are reused. That is deliberate — it
     /// means a gating mistake can produce a stale *group* but never a torn
     /// table, and it keeps the change local to the group builders
@@ -802,7 +802,7 @@ pub struct LuaHost {
     /// Paths the user turned off. Read by `build`, which simply does not load
     /// them — which is the whole implementation of being disabled (design D2).
     disabled: Rc<RefCell<Vec<String>>>,
-    /// Finished runs, per plugin. Published into `thurbox.runs` when that plugin
+    /// Finished runs, per plugin. Published into `talos.runs` when that plugin
     /// is entered, so a plugin sees its own answers and no one else's.
     run_answers: Rc<RefCell<RunAnswers>>,
     pub plugins: Vec<Plugin>,
@@ -1469,7 +1469,7 @@ impl LuaHost {
     /// without it, a pure pane consuming the key is served its cached tree on a
     /// frame where nothing else moved, and the request sits unconsumed until
     /// some unrelated signal ticks the epoch (the failure ADR-P16 records for
-    /// `thurbox.commands`).
+    /// `talos.commands`).
     pub fn set_shared_string(&self, key: &str, value: &str) {
         let moved = {
             let mut store = self.store.borrow_mut();
@@ -1487,7 +1487,7 @@ impl LuaHost {
         }
     }
 
-    /// Overwrite just `thurbox.selection` on the already-published snapshot.
+    /// Overwrite just `talos.selection` on the already-published snapshot.
     ///
     /// A drag mutates the selection mid input-batch, and a chord queued behind
     /// it in the same batch must read the finished text — but rerunning the
@@ -1499,7 +1499,7 @@ impl LuaHost {
     /// contract). A no-op before the first publish, when the global is still
     /// absent.
     pub fn set_published_selection(&self, selection: &str) {
-        if let Ok(table) = self.lua.globals().get::<Table>("thurbox") {
+        if let Ok(table) = self.lua.globals().get::<Table>("talos") {
             let _ = table.raw_set("selection", selection);
         }
     }
@@ -1596,15 +1596,15 @@ impl LuaHost {
         self.install_run(granted);
     }
 
-    /// This plugin's own answers, and nothing else's, as `thurbox.runs`. Set per
-    /// call rather than at publish because `thurbox` is one shared table:
+    /// This plugin's own answers, and nothing else's, as `talos.runs`. Set per
+    /// call rather than at publish because `talos` is one shared table:
     /// publishing every plugin's runs into it would let any pane read another's
     /// output.
     ///
     /// The read surface is created if it does not exist yet, so an answer is
     /// readable without depending on a publish having happened first.
     fn publish_runs(&self, plugin: &Plugin) {
-        let (Some(surface), Ok(table)) = (self.thurbox_table(), self.lua.create_table()) else {
+        let (Some(surface), Ok(table)) = (self.talos_table(), self.lua.create_table()) else {
             return;
         };
         if let Some(answers) = self.run_answers.borrow().get(&plugin.path) {
@@ -1617,16 +1617,16 @@ impl LuaHost {
         let _ = surface.set("runs", table);
     }
 
-    /// The global `thurbox` table, created here when no publish has made it yet.
-    fn thurbox_table(&self) -> Option<Table> {
+    /// The global `talos` table, created here when no publish has made it yet.
+    fn talos_table(&self) -> Option<Table> {
         let globals = self.lua.globals();
-        match globals.get::<Table>("thurbox") {
+        match globals.get::<Table>("talos") {
             Ok(table) => Some(table),
             // Not `Option::inspect`: that is stable since 1.76 and the MSRV is
             // 1.75.
             Err(_) => match self.lua.create_table() {
                 Ok(fresh) => {
-                    let _ = globals.set("thurbox", fresh.clone());
+                    let _ = globals.set("talos", fresh.clone());
                     Some(fresh)
                 }
                 Err(_) => None,
@@ -1634,7 +1634,7 @@ impl LuaHost {
         }
     }
 
-    /// What this plugin has actually been granted, as `thurbox.granted.<name>`.
+    /// What this plugin has actually been granted, as `talos.granted.<name>`.
     ///
     /// Needed because not every capability can be withheld by absence. `run` is
     /// a global, so a plugin checks `if not run then` and draws an honest hint —
@@ -1644,7 +1644,7 @@ impl LuaHost {
     /// it grants nothing: it is a boolean about a decision the user already made.
     fn publish_granted(&self, plugin: &Plugin) {
         let (Ok(surface), Ok(table)) = (
-            self.lua.globals().get::<Table>("thurbox"),
+            self.lua.globals().get::<Table>("talos"),
             self.lua.create_table(),
         ) else {
             return;

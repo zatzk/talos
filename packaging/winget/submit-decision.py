@@ -6,7 +6,7 @@ Usage: submit-decision.py decide --throttle-days N [--now ISO8601] [PRS_JSON]
 
 `decide` reads `gh pr list --json number,state,createdAt,title` output (stdin by
 default) and prints `{"should_submit": bool, "reason": str}`. Two things stop a
-submission: a thurbox PR still **open** on winget-pkgs (submitting on top of it
+submission: a talos PR still **open** on winget-pkgs (submitting on top of it
 is what accumulates the backlog its moderators complain about — wingetcreate has
 no "update the pending PR" mode), and a last submission younger than
 `--throttle-days`. At `--throttle-days 0` only the open-PR rule can gate, which
@@ -23,7 +23,7 @@ failure the sync step ahead of `submit` exists to prevent.
 `opened` is what gates the close-superseded-PRs step, and it is true only when
 `submit` actually opened a PR. Gating that cleanup on the *pre-submit* decision
 instead is a trap worth naming: a deferred submission exits green having opened
-nothing, and cleanup would then close the pending thurbox PR on winget-pkgs and
+nothing, and cleanup would then close the pending talos PR on winget-pkgs and
 put nothing in its place — leaving the channel with no PR at all, so the version
 silently never ships. That is the failure this whole job exists to prevent, only
 worse, which is why `opened` and `fail` are computed here and tested rather than
@@ -39,7 +39,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 # Shapes that mean "the moderated channel is busy / already has this version",
-# not "thurbox is broken". Kept deliberately narrow: anything unrecognised is
+# not "talos is broken". Kept deliberately narrow: anything unrecognised is
 # worth a human's eyes, and the job-level `continue-on-error` already keeps a
 # red winget job from reddening the release.
 DEFERRABLE = [
@@ -63,7 +63,7 @@ def decide(prs, throttle_days: int, now: datetime) -> dict:
         return {
             "should_submit": False,
             "reason": (
-                f"thurbox PR #{newest['number']} is still open on winget-pkgs "
+                f"talos PR #{newest['number']} is still open on winget-pkgs "
                 f"({age:.1f} days old); not stacking a second one on the moderation queue"
             ),
         }
@@ -71,7 +71,7 @@ def decide(prs, throttle_days: int, now: datetime) -> dict:
     if not prs:
         return {
             "should_submit": True,
-            "reason": "no prior thurbox PR on winget-pkgs — first submission",
+            "reason": "no prior talos PR on winget-pkgs — first submission",
         }
 
     newest = max(prs, key=lambda p: parse_iso(p["createdAt"]))

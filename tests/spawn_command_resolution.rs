@@ -1,15 +1,15 @@
-//! A local spawn must launch the agent **thurbox** resolved, not whatever the
+//! A local spawn must launch the agent **talos** resolved, not whatever the
 //! multiplexer's own `PATH` happens to resolve.
 //!
-//! thurbox used to hand tmux a bare command name (`claude`) and let tmux
-//! resolve it. Which resolver ran, and with which `PATH`, was not thurbox's to
+//! talos used to hand tmux a bare command name (`claude`) and let tmux
+//! resolve it. Which resolver ran, and with which `PATH`, was not talos's to
 //! choose: tmux copies the *client's* `PATH` into the new pane only for an
 //! **unattached** client (`spawn.c`: "the session one is replaced from the
-//! client ... only unattached clients"). thurbox's control-mode client is
+//! client ... only unattached clients"). talos's control-mode client is
 //! attached, so its windows got the `PATH` of whatever first started the tmux
 //! **server** — and a single-token command is handed to that server's
 //! `default-shell` rather than `execvp`, so the resolver could be a shell
-//! thurbox never chose.
+//! talos never chose.
 //!
 //! Under zsh/bash the two `PATH`s agree, because the interactive additions live
 //! in `~/.zshenv` / `~/.profile`, which any shell that starts a server sources.
@@ -18,7 +18,7 @@
 //! for the life of that server.
 //!
 //! The same spawn also decides the `PATH` its pane runs on, and the tests below
-//! the first one are about that half: a pane resolves `thurbox-cli` by bare
+//! the first one are about that half: a pane resolves `talos-cli` by bare
 //! name for every status hook, and how many arguments the window command has
 //! decides whether tmux runs it through a shell at all.
 //!
@@ -31,8 +31,8 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use thurbox::backend::tmux::TmuxBackend;
-use thurbox::backend::SessionBackend;
+use talos::backend::tmux::TmuxBackend;
+use talos::backend::SessionBackend;
 
 /// The guard every tmux server in this file is reaped by — see its own doc.
 #[path = "support/tmux_server.rs"]
@@ -41,7 +41,7 @@ mod tmux_server;
 use tmux_server::TmuxServer;
 
 /// A throwaway socket, so this never touches the real one.
-const SOCKET: &str = "thurbox-spawn-cmd-e2e";
+const SOCKET: &str = "talos-spawn-cmd-e2e";
 
 fn have_tmux() -> bool {
     Command::new("tmux")
@@ -82,7 +82,7 @@ fn repo(at: &Path) {
     std::fs::create_dir_all(at).expect("mkdir");
     git(at, &["init", "-q", "-b", "main"]);
     git(at, &["config", "user.email", "t@example.com"]);
-    git(at, &["config", "user.name", "thurbox-test"]);
+    git(at, &["config", "user.name", "talos-test"]);
     // Signing is a user setting that fails in a bare environment, and this
     // throwaway repo is not the place to be signing anything.
     git(at, &["config", "commit.gpgsign", "false"]);
@@ -91,25 +91,25 @@ fn repo(at: &Path) {
     git(at, &["commit", "-qm", "init"]);
 }
 
-/// `thurbox-cli session create …` run the way a **delegated** spawn runs it:
-/// as a child process, on a `PATH` that cannot find `thurbox-cli` itself.
+/// `talos-cli session create …` run the way a **delegated** spawn runs it:
+/// as a child process, on a `PATH` that cannot find `talos-cli` itself.
 ///
 /// That is the shape of a shared-sessions host (ADR-24), where the TUI invokes
 /// the host's CLI at an absolute path over ssh and sshd hands the command its
 /// own stripped `PATH`.
 fn create_session(server: &TmuxServer, root: &Path, args: &[&str]) -> std::process::Output {
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
     cmd.args(["session", "create"])
         .args(args)
         .arg("--json")
         .env("PATH", "/usr/bin:/bin")
         .env("HOME", root.join("home"))
-        .env("THURBOX_CONFIG_DIR", root.join("config"))
-        .env("THURBOX_DATA_DIR", root.join("data"))
-        .env_remove("THURBOX_SESSION")
-        .env_remove("THURBOX_SESSION_ID");
+        .env("TALOS_CONFIG_DIR", root.join("config"))
+        .env("TALOS_DATA_DIR", root.join("data"))
+        .env_remove("TALOS_SESSION")
+        .env_remove("TALOS_SESSION_ID");
     server.scope(&mut cmd);
-    cmd.output().expect("run thurbox-cli session create")
+    cmd.output().expect("run talos-cli session create")
 }
 
 /// A scratch instance: its own config, data, git repository and tmux server.
@@ -160,7 +160,7 @@ fn a_local_spawn_finds_the_agent_the_multiplexer_cannot() {
     }
 
     let server = TmuxServer::pin(SOCKET);
-    thurbox::paths::set_test_dir(dir.path());
+    talos::paths::set_test_dir(dir.path());
 
     // The server starts without the agent's directory on `PATH` — the shape a
     // fish user's machine is in whenever the server was started by anything
@@ -172,7 +172,7 @@ fn a_local_spawn_finds_the_agent_the_multiplexer_cannot() {
             "new-session",
             "-d",
             "-s",
-            "thurbox",
+            "talos",
             "-x",
             "80",
             "-y",
@@ -190,7 +190,7 @@ fn a_local_spawn_finds_the_agent_the_multiplexer_cannot() {
         return;
     }
 
-    // thurbox's own `PATH` *does* have it: this is the user's interactive PATH,
+    // talos's own `PATH` *does* have it: this is the user's interactive PATH,
     // the one the agent was installed onto.
     let path = format!(
         "{}:{}",
@@ -229,20 +229,20 @@ fn a_local_spawn_finds_the_agent_the_multiplexer_cannot() {
 
     assert!(
         ran,
-        "the agent thurbox resolved on its own PATH never ran: the window command \
+        "the agent talos resolved on its own PATH never ran: the window command \
          was left for the multiplexer to resolve, and the multiplexer's PATH does \
          not have it"
     );
 }
 
-/// A pane must be able to resolve `thurbox-cli` by bare name, because that is
-/// how every status hook is spelled: `thurbox-cli session signal --state <s>
+/// A pane must be able to resolve `talos-cli` by bare name, because that is
+/// how every status hook is spelled: `talos-cli session signal --state <s>
 /// || true`.
 ///
-/// A pane runs on the `PATH` of whichever thurbox spawned it, which tmux copies
-/// in by itself. On a shared-sessions host that thurbox is a `thurbox-cli` the
+/// A pane runs on the `PATH` of whichever talos spawned it, which tmux copies
+/// in by itself. On a shared-sessions host that talos is a `talos-cli` the
 /// TUI invoked over ssh, and sshd's `PATH` for a non-interactive command has no
-/// `~/.local/bin` on it — where `thurbox-cli` installs. Every hook then resolved
+/// `~/.local/bin` on it — where `talos-cli` installs. Every hook then resolved
 /// nothing and `|| true` swallowed it, so the host's own rows never gained a
 /// `hook_state` and every session on it read as statusless on the TUI mirroring
 /// them.
@@ -261,7 +261,7 @@ fn a_spawned_pane_resolves_the_cli_its_hooks_call() {
         root.path().join("config/agents.toml"),
         format!(
             "default = \"probe\"\n\n[[agents]]\nname = \"probe\"\ncommand = \"sh\"\n\
-             args = [\"-c\", \"command -v thurbox-cli > {} 2>&1; sleep 30\"]\n",
+             args = [\"-c\", \"command -v talos-cli > {} 2>&1; sleep 30\"]\n",
             seen.display()
         ),
     )
@@ -300,8 +300,8 @@ fn a_spawned_pane_resolves_the_cli_its_hooks_call() {
     let found = found.expect("the agent ran and reported what its PATH found");
     assert_eq!(
         found.trim(),
-        env!("CARGO_BIN_EXE_thurbox-cli"),
-        "the pane's PATH did not find the thurbox-cli its status hooks call, so \
+        env!("CARGO_BIN_EXE_talos-cli"),
+        "the pane's PATH did not find the talos-cli its status hooks call, so \
          every signal resolved nothing and `|| true` swallowed it"
     );
 }
@@ -338,7 +338,7 @@ fn a_command_session_with_no_args_keeps_the_shell_that_splits_it() {
             // tmux as a single argument.
             "--command",
             &format!(
-                "sh -c 'command -v thurbox-cli > {} 2>&1; sleep 30'",
+                "sh -c 'command -v talos-cli > {} 2>&1; sleep 30'",
                 seen.display()
             ),
         ],
@@ -361,7 +361,7 @@ fn a_command_session_with_no_args_keeps_the_shell_that_splits_it() {
     );
     assert_eq!(
         found.trim(),
-        env!("CARGO_BIN_EXE_thurbox-cli"),
+        env!("CARGO_BIN_EXE_talos-cli"),
         "the shell split the command but the pane lost the PATH prefix"
     );
 }

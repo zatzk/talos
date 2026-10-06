@@ -4,7 +4,7 @@ This file provides guidance to coding agents working in this repository.
 
 ## Project
 
-Thurbox is a multi-session coding-agent TUI orchestrator built
+Talos is a multi-session coding-agent TUI orchestrator built
 with Rust. It runs multiple coding-agent CLI instances (Claude
 Code, Codex, Antigravity, opencode, aider, … — any CLI you
 define) inside persistent tmux sessions, rendered as terminal
@@ -12,7 +12,7 @@ panels via ratatui + tui-term. Sessions survive crashes/restarts
 because tmux keeps the processes alive.
 
 Each session picks **which agent** to run from a declarative
-registry (`~/.config/thurbox/agents.toml`). Thurbox is
+registry (`~/.config/talos/agents.toml`). Talos is
 agent-neutral: it knows nothing about any agent's model,
 permissions, prompts, or tools — only how to launch the CLI with
 the right `command + args`. Each agent uses its own default
@@ -28,7 +28,7 @@ toolchain + tmux/shellcheck/node/cargo-tools/just/demo stack) — enter it with
 guide in **`docs/DEVELOPMENT.md`**.
 
 ```bash
-just build                           # cargo build --bin thurbox --bin thurbox-cli
+just build                           # cargo build --bin talos --bin talos-cli
 just test                            # cargo nextest run --all
 just lint                            # fmt-check + clippy + deny + rumdl + shellcheck + the 3 Lua gates
 
@@ -36,36 +36,36 @@ cargo check --all                    # Type check (bare cargo still works)
 cargo build --release                # Release build (LTO, stripped)
 ```
 
-To **run thurbox in an isolated sandbox** use `scripts/dev/sandbox.sh` (a.k.a.
-`just sandbox*`). By default it does **thurbox-only isolation**: redirects only
-thurbox's config/data into the sandbox (via the `THURBOX_CONFIG_DIR`/
-`THURBOX_DATA_DIR` overrides paths.rs honors) while keeping your real `HOME` —
+To **run talos in an isolated sandbox** use `scripts/dev/sandbox.sh` (a.k.a.
+`just sandbox*`). By default it does **talos-only isolation**: redirects only
+talos's config/data into the sandbox (via the `TALOS_CONFIG_DIR`/
+`TALOS_DATA_DIR` overrides paths.rs honors) while keeping your real `HOME` —
 so your authenticated agent CLIs (claude/codex/…) work — and puts dev
-`target/debug` first on PATH so an agent hook's `thurbox-cli` hits the sandbox DB.
-It also names the sandbox's tmux socket outright (`THURBOX_SOCKET`, `=
-$TBX_DEV_SOCKET`): a relocated `THURBOX_DATA_DIR` otherwise derives one of its
+`target/debug` first on PATH so an agent hook's `talos-cli` hits the sandbox DB.
+It also names the sandbox's tmux socket outright (`TALOS_SOCKET`, `=
+$TBX_DEV_SOCKET`): a relocated `TALOS_DATA_DIR` otherwise derives one of its
 own, and teardown kills the socket *by name*.
 
 ```bash
 scripts/dev/sandbox.sh               # persistent "default" profile, launch the TUI
 scripts/dev/sandbox.sh --fresh       # throwaway env, wiped on exit
 scripts/dev/sandbox.sh --isolate-home    # full hermetic isolation (fresh HOME; agents have no creds)
-scripts/dev/sandbox.sh --shell       # shell with the sandbox env (run thurbox-cli by hand)
-scripts/dev/sandbox.sh -- session list   # run a thurbox-cli command in the sandbox
+scripts/dev/sandbox.sh --shell       # shell with the sandbox env (run talos-cli by hand)
+scripts/dev/sandbox.sh -- session list   # run a talos-cli command in the sandbox
 scripts/dev/sandbox.sh --clean       # wipe the persistent profile
 ```
 
 The TUI is launched **from the sandbox root rather than the repo**:
-the sandbox sets `THURBOX_CONFIG_DIR`, so the interface materialises at
-`<sandbox>/thurbox-config/ui/` along with everything else and `--fresh` gives you a
+the sandbox sets `TALOS_CONFIG_DIR`, so the interface materialises at
+`<sandbox>/talos-config/ui/` along with everything else and `--fresh` gives you a
 clean one per run. (This used to matter more: `resolve_ui_dir` preferred a `./ui` in
 the working directory, so a sandbox started from the repo isolated the database but
 not the interface. That rule is gone, and the `cd` is now belt-and-braces.)
 
 The isolation lives in one helper, `scripts/dev/lib/sandbox-env.sh`
-(`tbx_sandbox_init` = thurbox-only, `tbx_sandbox_init_full` = full HOME/XDG),
+(`tbx_sandbox_init` = talos-only, `tbx_sandbox_init_full` = full HOME/XDG),
 sourced by the sandbox entrypoint plus `scripts/demo/record.sh` (which uses the
-full flavor). Single source of truth for the `thurbox-dev` sandbox pattern;
+full flavor). Single source of truth for the `talos-dev` sandbox pattern;
 `tests/tui_e2e.rs` isolates the same way in Rust.
 
 ## Working reference (skills)
@@ -80,20 +80,20 @@ that names it. Read the one your change touches:
 
 | Skill | Owns (the sections that moved) |
 |---|---|
-| `thurbox-testing` | Testing · Kernel and interface tests · Session-backend e2e harnesses |
-| `thurbox-performance` | Performance (render loop) |
-| `thurbox-release` | Release Process · Distribution Packages · Installation Script |
-| `thurbox-agents` | Agent Definitions · Multi-repo sessions |
-| `thurbox-remote-hosts` | Remote SSH & WSL Sessions |
-| `thurbox-cli` | thurbox-cli · lifecycle hooks · parent sessions · ordering · messages · Tasks |
-| `thurbox-extensions` | Extensions · Extension manifests + self-heal |
-| `thurbox-session-status` | Session status (hooks-driven) · OS notifications |
-| `thurbox-kernel` | Architecture (plugin kernel) · Writing an interface plugin |
-| `thurbox-ui-surfaces` | Keybindings · Themes · Settings panel · Global search · Code review |
-| `thurbox-demo-media` | Demo Video |
+| `talos-testing` | Testing · Kernel and interface tests · Session-backend e2e harnesses |
+| `talos-performance` | Performance (render loop) |
+| `talos-release` | Release Process · Distribution Packages · Installation Script |
+| `talos-agents` | Agent Definitions · Multi-repo sessions |
+| `talos-remote-hosts` | Remote SSH & WSL Sessions |
+| `talos-cli` | talos-cli · lifecycle hooks · parent sessions · ordering · messages · Tasks |
+| `talos-extensions` | Extensions · Extension manifests + self-heal |
+| `talos-session-status` | Session status (hooks-driven) · OS notifications |
+| `talos-kernel` | Architecture (plugin kernel) · Writing an interface plugin |
+| `talos-ui-surfaces` | Keybindings · Themes · Settings panel · Global search · Code review |
+| `talos-demo-media` | Demo Video |
 
 Two more are unrelated to this split and predate it: `ui-review` (screenshot
-the TUI and critique it) and `thurbox-ui` (edit the *running* interface's Lua,
+the TUI and critique it) and `talos-ui` (edit the *running* interface's Lua,
 installed by the `ui-skill` extension into each coding CLI).
 
 A skill is a working reference, not an owner: the docs under `docs/` still own
@@ -108,7 +108,7 @@ cargo clippy --all-targets --all-features -- -D warnings  # Lint
 RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features  # Docs
 rumdl check .                        # Markdown lint (.rumdl.toml)
 rumdl fmt .                          # Markdown auto-fix
-selene ui                            # Lua lint (selene.toml + thurbox.yml)
+selene ui                            # Lua lint (selene.toml + talos.yml)
 stylua ui                            # Lua format (stylua.toml); --check in CI
 # A RELATIVE --configpath resolves against the server's own install dir, is
 # silently not found, and then reports every injected global as undefined (79
@@ -124,7 +124,7 @@ covers a different half of the sandbox, and both halves matter:
 
 | tool | catches | enforces absence of |
 |---|---|---|
-| `selene` | undefined variables, shadowing, `thurbox.*` typos | `print`, `dofile`, `load*` (base functions) |
+| `selene` | undefined variables, shadowing, `talos.*` typos | `print`, `dofile`, `load*` (base functions) |
 | `lua-language-server` | type errors, undefined fields, unused locals | `os`, `io`, `debug`, `package` (libraries) |
 | `stylua` | formatting | — |
 
@@ -133,9 +133,9 @@ on a table's fields, and luals' `runtime.builtin` disables whole libraries but
 cannot drop a single base function. Verified by probing every withheld capability
 against both.
 
-**`ui/lib/thurbox.d.lua` is the API as types**, and is what gives luals something
+**`ui/lib/talos.d.lua` is the API as types**, and is what gives luals something
 to check names against: node props and their allowed values, `ctx`, the
-`hit`/`key`/`wheel` payloads, the declaration table, every published `thurbox.*`
+`hit`/`key`/`wheel` payloads, the declaration table, every published `talos.*`
 row, every `command` verb's options, and the theme roles. Declarations only —
 nothing loads it into the VM, which is why `selene.toml` excludes it (describing a
 global means assigning one, the single thing the sandbox forbids a plugin).
@@ -155,7 +155,7 @@ fixed set is spelled as that set, so a misspelt value is `assign-type-mismatch`.
 that each make one of those mistakes and fails if any stops being reported —
 `--check ui` alone would also pass against a file describing nothing.
 
-**`thurbox.yml` is the plugin sandbox, checked statically.** It is selene's
+**`talos.yml` is the plugin sandbox, checked statically.** It is selene's
 standard library for `ui/`, and it deliberately declares **no `base:`** — it lists
 only what `kernel::host::plugin_stdlib` grants (`string`, `table`, `math`,
 `coroutine`, `utf8`) plus the six globals `install_api` injects. So `os`, `io`,
@@ -166,14 +166,14 @@ marking things `removed` does **not** work: selene applies that to plain functio
 but not to a table's fields, so `os.time()` passed review while `dofile` was
 caught.
 
-It also declares the published shape of `thurbox`, so `thurbox.sesions` is a lint
+It also declares the published shape of `talos`, so `talos.sesions` is a lint
 error rather than a silently-nil pane. Keep it in step with **both** publish
-paths: `LuaHost::publish`, and `LuaHost::enter`, which sets `thurbox.runs` and
-`thurbox.granted` per plugin and is easy to miss because it is not named
+paths: `LuaHost::publish`, and `LuaHost::enter`, which sets `talos.runs` and
+`talos.granted` per plugin and is easy to miss because it is not named
 "publish". A newly published field used by a plugin fails lint until it is added. selene
 checks a **dotted** path one segment at a time and stops at the first `[…]`, so a
-table read as `thurbox.platform.os` needs an entry per field while a list read as
-`thurbox.sessions[i].name` stops at the list. `selene ui examples` cannot notice a
+table read as `talos.platform.os` needs an entry per field while a list read as
+`talos.sessions[i].name` stops at the list. `selene ui examples` cannot notice a
 table left at the table — no bundled pane reads one by name — so
 `scripts/ci/check-lua-std.sh` runs the panes in `tests/fixtures/lua_std/`:
 `reads.lua` reads every field on `granted`, `platform`, `metrics`, `hover`,
@@ -327,7 +327,7 @@ source does — empty since status and the heartbeat went behind the contract
 (ADR-32); `consumers_reach_no_concrete_backend` holds `session_ops`, `cli` and
 `kernel` to reaching no adapter, protocol helper or factory.
 `docs/CONSTITUTION.md` §2 lists the same graph. The full rule, the module
-responsibilities and the event loop are in the `thurbox-kernel` skill.
+responsibilities and the event loop are in the `talos-kernel` skill.
 
 ## Pre-commit Hooks
 
@@ -357,12 +357,12 @@ cargo crate — `scripts/install-dev-tools.sh` prints a reminder).
   (`backend::tmux`), `PsmuxBackend` (`backend::psmux`), and opt-in
   `RmuxBackend` (`backend::rmux`), peers over the
   shared `tmux_compat::server` (ADR-31) — over a `TmuxTransport`
-  (local `tmux -L thurbox`, or `ssh <dest> tmux …` for
+  (local `tmux -L talos`, or `ssh <dest> tmux …` for
   `ssh:<host>` backends from `hosts.toml`). The local socket is
-  `thurbox`/`thurbox-dev` only for an instance on the **default** data dir; one
-  relocated by `THURBOX_DATA_DIR` derives its own (`thurbox-<digest>`) so it
-  never creates windows on the operator's server, and `THURBOX_SOCKET`
-  overrides both. `thurbox-cli version --json` reports the name in force —
+  `talos`/`talos-dev` only for an instance on the **default** data dir; one
+  relocated by `TALOS_DATA_DIR` derives its own (`talos-<digest>`) so it
+  never creates windows on the operator's server, and `TALOS_SOCKET`
+  overrides both. `talos-cli version --json` reports the name in force —
   ADR-12, `docs/CONFIG.md` → Relocating an instance
 - Output reader runs in `tokio::task::spawn_blocking`
   (blocking I/O), writer in `tokio::spawn` (async)
@@ -370,10 +370,10 @@ cargo crate — `scripts/install-dev-tools.sh` prints a reminder).
   rendered by `tui_term::PseudoTerminal`
 - Sessions persist across restarts (tmux keeps them alive)
 - Session state in SQLite:
-  `~/.local/share/thurbox/thurbox.db` (XDG_DATA_HOME respected);
-  agent definitions in `~/.config/thurbox/agents.toml`;
-  remote SSH hosts in `~/.config/thurbox/hosts.toml`;
-  session lifecycle hooks in `~/.config/thurbox/hooks.toml`
+  `~/.local/share/talos/talos.db` (XDG_DATA_HOME respected);
+  agent definitions in `~/.config/talos/agents.toml`;
+  remote SSH hosts in `~/.config/talos/hosts.toml`;
+  session lifecycle hooks in `~/.config/talos/hooks.toml`
 - Requires tmux >= 3.2, psmux >= 3.3.7, or opt-in RMUX >= 0.10.0;
   version evidence and RMUX host limits are in `docs/CONFIG.md`
 
@@ -386,12 +386,12 @@ For rationale behind decisions, see `docs/`:
 - `docs/CONSTITUTION.md` — Core principles and non-negotiable rules
 - `docs/ARCHITECTURE.md` — Architectural decisions with rationale
 - `docs/FEATURES.md` — Feature-level design choices
-- `docs/CONFIG.md` — Thurbox's own config files/env vars/DB settings in one place
+- `docs/CONFIG.md` — Talos's own config files/env vars/DB settings in one place
 - `docs/AGENTS.md` — Each built-in agent's exact config + behavior, and
   the checklist for adding a new built-in
 - `docs/PERFORMANCE.md` — Render/tick performance: demand-driven redraw,
   perf counters, the session-order cache, and how to measure
-- `docs/BENCHMARK-MULTIPLEXERS.md` — thurbox against raw tmux and Herdr as a
+- `docs/BENCHMARK-MULTIPLEXERS.md` — talos against raw tmux and Herdr as a
   host for agent sessions: results, method, and `just bench-multiplexers`
 - `docs/REVIEW.md` — The per-path house rules a change is reviewed
   against, the trees excluded from review, and which document owns

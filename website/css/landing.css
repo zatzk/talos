@@ -40,7 +40,7 @@
 }
 
 /* One centered column at every width: headline → install → demo → agents/badges.
-   Install comes first so the command to get thurbox is the thing right under the
+   Install comes first so the command to get talos is the thing right under the
    headline; the demo sits directly below it. `order` drives this while the source
    keeps the agent chips adjacent to the intro, so the 10 inline agent SVGs don't
    have to be relocated. */
@@ -1049,7 +1049,7 @@ main {
   margin-top: 2rem;
 }
 
-/* The mockup depicts thurbox's `doom` preset, not the `default` one: doom's
+/* The mockup depicts talos's `doom` preset, not the `default` one: doom's
    slots ARE this site's palette (#ff5c54, #6eff6e, #00d9ff, #e0e0e0 are the
    same values in both), so one theme is both accurate and on-brand. Every
    value below is read off `doom_palette()` in

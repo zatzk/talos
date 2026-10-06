@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Prove `ui/lib/thurbox.d.lua` still catches the mistakes it exists to catch.
+# Prove `ui/lib/talos.d.lua` still catches the mistakes it exists to catch.
 #
 # `lua-language-server --check ui` only proves the bundled panes are clean,
 # which a definitions file describing nothing would also achieve. These probes
@@ -47,7 +47,7 @@ lua-language-server --check "$work" \
 
 if [ ! -s "$report" ]; then
     printf 'no findings at all — every probe type-checked clean, so the\n' >&2
-    printf 'definitions in ui/lib/thurbox.d.lua are not being loaded.\n' >&2
+    printf 'definitions in ui/lib/talos.d.lua are not being loaded.\n' >&2
     exit 1
 fi
 
@@ -65,7 +65,7 @@ expect() {
     local file=$1 code=$2
     if ! codes_for "$file" | grep -qx "$code"; then
         printf 'probes/%s: expected a %s finding, got none —\n' "$file" "$code" >&2
-        printf '  thurbox.d.lua no longer describes what this probe misspells.\n' >&2
+        printf '  talos.d.lua no longer describes what this probe misspells.\n' >&2
         return 1
     fi
     printf 'probes/%s: %s\n' "$file" "$code"

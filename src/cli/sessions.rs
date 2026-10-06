@@ -41,13 +41,13 @@ pub enum Action {
     /// from here, says `hook_corroboration: "unavailable"` instead). For the
     /// same reason a session nothing has ever signalled for reads `unreported`
     /// / `uncovered` here where `session get` reads `running`: only the probe
-    /// can see an agent thurbox never launched. `--verify` gives this listing
+    /// can see an agent talos never launched. `--verify` gives this listing
     /// `get`'s answer at `get`'s cost, per session.
     List {
         /// Only list children of this parent session UUID.
         #[arg(long)]
         parent: Option<String>,
-        /// List the deleted sessions instead — what a peer thurbox mirroring
+        /// List the deleted sessions instead — what a peer talos mirroring
         /// this machine reads, with each row's `force_deleted` mark.
         #[arg(long)]
         deleted: bool,
@@ -139,7 +139,7 @@ pub enum Action {
         /// Launch this executable instead of an agent from `agents.toml`.
         ///
         /// Makes the session *anything* — a shell, a REPL, a build watcher, a
-        /// tool with flags thurbox has never heard of. The command is stored
+        /// tool with flags talos has never heard of. The command is stored
         /// with the session and replayed on restart, since there is no registry
         /// entry to look up. It has no conversation, so `--resume` is refused
         /// for it; `--agent shell` is the ready-made version of this.
@@ -151,12 +151,12 @@ pub enum Action {
         /// `allow_hyphen_values` because the usual reason to pass an argument
         /// is to pass a *switch*: `--command /bin/sh --arg -c --arg '<script>'`
         /// is how a driver hands over a command line it was itself given as a
-        /// string. Without it clap reads `-c` as an unknown flag of thurbox's
+        /// string. Without it clap reads `-c` as an unknown flag of talos's
         /// own and refuses the invocation.
         #[arg(long = "arg", requires = "command", allow_hyphen_values = true)]
         arg: Vec<String>,
-        /// Extra environment as `KEY=VALUE` (repeatable). thurbox's own
-        /// `THURBOX_*` identity vars always win over these.
+        /// Extra environment as `KEY=VALUE` (repeatable). talos's own
+        /// `TALOS_*` identity vars always win over these.
         #[arg(long = "env")]
         env: Vec<String>,
         /// Resume an existing agent conversation instead of starting a new one.
@@ -172,10 +172,10 @@ pub enum Action {
         #[arg(long = "on-existing", value_enum, default_value_t = OnExisting::Allow)]
         on_existing: OnExisting,
         /// The agent this session's pane will actually run, when that is not
-        /// what thurbox launches.
+        /// what talos launches.
         ///
         /// The `--command` companion: a driver that opens a shell and starts
-        /// its own agent in it says so here, and thurbox reads hook coverage
+        /// its own agent in it says so here, and talos reads hook coverage
         /// against that agent instead of against the command's file stem. Same
         /// declaration `session reports-as` makes, at creation time.
         #[arg(long = "reports-as")]
@@ -189,7 +189,7 @@ pub enum Action {
     /// window closes — by a running interface, by the `automation tick`
     /// heartbeat, or on demand with `session reap` — while the worktrees
     /// stay, which is what makes the undo lossless. Pass `--force` to kill
-    /// the windows, remove the worktrees thurbox created, and cancel pending
+    /// the windows, remove the worktrees talos created, and cancel pending
     /// scheduled commands in this call.
     Delete {
         /// Session UUID.
@@ -268,7 +268,7 @@ pub enum Action {
     /// The text is delivered as one bracketed paste, so it arrives literally —
     /// no shell sees it, and a leading `-`, quotes or newlines survive intact.
     /// Local sessions only: the pane lives on this machine's server, so a
-    /// session on a `--host` runs `thurbox-cli` there instead.
+    /// session on a `--host` runs `talos-cli` there instead.
     Send {
         /// Session UUID.
         uuid: String,
@@ -339,9 +339,9 @@ pub enum Action {
     /// lands is invisible: it looks exactly like an agent that has not
     /// signalled yet. This inspects the wiring instead of the silence — the
     /// extension, this agent's coverage, its payload on disk, whether a hook
-    /// command could find `thurbox-cli` at all, what was last reported and
+    /// command could find `talos-cli` at all, what was last reported and
     /// when, and whether the pane agrees. Exits non-zero when a session's
-    /// wiring is broken; an agent thurbox ships no hooks for but which is
+    /// wiring is broken; an agent talos ships no hooks for but which is
     /// signalling anyway warns rather than fails.
     Doctor {
         /// Session UUID; every active session when omitted.
@@ -392,19 +392,19 @@ pub enum Action {
     /// spelling out. The child runs in the session's **directory**, on the
     /// **machine** the session lives on, and under the session's own
     /// **environment**: whatever `session create --env` recorded, plus the
-    /// `THURBOX_*` identity variables the session's pane carries — so
-    /// `session exec <ref> -- thurbox-cli session signal --state done` reports
+    /// `TALOS_*` identity variables the session's pane carries — so
+    /// `session exec <ref> -- talos-cli session signal --state done` reports
     /// for `<ref>`. What is *not* carried is this invocation's own environment
-    /// in the `THURBOX_*` namespace: it is scrubbed, because a driver calling
+    /// in the `TALOS_*` namespace: it is scrubbed, because a driver calling
     /// from inside another session would otherwise lend the child that
     /// session's identity. Everything else is inherited as usual. The
     /// environment actually used is in the result's `env`.
     Exec {
         /// Session name, UUID, or unique id prefix.
         session: String,
-        /// Exit with the command's own exit code instead of thurbox's.
+        /// Exit with the command's own exit code instead of talos's.
         ///
-        /// Off by default because thurbox's exit codes mean something specific
+        /// Off by default because talos's exit codes mean something specific
         /// (0 ok, 1 failed, 2 usage) and overloading them silently would break
         /// a caller that reads them; the command's code is always in the output
         /// either way. With the flag, a command exiting 2 is that command's 2,
@@ -420,7 +420,7 @@ pub enum Action {
     /// Declare which agent a session's pane actually runs.
     ///
     /// A `--command` session is named after the command it launches, so a
-    /// driver that opens a shell and starts `claude` in it leaves thurbox
+    /// driver that opens a shell and starts `claude` in it leaves talos
     /// reading hook coverage against `bash`: coverage `none`, no reportable
     /// states, and `hook_blocked_is_heuristic: false` — asserting the block
     /// signal is structured when it is claude's text match on a notification
@@ -432,7 +432,7 @@ pub enum Action {
         #[arg(value_name = "SESSION")]
         session: String,
         /// The agent whose hooks the pane speaks — a name from `agents.toml`
-        /// or a `hook_schema` family thurbox ships hooks for.
+        /// or a `hook_schema` family talos ships hooks for.
         #[arg(required_unless_present = "clear")]
         agent: Option<String>,
         /// Forget the declaration: read coverage against the row's own agent
@@ -449,11 +449,11 @@ pub enum Action {
     ///
     /// Records the session's state so the TUI can render it (working/blocked/
     /// done/idle) — works headless; the TUI picks it up via its data_version
-    /// poll. Identity defaults to the calling session ($THURBOX_SESSION,
+    /// poll. Identity defaults to the calling session ($TALOS_SESSION,
     /// injected at spawn), so an agent hook passes no id.
     ///
     /// This is a **supported integration point**, not an internal of the hooks
-    /// extension: $THURBOX_SESSION is set on the pane and inherited by every
+    /// extension: $TALOS_SESSION is set on the pane and inherited by every
     /// process in it, so a driver that launches its own agent there — and that
     /// agent's own hooks — can report state with no arguments at all. From
     /// outside the pane, pass `--session <uuid>`. `session doctor` says whether
@@ -464,8 +464,8 @@ pub enum Action {
         /// session boot); `done` = a turn just finished (shows until you look).
         #[arg(long, value_parser = clap::builder::PossibleValuesParser::new(crate::session::HOOK_STATES))]
         state: String,
-        /// Override the calling session (UUID). Defaults to $THURBOX_SESSION,
-        /// then a lookup by the agent conversation id ($THURBOX_SESSION_ID).
+        /// Override the calling session (UUID). Defaults to $TALOS_SESSION,
+        /// then a lookup by the agent conversation id ($TALOS_SESSION_ID).
         #[arg(long)]
         session: Option<String>,
     },
@@ -480,7 +480,7 @@ pub enum Action {
 /// are mutually exclusive by nature and `--help` should teach the whole
 /// question at once.
 ///
-/// The default is [`Allow`](Self::Allow) — thurbox does not enforce name
+/// The default is [`Allow`](Self::Allow) — talos does not enforce name
 /// uniqueness, and cannot: a database mirroring a shareable host (ADR-24) holds
 /// that host's rows beside its own, and two machines may legitimately each have
 /// a session called `build`. Uniqueness is therefore something a caller *asks
@@ -494,7 +494,7 @@ pub enum Action {
 /// far wider and which every integrator was otherwise writing themselves.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, clap::ValueEnum)]
 pub enum OnExisting {
-    /// Create another session with the same name (the default, and what thurbox
+    /// Create another session with the same name (the default, and what talos
     /// has always done). The two are then addressable only by id, since a name
     /// matching several sessions is refused rather than guessed.
     Allow,
@@ -674,8 +674,8 @@ fn run_list_deleted(db: &Database) -> Result<CommandOutput, CommandError> {
         )
         .empty("0 deleted sessions to restore")
         .help([
-            "thurbox-cli session restore <name|id>   bring one back",
-            "thurbox-cli session restore <name|id> --best-effort   for a force-deleted row",
+            "talos-cli session restore <name|id>   bring one back",
+            "talos-cli session restore <name|id> --best-effort   for a force-deleted row",
         ]))
 }
 
@@ -733,9 +733,9 @@ fn run_list_active(
                 None => "0 active sessions on this machine".to_string(),
             })
             .help([
-                "thurbox-cli session get <id>   the full record, worktrees included",
-                "thurbox-cli session capture <id> --lines 50   what its pane is showing",
-                "thurbox-cli session list --json   every field, for a script",
+                "talos-cli session get <id>   the full record, worktrees included",
+                "talos-cli session capture <id> --lines 50   what its pane is showing",
+                "talos-cli session list --json   every field, for a script",
             ]),
     )
 }
@@ -824,7 +824,7 @@ fn run_create(
         check_reports_as(&registry, declared)?;
     }
     // Names are not unique, so "already exists" is a decision the
-    // caller makes rather than something thurbox assumes — and it is a
+    // caller makes rather than something talos assumes — and it is a
     // decision about *this* backend, since a mirrored host's rows share
     // the namespace.
     let backend = crate::session_ops::spawn::backend_type_for_choice(
@@ -870,7 +870,7 @@ fn run_create(
         if let Err(e) = db.set_reports_as(res.session_id, Some(declared)) {
             return Err(format!(
                 "session '{}' ({}) was created, but declaring it as '{declared}' \
-                 failed: set_reports_as: {e}. Retry with `thurbox-cli session \
+                 failed: set_reports_as: {e}. Retry with `talos-cli session \
                  reports-as {} {declared}`",
                 res.name, res.session_id, res.session_id
             )
@@ -1164,8 +1164,8 @@ fn run_stop(
         ),
     )
     .help([
-        "thurbox-cli session start <ref>   put its pane back",
-        "thurbox-cli session delete <ref>   let it go for good",
+        "talos-cli session start <ref>   put its pane back",
+        "talos-cli session delete <ref>   let it go for good",
     ]))
 }
 
@@ -1203,7 +1203,7 @@ fn run_fork(
         name.as_deref().unwrap_or_default(),
     )?;
     // Whether the conversation actually came along is the agent's
-    // answer, not thurbox's: an agent with no `fork_args` gets a fresh
+    // answer, not talos's: an agent with no `fork_args` gets a fresh
     // one, and saying so beats letting the caller assume continuity.
     let registry = crate::agent::agent_config::load_or_seed();
     let continues = registry
@@ -1249,7 +1249,7 @@ fn run_signal(
     {
         return Err(format!(
             "'{}' is parked, so it has no turn to report; \
-             thurbox-cli session start {} first",
+             talos-cli session start {} first",
             target.name, target.id
         )
         .into());
@@ -1306,17 +1306,17 @@ fn run_bind_codex(db: &Database) -> Result<CommandOutput, CommandError> {
     use std::io::Read;
 
     let (Ok(row_id), Ok(agent_id)) = (
-        std::env::var("THURBOX_SESSION"),
-        std::env::var("THURBOX_SESSION_ID"),
+        std::env::var("TALOS_SESSION"),
+        std::env::var("TALOS_SESSION_ID"),
     ) else {
         return Ok(CommandOutput::new(
             json!({ "bound": false }),
-            "Codex hook is outside a Thurbox session.",
+            "Codex hook is outside a Talos session.",
         ));
     };
     let row_id: crate::session::SessionId = row_id
         .parse()
-        .map_err(|_| "Codex hook has an invalid THURBOX_SESSION")?;
+        .map_err(|_| "Codex hook has an invalid TALOS_SESSION")?;
 
     let mut input = String::new();
     std::io::stdin()
@@ -1341,11 +1341,11 @@ fn run_bind_codex(db: &Database) -> Result<CommandOutput, CommandError> {
                 None
             }
         })
-        .ok_or("Codex hook could not find its Thurbox session; run `thurbox-cli session doctor` and repair the hook installation")?;
+        .ok_or("Codex hook could not find its Talos session; run `talos-cli session doctor` and repair the hook installation")?;
     if target.agent != "codex" || target.agent_session_id.as_deref() != Some(agent_id.as_str()) {
-        return Err("Codex hook identity does not match the Thurbox session".into());
+        return Err("Codex hook identity does not match the Talos session".into());
     }
-    const KEY: &str = "thurbox.codex_conversation_id";
+    const KEY: &str = "talos.codex_conversation_id";
     const PICKER_REQUIRED: &str = crate::session_ops::CODEX_PICKER_REQUIRED;
     let source = payload["source"].as_str().unwrap_or_default();
     match db
@@ -1436,8 +1436,8 @@ fn capture_pane(
     // sentinel greps in the extensions rely on.
     .truncate(CAPTURE_TEXT_CAP)
     .help([
-        "thurbox-cli session capture <id> --lines 40   a shorter tail",
-        "thurbox-cli session send <id> <text>   type into the pane",
+        "talos-cli session capture <id> --lines 40   a shorter tail",
+        "talos-cli session send <id> <text>   type into the pane",
     ]))
 }
 
@@ -1589,7 +1589,7 @@ fn restore_deleted(
 /// The agent is checked against the hook table rather than merely stored: the
 /// whole point of the declaration is the coverage it unlocks, and a typo that
 /// silently unlocked nothing would leave the driver believing the opposite of
-/// what thurbox now reports.
+/// what talos now reports.
 fn set_reports_as(
     db: &Database,
     reference: &str,
@@ -1622,7 +1622,7 @@ fn set_reports_as(
         }),
         human,
     )
-    .help(["thurbox-cli session doctor <id>   what its wiring can now report"]))
+    .help(["talos-cli session doctor <id>   what its wiring can now report"]))
 }
 
 /// The human half of a post-hook failure list: one indented line each. The
@@ -1634,9 +1634,9 @@ fn push_hook_failures(human: &mut String, failures: &[String]) {
 }
 
 /// Resolve the session a `signal` targets: an explicit `--session` UUID, else
-/// the calling session from `$THURBOX_SESSION`, else a lookup by the agent
-/// conversation id from `$THURBOX_SESSION_ID` (the env fallback for agents whose
-/// hooks don't inherit `$THURBOX_SESSION`). Errors when none resolves.
+/// the calling session from `$TALOS_SESSION`, else a lookup by the agent
+/// conversation id from `$TALOS_SESSION_ID` (the env fallback for agents whose
+/// hooks don't inherit `$TALOS_SESSION`). Errors when none resolves.
 fn resolve_signal_target(
     db: &Database,
     session: Option<&str>,
@@ -1645,7 +1645,7 @@ fn resolve_signal_target(
         return resolve(db, uuid);
     }
     crate::cli::identity::calling_session_or_by_agent_id(db)?
-        .ok_or_else(|| "not inside a thurbox session; pass --session <uuid>".into())
+        .ok_or_else(|| "not inside a talos session; pass --session <uuid>".into())
 }
 
 /// How much captured pane text the TOON view shows before it says how much
@@ -1787,11 +1787,11 @@ fn coverage_line(hook: &crate::session::Assessment) -> String {
 ///
 /// "In the session's context" is the directory, the machine **and** the
 /// environment: the child gets the session's own recorded `--env` and the
-/// identity variables its pane carries, and every `THURBOX_*` variable of this
+/// identity variables its pane carries, and every `TALOS_*` variable of this
 /// process is dropped before they go on
 /// ([`crate::session_ops::session_process_env`]). Without the scrub a driver
 /// reaching into a session from inside another one handed the child the
-/// *caller's* `THURBOX_SESSION`, so a `session signal` run through here
+/// *caller's* `TALOS_SESSION`, so a `session signal` run through here
 /// recorded state for the wrong session and exited 0.
 fn exec_in_session(
     db: &Database,
@@ -2023,7 +2023,7 @@ enum Existing {
 /// Ambiguity blocks `adopt` and `replace` but not `allow`: adopting one of two
 /// same-named sessions, or destroying one of them, is a guess about which was
 /// meant. It is the same rule [`super::session_ref`] follows, and it still
-/// applies within one backend — thurbox enforces no uniqueness there either.
+/// applies within one backend — talos enforces no uniqueness there either.
 ///
 /// `reports_as` is only consulted on the `adopt` arm: `replace` and `None`
 /// both flow back into the normal creation path, which already applies it to
@@ -2114,13 +2114,13 @@ fn rollback_replace(
         ),
         Err(e) => format!(
             "{spawn_error} — the replacement could not be spawned and the session it replaced \
-             ({id}) could not be restored either ({e}). `thurbox-cli session restore {id} \
+             ({id}) could not be restored either ({e}). `talos-cli session restore {id} \
              --best-effort` is the retry"
         ),
     }
 }
 
-/// Refuse a `--reports-as`/`reports-as` agent thurbox ships no hooks for.
+/// Refuse a `--reports-as`/`reports-as` agent talos ships no hooks for.
 ///
 /// The declaration exists for the coverage it unlocks, so one that unlocks
 /// nothing is a typo rather than a preference — and a silent one, since the
@@ -2133,7 +2133,7 @@ fn check_reports_as(
         return Ok(());
     }
     Err(format!(
-        "thurbox ships no status hooks for agent '{agent}', so declaring it would change \
+        "talos ships no status hooks for agent '{agent}', so declaring it would change \
          nothing. Covered agents: {}. A custom agent asserts a family with `hook_schema` in \
          agents.toml.",
         crate::session::AGENT_HOOK_COVERAGE
@@ -2207,7 +2207,7 @@ fn existing_session_output(
             }
         ),
     )
-    .help(["thurbox-cli session get <id>   what it is doing now"])
+    .help(["talos-cli session get <id>   what it is doing now"])
 }
 
 /// Refuse a pane verb pointed at a **parked** session, naming the fix.
@@ -2227,7 +2227,7 @@ fn refuse_if_parked(db: &Database, session: &SharedSession) -> Result<(), String
         return Ok(());
     }
     Err(format!(
-        "session '{}' is stopped: it has no pane. `thurbox-cli session start {}` puts one back",
+        "session '{}' is stopped: it has no pane. `talos-cli session start {}` puts one back",
         session.name, session.name
     ))
 }
@@ -2240,17 +2240,17 @@ pub(crate) fn resolve(db: &Database, reference: &str) -> Result<SharedSession, C
 
 /// Run a pane command on the machine the session actually lives on.
 ///
-/// A session on a host is driven by that host's own `thurbox-cli`, not through
+/// A session on a host is driven by that host's own `talos-cli`, not through
 /// this machine's connection to the host's server: the host's CLI is the one
 /// that records a verb's effects in the host's own database (ADR-24), and the
-/// one that knows which socket its server really uses. thurbox already knows
+/// one that knows which socket its server really uses. talos already knows
 /// how to run its own CLI on a host — the mirror pass does it on every tick —
 /// so a pane verb means the same thing on every machine.
 ///
 /// `Ok(None)` means "this is local, carry on". `Ok(Some(output))` is the host's
 /// own answer, already a document. The refusal survives only where delegation
 /// is genuinely impossible: a host with no `hosts.toml` entry, or one whose
-/// `thurbox-cli` could not be found or provisioned.
+/// `talos-cli` could not be found or provisioned.
 fn delegate_to_host(
     session: &SharedSession,
     args: &[&str],
@@ -2269,7 +2269,7 @@ fn delegate_to_host(
         })?;
     let cli = crate::session_ops::host_cli::delegated(&host).ok_or_else(|| {
         format!(
-            "session '{}' runs on '{}', and no thurbox-cli could be reached there — \
+            "session '{}' runs on '{}', and no talos-cli could be reached there — \
              run this command on that host",
             session.name, host.name
         )
@@ -2327,7 +2327,7 @@ pub(crate) struct SessionFacts {
     /// (`--reports-as` / `session reports-as`), for the rows that have one.
     reports_as: std::collections::HashMap<crate::session::SessionId, String>,
     /// The rows created from a raw `--command` rather than an `agents.toml`
-    /// entry — the ones thurbox never had an agent to wire hooks for.
+    /// entry — the ones talos never had an agent to wire hooks for.
     command_sessions: std::collections::HashSet<crate::session::SessionId>,
 }
 
@@ -2362,7 +2362,7 @@ impl SessionFacts {
         self.reports_as.get(&s.id).map(String::as_str)
     }
 
-    /// Whether thurbox ever had an agent here to wire hooks for.
+    /// Whether talos ever had an agent here to wire hooks for.
     ///
     /// False for a `--command` session that has not declared one: it runs a
     /// shell, a REPL or a build watcher, and there is no wiring to be broken.
@@ -2606,9 +2606,9 @@ mod tests {
     #[test]
     fn signal_without_identity_errors() {
         let db = db();
-        // No --session and (in test) no THURBOX_SESSION env → clear error.
-        std::env::remove_var("THURBOX_SESSION");
-        std::env::remove_var("THURBOX_SESSION_ID");
+        // No --session and (in test) no TALOS_SESSION env → clear error.
+        std::env::remove_var("TALOS_SESSION");
+        std::env::remove_var("TALOS_SESSION_ID");
         let err = run(
             Action::Signal {
                 state: "done".into(),
@@ -2618,7 +2618,7 @@ mod tests {
             &crate::cli::Backends::ready(crate::backend::registry::inert()),
         )
         .unwrap_err();
-        assert!(err.contains("not inside a thurbox session"), "got {err}");
+        assert!(err.contains("not inside a talos session"), "got {err}");
     }
 
     fn make_test_session(name: &str) -> SharedSession {
@@ -2707,7 +2707,7 @@ mod tests {
 
     /// A driver that applied `agent launch-args claude` inside a `--command`
     /// session is the one party that knows what the pane runs. Without the
-    /// declaration thurbox read coverage against the command's file stem and
+    /// declaration talos read coverage against the command's file stem and
     /// published `hook_blocked_is_heuristic: false` — asserting the block
     /// signal is structured when it is claude's text match on a notification
     /// body, the single caveat a supervisor most needs.
@@ -2769,7 +2769,7 @@ mod tests {
     }
 
     #[test]
-    fn declaring_an_agent_thurbox_ships_no_hooks_for_is_refused() {
+    fn declaring_an_agent_talos_ships_no_hooks_for_is_refused() {
         // The declaration exists for the coverage it unlocks; one that unlocks
         // nothing is a typo, and its only symptom would be the coverage the
         // caller was trying to fix staying `none`.
@@ -2795,7 +2795,7 @@ mod tests {
     #[test]
     fn meta_round_trips_and_says_when_a_key_was_not_there() {
         // Storage, and nothing more: whatever a driver puts here comes back
-        // byte for byte, and thurbox never interprets a key or a value.
+        // byte for byte, and talos never interprets a key or a value.
         let db = db();
         let session = make_test_session("worker");
         db.upsert_session(&session).unwrap();
@@ -3190,7 +3190,7 @@ mod tests {
             .unwrap_err();
             assert!(err.contains("ssh:devbox"), "got {err}");
             // The obstacle is the missing host entry, not the verb: with one,
-            // the same call is delegated to that host's own `thurbox-cli`.
+            // the same call is delegated to that host's own `talos-cli`.
             assert!(err.contains("hosts.toml"), "got {err}");
         }
     }
@@ -3361,7 +3361,7 @@ mod tests {
             repo_path: dir.path().to_path_buf(),
             worktree_path: dir.path().to_path_buf(),
             branch: "feat/borrowed".into(),
-            created_by_thurbox: false,
+            created_by_talos: false,
         }];
         let id = shared.id;
         db.upsert_session(&shared).unwrap();
@@ -3401,7 +3401,7 @@ mod tests {
             repo_path: dir.path().to_path_buf(),
             worktree_path: gone.clone(),
             branch: "feat/borrowed".into(),
-            created_by_thurbox: false,
+            created_by_talos: false,
         }];
         let id = shared.id;
         db.upsert_session(&shared).unwrap();

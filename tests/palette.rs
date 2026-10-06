@@ -7,12 +7,12 @@ use ratatui::backend::TestBackend;
 use ratatui::layout::Rect;
 use ratatui::Terminal;
 
-use thurbox::kernel::host::{KeyPress, LuaHost};
-use thurbox::kernel::modals::interface::Files;
-use thurbox::kernel::modals::palette::{self, Dispatch, QUIT_ACTION, RELOAD_ACTION};
-use thurbox::kernel::modals::{self, ModalKind, Modals, World};
-use thurbox::kernel::registry::{binding_from, CommandDecl, Registry, Scope, Setting};
-use thurbox::kernel::theme::Themes;
+use talos::kernel::host::{KeyPress, LuaHost};
+use talos::kernel::modals::interface::Files;
+use talos::kernel::modals::palette::{self, Dispatch, QUIT_ACTION, RELOAD_ACTION};
+use talos::kernel::modals::{self, ModalKind, Modals, World};
+use talos::kernel::registry::{binding_from, CommandDecl, Registry, Scope, Setting};
+use talos::kernel::theme::Themes;
 
 fn host() -> LuaHost {
     let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui");
@@ -56,13 +56,13 @@ fn press(code: KeyCode) -> KeyEvent {
     KeyEvent::new(code, KeyModifiers::NONE)
 }
 
-/// Publish an empty world, so a plugin's handler has `thurbox.*` to read.
+/// Publish an empty world, so a plugin's handler has `talos.*` to read.
 fn publish(host: &LuaHost, registry: &Registry) {
     let themes = Themes::load(None);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
-    host.publish(&thurbox::kernel::host::Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
+    host.publish(&talos::kernel::host::Published {
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot: &Default::default(),
         attach_errors: &Default::default(),
         inflight: &[],
@@ -467,7 +467,7 @@ fn the_agent_pane_is_reachable_by_name_from_the_palette() {
     let issued = host.drain_commands();
     assert_eq!(
         issued,
-        vec![thurbox::kernel::command::Command::Focus {
+        vec![talos::kernel::command::Command::Focus {
             plugin: "agent".into(),
             toggle: false
         }]

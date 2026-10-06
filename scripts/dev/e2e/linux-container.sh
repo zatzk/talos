@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# e2e: thurbox's remote-SSH backend against a throwaway Podman container running
+# e2e: talos's remote-SSH backend against a throwaway Podman container running
 # sshd + tmux + git — the ephemeral-Linux member of the e2e family (see
 # scripts/dev/README.md). Nothing touches your real ~/.ssh or ~/.config; all
 # state lives under target/remote-ssh-test/ (gitignored) plus an isolated XDG
@@ -14,8 +14,8 @@
 #   scripts/dev/e2e/linux-container.sh down      # remove the container
 #   scripts/dev/e2e/linux-container.sh clean     # remove container + all local state
 #
-# Env overrides: THURBOX_SSH_TEST_PORT (default 2222),
-#                THURBOX_SSH_TEST_DIR  (default <repo>/target/remote-ssh-test)
+# Env overrides: TALOS_SSH_TEST_PORT (default 2222),
+#                TALOS_SSH_TEST_DIR  (default <repo>/target/remote-ssh-test)
 #
 # Requires: podman, ssh-keygen, cargo. (No python3 — JSON is parsed in-shell.)
 
@@ -26,10 +26,10 @@ REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 # shellcheck disable=SC1091
 . "$REPO_ROOT/scripts/dev/e2e/lib/e2e-common.sh"
 
-WORKDIR="${THURBOX_SSH_TEST_DIR:-$REPO_ROOT/target/remote-ssh-test}"
-IMAGE="thurbox-remote-test"
-CONTAINER="thurbox-remote"
-PORT="${THURBOX_SSH_TEST_PORT:-2222}"
+WORKDIR="${TALOS_SSH_TEST_DIR:-$REPO_ROOT/target/remote-ssh-test}"
+IMAGE="talos-remote-test"
+CONTAINER="talos-remote"
+PORT="${TALOS_SSH_TEST_PORT:-2222}"
 KEY="$WORKDIR/id_ed25519"
 REMOTE_REPO="/srv/repo"
 
@@ -40,7 +40,7 @@ ssh_remote() {
     root@localhost "$@"
 }
 
-# The ssh_opts array pointing at the container. Absolute paths only — thurbox
+# The ssh_opts array pointing at the container. Absolute paths only — talos
 # passes ssh_opts to `ssh` via Command (no shell ~ expansion).
 container_ssh_opts() {
   cat <<EOF
@@ -66,7 +66,7 @@ cmd_up() {
   mkdir -p "$WORKDIR"
   if [ ! -f "$KEY" ]; then
     log "generating throwaway keypair at $KEY"
-    ssh-keygen -t ed25519 -N "" -C thurbox-remote-test -f "$KEY" >/dev/null
+    ssh-keygen -t ed25519 -N "" -C talos-remote-test -f "$KEY" >/dev/null
   fi
   cp "$KEY.pub" "$WORKDIR/authorized_keys"
 
@@ -78,8 +78,8 @@ RUN apt-get update && \
     mkdir -p /run/sshd /root/.ssh && chmod 700 /root/.ssh
 COPY authorized_keys /root/.ssh/authorized_keys
 RUN chmod 600 /root/.ssh/authorized_keys && \
-    git config --global user.email test@thurbox && \
-    git config --global user.name thurbox-test && \
+    git config --global user.email test@talos && \
+    git config --global user.name talos-test && \
     git config --global init.defaultBranch main && \
     mkdir -p /srv/repo && cd /srv/repo && git init -q && \
     printf '# remote test repo\n' > README.md && \
@@ -93,14 +93,14 @@ EOF
   podman build -t "$IMAGE" "$WORKDIR" >/dev/null
   podman rm -f "$CONTAINER" >/dev/null 2>&1 || true
   log "starting container $CONTAINER on port $PORT"
-  podman run -d --name "$CONTAINER" --hostname thurbox-remote -p "$PORT:22" "$IMAGE" >/dev/null
+  podman run -d --name "$CONTAINER" --hostname talos-remote -p "$PORT:22" "$IMAGE" >/dev/null
 
   log "waiting for sshd"
   for _ in $(seq 1 20); do ssh_remote true 2>/dev/null && break; sleep 1; done
   ssh_remote true 2>/dev/null || die "container did not become reachable"
   log "ready: $(ssh_remote 'hostname; tmux -V' | tr '\n' ' ')"
   echo
-  log "add this to ~/.config/thurbox-dev/hosts.toml for manual TUI testing:"
+  log "add this to ~/.config/talos-dev/hosts.toml for manual TUI testing:"
   container_hosts_block
 }
 
@@ -118,18 +118,18 @@ remote_reset() {
     git worktree prune
     git for-each-ref --format="%(refname:short)" "refs/heads/test/*" \
       | while read -r b; do git branch -D "$b"; done
-    rm -rf /root/.codex /root/.local/share/thurbox /root/.local/share/thurbox-dev /root/.config/thurbox-dev
-    tmux -L thurbox-dev kill-server 2>/dev/null || true
+    rm -rf /root/.codex /root/.local/share/talos /root/.local/share/talos-dev /root/.config/talos-dev
+    tmux -L talos-dev kill-server 2>/dev/null || true
   ' 2>/dev/null || true
 }
 
-# The container's own thurbox-cli: the dev binary the first shared spawn
+# The container's own talos-cli: the dev binary the first shared spawn
 # provisions there (the container is the same platform as this machine), under
-# the dev flavour's directory — a release laptop would use thurbox/bin.
-REMOTE_CLI='/root/.local/share/thurbox-dev/bin/thurbox-cli'
+# the dev flavour's directory — a release laptop would use talos/bin.
+REMOTE_CLI='/root/.local/share/talos-dev/bin/talos-cli'
 remote_cli() { ssh_remote "$REMOTE_CLI --json $*"; }
 
-# The sharing half of the e2e: the container starts with NO thurbox. The first
+# The sharing half of the e2e: the container starts with NO talos. The first
 # `session create --host podman` must provision the CLI and create the session
 # through it, after which both directions — a session created inside the
 # container, one created from here — are one list, and delete/restore/relaunch
@@ -139,9 +139,9 @@ shared_sessions_probe() {
   # Sharing is the default, and `hosts_block` writes no `share_sessions`, so the
   # sessions created above were already delegated: the CLI must be there.
   if ssh_remote "test -x $REMOTE_CLI"; then
-    ok "thurbox-cli provisioned under ~/.local/share/thurbox-dev/bin on the container"
+    ok "talos-cli provisioned under ~/.local/share/talos-dev/bin on the container"
   else
-    bad "no thurbox-cli provisioned on the container"
+    bad "no talos-cli provisioned on the container"
     return
   fi
   case "$(remote_cli version)" in
@@ -156,7 +156,7 @@ shared_sessions_probe() {
 
   # A session created INSIDE the container, by its own CLI, with its own
   # agents.toml (seeded by the first delegated create; `shell` is added here).
-  ssh_remote "mkdir -p /root/.config/thurbox-dev && printf 'default = \"shell\"\n[[agents]]\nname = \"shell\"\ncommand = \"bash\"\n' >> /root/.config/thurbox-dev/agents.toml"
+  ssh_remote "mkdir -p /root/.config/talos-dev && printf 'default = \"shell\"\n[[agents]]\nname = \"shell\"\ncommand = \"bash\"\n' >> /root/.config/talos-dev/agents.toml"
   local inside_id
   inside_id="$(remote_cli session create --name e2e-inside --repo-path "$REMOTE_REPO" --agent shell | json_field id)"
   if [ -n "$inside_id" ]; then
@@ -205,7 +205,7 @@ shared_sessions_probe() {
   e2e_cli session restart "$e2e_id" --if-missing >/dev/null || die "relaunch after restart failed"
   e2e_cli session restart "$e2e_id" --if-missing >/dev/null || die "second relaunch failed"
   local windows
-  windows="$(ssh_remote 'tmux -L thurbox-dev list-windows -t thurbox-dev -F "#{window_name}" 2>/dev/null' | grep -c '^tb-e2e$' || true)"
+  windows="$(ssh_remote 'tmux -L talos-dev list-windows -t talos-dev -F "#{window_name}" 2>/dev/null' | grep -c '^tb-e2e$' || true)"
   if [ "$windows" = "1" ]; then
     ok "after a container restart the session was relaunched exactly once"
   else
@@ -222,7 +222,7 @@ shared_sessions_probe() {
 # `hosts.toml` back exactly as it found it on the way out.
 remote_teardown_probe() {
   log "asserting an owed remote teardown is finished when the host comes back"
-  local hosts="$XDG_CONFIG_HOME/thurbox-dev/hosts.toml"
+  local hosts="$XDG_CONFIG_HOME/talos-dev/hosts.toml"
   local shared up down
   shared="$(cat "$hosts")"
   # Every exit path, including the early `return`s below, must leave
@@ -248,7 +248,7 @@ remote_teardown_probe() {
   # tmux session's initial `bash` window is server furniture and not this
   # session's to take.
   local pid
-  pid="$(ssh_remote 'tmux -L thurbox-dev list-panes -a -F "#{window_name} #{pane_pid}" 2>/dev/null' \
+  pid="$(ssh_remote 'tmux -L talos-dev list-panes -a -F "#{window_name} #{pane_pid}" 2>/dev/null' \
     | sed -n 's/^tb-e2e-teardown //p' | head -n1)"
   if [ -n "$pid" ] && ssh_remote "kill -0 $pid 2>/dev/null"; then
     ok "the agent process ($pid) is running on the container"
@@ -280,9 +280,9 @@ remote_teardown_probe() {
     *) ok "no kill was claimed for a question the host never received" ;;
   esac
   if ssh_remote "kill -0 $pid 2>/dev/null"; then
-    ok "the agent is still running, and thurbox knows it has unfinished business"
+    ok "the agent is still running, and talos knows it has unfinished business"
   else
-    bad "the agent died without thurbox ever reaching the host"
+    bad "the agent died without talos ever reaching the host"
   fi
 
   # The host comes back. The sweep the heartbeat drives is what finishes it.
@@ -290,7 +290,7 @@ remote_teardown_probe() {
   e2e_cli automation tick >/dev/null || die "automation tick failed"
 
   local windows
-  windows="$(ssh_remote 'tmux -L thurbox-dev list-windows -a -F "#{window_name}" 2>/dev/null' \
+  windows="$(ssh_remote 'tmux -L talos-dev list-windows -a -F "#{window_name}" 2>/dev/null' \
     | grep -c '^tb-e2e-teardown$' || true)"
   if [ "$windows" = "0" ]; then
     ok "the orphaned window was killed once the host answered"
@@ -316,7 +316,7 @@ remote_teardown_probe() {
 # cmd_test's isolated XDG home, and puts `hosts.toml` back on every exit.
 restart_if_missing_probe() {
   log "asserting --if-missing refuses to relaunch when the host cannot be reached"
-  local hosts="$XDG_CONFIG_HOME/thurbox-dev/hosts.toml"
+  local hosts="$XDG_CONFIG_HOME/talos-dev/hosts.toml"
   local shared up down
   shared="$(cat "$hosts")"
   trap 'printf "%s\n" "$shared" > "$hosts"' RETURN
@@ -341,7 +341,7 @@ restart_if_missing_probe() {
   # never a second one started while the host looked absent.
   printf '%s\n' "$up" > "$hosts"
   local windows
-  windows="$(ssh_remote 'tmux -L thurbox-dev list-windows -a -F "#{window_name}" 2>/dev/null' \
+  windows="$(ssh_remote 'tmux -L talos-dev list-windows -a -F "#{window_name}" 2>/dev/null' \
     | grep -c '^tb-e2e-ifmissing$' || true)"
   if [ "$windows" = "1" ]; then
     ok "no second agent window was started while the host looked unreachable"
@@ -360,13 +360,13 @@ cmd_test() {
   # running TUI watches this database.
   local xdg; xdg="$(mktemp -d)"
   trap 'rm -rf "$xdg"; remote_reset' RETURN
-  mkdir -p "$xdg/config/thurbox-dev/hooks"
-  container_hosts_block > "$xdg/config/thurbox-dev/hosts.toml"
+  mkdir -p "$xdg/config/talos-dev/hooks"
+  container_hosts_block > "$xdg/config/talos-dev/hosts.toml"
   # `codex` (a config-dir-hooked agent name) exercises the remote hook
-  # provisioning; `clauded` carries a thurbox-managed config file as a launch
+  # provisioning; `clauded` carries a talos-managed config file as a launch
   # arg (claude's `--settings` shape) exercising the arg materialization. Both
   # just run bash — only the *name*/args drive the remote wiring under test.
-  cat > "$xdg/config/thurbox-dev/agents.toml" <<EOF
+  cat > "$xdg/config/talos-dev/agents.toml" <<EOF
 default = "shell"
 [[agents]]
 name = "shell"
@@ -377,22 +377,22 @@ command = "bash"
 [[agents]]
 name = "clauded"
 command = "bash"
-args = ["$xdg/config/thurbox-dev/hooks/claude.json"]
+args = ["$xdg/config/talos-dev/hooks/claude.json"]
 EOF
   # A claude-shaped hooks file carrying the signal marker the remote rewrite
   # keys on.
-  cat > "$xdg/config/thurbox-dev/hooks/claude.json" <<'EOF'
-{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"thurbox-cli session signal --state done || true"}]}]}}
+  cat > "$xdg/config/talos-dev/hooks/claude.json" <<'EOF'
+{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"talos-cli session signal --state done || true"}]}]}}
 EOF
 
   remote_reset
-  log "creating a remote session via thurbox-cli (isolated DB)"
+  log "creating a remote session via talos-cli (isolated DB)"
   export XDG_CONFIG_HOME="$xdg/config" XDG_DATA_HOME="$xdg/data"
-  # Running this script from inside a thurbox session injects THURBOX_*_DIR
+  # Running this script from inside a talos session injects TALOS_*_DIR
   # overrides that outrank XDG_* (paths.rs) and would point the CLI at the
   # real config/DB — pin them to the sandbox (same pattern as
   # scripts/dev/lib/sandbox-env.sh).
-  export THURBOX_CONFIG_DIR="$xdg/config/thurbox-dev" THURBOX_DATA_DIR="$xdg/data/thurbox-dev"
+  export TALOS_CONFIG_DIR="$xdg/config/talos-dev" TALOS_DATA_DIR="$xdg/data/talos-dev"
   local result backend
   result="$(e2e_create_and_get \
     --name e2e --host podman --repo-path "$REMOTE_REPO" \
@@ -401,7 +401,7 @@ EOF
 
   # Confirm the artifacts really live on the remote.
   local remote_window remote_wt
-  remote_window="$(ssh_remote 'tmux -L thurbox-dev list-windows -t thurbox-dev -F "#{window_name}" 2>/dev/null' | grep -c '^tb-e2e$' || true)"
+  remote_window="$(ssh_remote 'tmux -L talos-dev list-windows -t talos-dev -F "#{window_name}" 2>/dev/null' | grep -c '^tb-e2e$' || true)"
   remote_wt="$(ssh_remote 'cd /srv/repo && git worktree list | grep -c test-e2e' 2>/dev/null || echo 0)"
 
   # --- remote hooks-driven status wiring ------------------------------------
@@ -417,12 +417,12 @@ EOF
   local hooks_json
   hooks_json="$(ssh_remote 'cat /root/.codex/hooks.json 2>/dev/null' || true)"
   case "$hooks_json" in
-    *"tmux set-option -p @thurbox_state"*) ok "codex hooks.json shipped rewritten" ;;
+    *"tmux set-option -p @talos_state"*) ok "codex hooks.json shipped rewritten" ;;
     *) bad "codex hooks.json missing or not rewritten" ;;
   esac
   case "$hooks_json" in
-    *thurbox-cli*) bad "codex hooks.json still references thurbox-cli" ;;
-    *) ok "no thurbox-cli reference survives the rewrite" ;;
+    *talos-cli*) bad "codex hooks.json still references talos-cli" ;;
+    *) ok "no talos-cli reference survives the rewrite" ;;
   esac
   # Second spawn (fresh process, so no in-process cache): byte-stable file.
   e2e_cli session create --name e2e-codex2 --host podman --repo-path "$REMOTE_REPO" \
@@ -438,21 +438,21 @@ EOF
     || die "arg-carried session create failed"
   # The local config root is outside $HOME, so it mirrors at the same path.
   # shellcheck disable=SC2029 # $xdg expands locally on purpose (it names the remote mirror path)
-  case "$(ssh_remote "cat '$xdg/config/thurbox-dev/hooks/claude.json' 2>/dev/null" || true)" in
-    *"tmux set-option -p @thurbox_state done"*) ok "arg-carried config materialized rewritten" ;;
+  case "$(ssh_remote "cat '$xdg/config/talos-dev/hooks/claude.json' 2>/dev/null" || true)" in
+    *"tmux set-option -p @talos_state done"*) ok "arg-carried config materialized rewritten" ;;
     *) bad "arg-carried config missing or not rewritten on the host" ;;
   esac
 
   # --- headless remote-status poll (automation tick) --------------------------
   # With no TUI attached (no control-mode subscription alive), an
-  # `automation tick` must pull the pane's @thurbox_state option into the DB —
+  # `automation tick` must pull the pane's @talos_state option into the DB —
   # visible as `hook_state` in `session list --json`. Simulate the rewritten
   # hook firing by setting the option on every remote pane, exactly as the
   # in-pane command would.
-  log "asserting the headless remote-status poll (tick pulls @thurbox_state)"
+  log "asserting the headless remote-status poll (tick pulls @talos_state)"
   # shellcheck disable=SC2016 # $p expands on the remote side on purpose
-  ssh_remote 'tmux -L thurbox-dev list-panes -s -t thurbox-dev -F "#{pane_id}" 2>/dev/null \
-    | while read -r p; do tmux -L thurbox-dev set-option -p -t "$p" @thurbox_state working; done'
+  ssh_remote 'tmux -L talos-dev list-panes -s -t talos-dev -F "#{pane_id}" 2>/dev/null \
+    | while read -r p; do tmux -L talos-dev set-option -p -t "$p" @talos_state working; done'
   e2e_cli automation tick >/dev/null || die "automation tick failed"
   case "$(e2e_cli session list)" in
     *'"hook_state":"working"'*) ok "tick polled the pane option into hook_state" ;;

@@ -3,7 +3,7 @@
 //! Two halves live apart on purpose. Schema v47 only *marks* the repair as
 //! owed, because what to rewrite is decided by the host registry — which
 //! backend names a loopback entry can have written, and which of those a host
-//! thurbox still serves claims — and `storage` may not read `hosts.toml`. The
+//! talos still serves claims — and `storage` may not read `hosts.toml`. The
 //! plan is built by
 //! `agent::host_config::wsl_repair_plan` and handed to
 //! [`Database::apply_wsl_repair_plan`] by

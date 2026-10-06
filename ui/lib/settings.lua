@@ -17,7 +17,7 @@
 local settings = {}
 
 local function all()
-  return (thurbox and thurbox.registry and thurbox.registry.settings) or {}
+  return (talos and talos.registry and talos.registry.settings) or {}
 end
 
 --- The effective value of `plugin`'s `id`, or `fallback` when it is unset.
@@ -49,11 +49,11 @@ end
 
 --- A `[features]` flag from the CORE settings (`settings.toml`), which are a
 --- different thing from the plugin declarations above: the kernel publishes
---- them whole as `thurbox.settings`, and a pane gating a surface on one reads
+--- them whole as `talos.settings`, and a pane gating a surface on one reads
 --- three levels that can each be absent. This is that read, nil-safe once,
 --- returning `fallback` when the flag was never set.
 function settings.feature(name, fallback)
-  local published = thurbox and thurbox.settings
+  local published = talos and talos.settings
   local features = published and published.features
   if not features or features[name] == nil then
     return fallback

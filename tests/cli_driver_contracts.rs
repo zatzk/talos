@@ -1,4 +1,4 @@
-//! The contracts an external driver reads off `thurbox-cli`'s streams.
+//! The contracts an external driver reads off `talos-cli`'s streams.
 //!
 //! Each test here asserts something that is only observable from *outside* the
 //! process: what a child of `session exec` inherits, what a `$(…)` capture
@@ -11,8 +11,8 @@ use std::path::PathBuf;
 use std::process::{Command, Output};
 
 use serde_json::Value;
-use thurbox::session::SessionId;
-use thurbox::sync::SharedSession;
+use talos::session::SessionId;
+use talos::sync::SharedSession;
 
 /// The guard every tmux server in this file is reaped by — see its own doc.
 #[path = "support/tmux_server.rs"]
@@ -20,7 +20,7 @@ mod tmux_server;
 
 use tmux_server::TmuxServer;
 
-/// A throwaway thurbox instance: its own config, data, home and multiplexer
+/// A throwaway talos instance: its own config, data, home and multiplexer
 /// socket, so no test here reads or writes the operator's.
 struct Env {
     root: tempfile::TempDir,
@@ -38,7 +38,7 @@ impl Env {
         }
         Self {
             root,
-            server: TmuxServer::private("thurbox-driver-contract-test"),
+            server: TmuxServer::private("talos-driver-contract-test"),
         }
     }
 
@@ -46,27 +46,27 @@ impl Env {
         self.root.path().join(sub)
     }
 
-    fn db(&self) -> thurbox::storage::Database {
-        thurbox::storage::Database::open(&self.path("data").join("thurbox.db"))
+    fn db(&self) -> talos::storage::Database {
+        talos::storage::Database::open(&self.path("data").join("talos.db"))
             .expect("open the instance database")
     }
 
     /// Run the CLI with stdout and stderr as pipes — which is what a driver
     /// capturing output gives it, and what makes the piped format apply.
     fn run(&self, args: &[&str]) -> Output {
-        self.command(args).output().expect("run thurbox-cli")
+        self.command(args).output().expect("run talos-cli")
     }
 
     fn command(&self, args: &[&str]) -> Command {
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"));
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_talos-cli"));
         cmd.args(args);
         cmd.env("HOME", self.path("home"));
         cmd.env("USERPROFILE", self.path("home"));
-        cmd.env("THURBOX_CONFIG_DIR", self.path("config"));
-        cmd.env("THURBOX_DATA_DIR", self.path("data"));
+        cmd.env("TALOS_CONFIG_DIR", self.path("config"));
+        cmd.env("TALOS_DATA_DIR", self.path("data"));
         self.server.scope(&mut cmd);
-        cmd.env_remove("THURBOX_SESSION");
-        cmd.env_remove("THURBOX_SESSION_ID");
+        cmd.env_remove("TALOS_SESSION");
+        cmd.env_remove("TALOS_SESSION_ID");
         cmd
     }
 
@@ -107,9 +107,9 @@ fn stderr_of(out: &Output) -> String {
 /// of that context.
 ///
 /// The failure this pins is not that the session's own `--env` was missing —
-/// it is that the **caller's** `THURBOX_SESSION` was inherited by the child. A
+/// it is that the **caller's** `TALOS_SESSION` was inherited by the child. A
 /// driver reaching into a session from inside another one would then have
-/// `thurbox-cli session signal` record state for the *calling* session,
+/// `talos-cli session signal` record state for the *calling* session,
 /// silently and with exit 0, which is the one outcome that cannot be correct.
 #[cfg(unix)]
 #[test]
@@ -135,12 +135,12 @@ fn exec_carries_the_targets_identity_and_environment_not_the_callers() {
         "--",
         "sh",
         "-c",
-        "printf '%s|%s' \"$THURBOX_SESSION\" \"$FM_PROBE\"",
+        "printf '%s|%s' \"$TALOS_SESSION\" \"$FM_PROBE\"",
     ]);
     // The calling driver is itself inside a session, which is the ordinary
     // case and the one that used to leak.
-    cmd.env("THURBOX_SESSION", caller.to_string());
-    let out = cmd.output().expect("run thurbox-cli");
+    cmd.env("TALOS_SESSION", caller.to_string());
+    let out = cmd.output().expect("run talos-cli");
 
     let doc: Value = serde_json::from_slice(&out.stdout)
         .unwrap_or_else(|e| panic!("stdout is JSON ({e}): {}", stdout_of(&out)));
@@ -266,7 +266,7 @@ fn a_pane_verb_on_a_missing_window_says_so_on_stdout_alone() {
 /// A driver that launches its own agent can obtain the hook wiring.
 ///
 /// Status hooks are installed by appending to an agent's `args`, so they only
-/// reach the process when thurbox builds the command line. Without a verb that
+/// reach the process when talos builds the command line. Without a verb that
 /// reports those args, a driver launching the agent itself got no hooks — and
 /// so an empty `state` and a `watch` stream that never mentioned the session.
 #[test]
@@ -292,5 +292,5 @@ fn agent_launch_args_reports_what_to_run() {
         "the hook wiring is the answer: {doc}"
     );
     // And the identity the agent's own `session signal` will report under.
-    assert_eq!(doc["env"]["THURBOX_SESSION"], Value::String(id), "{doc}");
+    assert_eq!(doc["env"]["TALOS_SESSION"], Value::String(id), "{doc}");
 }

@@ -16,7 +16,7 @@ use anyhow::Result;
 /// reader to the loop that feeds the pane's grid.
 ///
 /// A pane on a server other clients share is not necessarily the size of the
-/// rect this instance paints it into: another thurbox may be sizing it (see
+/// rect this instance paints it into: another talos may be sizing it (see
 /// `tmux_compat::Server::resize`). A backend that can say what size the pane really is
 /// reports it here **in stream order** — between the last byte written for the
 /// old size and the first written for the new one — and the grid follows, so
@@ -142,7 +142,7 @@ impl SnapshotArrived {
     }
 }
 
-/// What a thurbox window holds.
+/// What a talos window holds.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum WindowRole {
     /// A session's agent (`tb-`).
@@ -157,7 +157,7 @@ pub enum WindowRole {
 
 impl WindowRole {
     /// The value a backend stamps as the window's role (on tmux, the
-    /// `@thurbox_role` window option).
+    /// `@talos_role` window option).
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Agent => "agent",
@@ -263,7 +263,7 @@ pub struct WindowSpec<'a> {
     pub env: &'a HashMap<String, String>,
 }
 
-/// A key a caller presses into a pane, in thurbox's own spelling — `enter`,
+/// A key a caller presses into a pane, in talos's own spelling — `enter`,
 /// `page-up`, `ctrl-c` — which each backend says in its own grammar.
 ///
 /// A closed set because a multiplexer need not validate a key name: tmux types
@@ -307,7 +307,7 @@ impl Key {
         ("del", "delete"),
     ];
 
-    /// Resolve a caller's spelling, or `None` for a key thurbox does not know.
+    /// Resolve a caller's spelling, or `None` for a key talos does not know.
     ///
     /// Case-insensitive, and `ctrl-c`, `ctrl+c`, `C-c` and `c+c` are the same
     /// key: the separator and the `ctrl`/`c` prefix are what people actually
@@ -392,7 +392,7 @@ pub struct DiscoveredSession {
     /// Whether the process is still running.
     pub is_alive: bool,
     /// The id of the session row that owns this window, as the window itself
-    /// carries it (`@thurbox_session`). Empty for a window spawned before
+    /// carries it (`@talos_session`). Empty for a window spawned before
     /// windows were stamped, or by a multiplexer with no window options — see
     /// [`WindowIndex`](crate::backend::identity::WindowIndex) for what that
     /// leaves resolvable.
@@ -537,7 +537,7 @@ pub trait SessionBackend: Send + Sync {
         Vec::new()
     }
 
-    /// Every thurbox window the backend holds, as it answers for them.
+    /// Every talos window the backend holds, as it answers for them.
     ///
     /// `Ok` with an empty list only when the backend itself says it holds
     /// nothing; a question that went unanswered — an unreachable host, a
@@ -568,7 +568,7 @@ pub trait SessionBackend: Send + Sync {
 
     /// Stamp a window with the identity every reconciler resolves it by: which
     /// session row owns it, and in what role (on a tmux-protocol server, the
-    /// `@thurbox_session` and `@thurbox_role` window options).
+    /// `@talos_session` and `@talos_role` window options).
     ///
     /// A backend with no place to keep one returns `Ok` and its windows read
     /// as unstamped, which [`crate::backend::identity::WindowIndex`] resolves
@@ -637,9 +637,9 @@ pub trait SessionBackend: Send + Sync {
     /// error.
     fn pane_state(&self, pane: &str) -> Result<PaneState>;
 
-    /// The `PATH` thurbox handed the pane's program when it opened the window,
+    /// The `PATH` talos handed the pane's program when it opened the window,
     /// read back from the backend's own record of it. `Ok(None)`: the pane is
-    /// there, and its `PATH` is not one thurbox wrote or one this backend can
+    /// there, and its `PATH` is not one talos wrote or one this backend can
     /// read — which a caller must report as unknown, never as a working one.
     fn pane_path(&self, pane: &str) -> Result<Option<String>>;
 
@@ -671,7 +671,7 @@ pub trait SessionBackend: Send + Sync {
 
     /// Default shell command for companion shell panes: one that exists on
     /// the machine this backend's panes run on. Each backend answers for its
-    /// own machine — the OS thurbox was built for is not that machine's once
+    /// own machine — the OS talos was built for is not that machine's once
     /// a pane runs on a host.
     fn default_shell(&self) -> String;
 
@@ -706,7 +706,7 @@ pub trait SessionBackend: Send + Sync {
 
     /// The command a hook running in one of this backend's panes runs, with
     /// the state word appended, to report that state **through this backend**
-    /// — in place of `thurbox-cli session signal --state`, which cannot reach
+    /// — in place of `talos-cli session signal --state`, which cannot reach
     /// this instance's database from a pane on another machine. Shell text,
     /// free of `"` and `\` so it can be spliced into a JSON, TOML or JS hook
     /// file as it stands.
@@ -737,7 +737,7 @@ pub trait SessionBackend: Send + Sync {
     ///
     /// Poll-style shared state (like the `TermSignals` atomics): the interface's
     /// tick drains this and persists each state exactly as a local
-    /// `thurbox-cli session signal` would have. Empty when nothing changed or
+    /// `talos-cli session signal` would have. Empty when nothing changed or
     /// nothing is attached.
     fn take_hook_state_events(&self) -> Vec<(String, String)>;
 

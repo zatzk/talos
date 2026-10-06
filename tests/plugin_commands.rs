@@ -7,14 +7,14 @@
 //! at all until two plugins pick the same key. Both are asserted here rather
 //! than trusted to review.
 
-use thurbox::kernel::host::{Capability, LuaHost, RenderContext};
-use thurbox::kernel::runs::{Ask, Run};
+use talos::kernel::host::{Capability, LuaHost, RenderContext};
+use talos::kernel::runs::{Ask, Run};
 
 /// Build an interface out of `plugins`, each `(file name, source)`.
 fn interface(plugins: &[(&str, &str)]) -> (tempfile::TempDir, std::path::PathBuf) {
     let home = tempfile::tempdir().expect("tempdir");
     let ui = home.path().join("ui");
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
     for (name, source) in plugins {
         std::fs::write(ui.join("plugins").join(name), source).expect("write");
     }
@@ -198,7 +198,7 @@ fn a_plugin_reads_its_own_answers_and_no_one_elses() {
         "plugins/91_a.lua".to_string(),
         vec![(
             "mine".to_string(),
-            Run::Done(thurbox::kernel::runs::Output {
+            Run::Done(talos::kernel::runs::Output {
                 stdout: "secret".into(),
                 stderr: String::new(),
                 status: Some(0),
@@ -256,7 +256,7 @@ fn reader(name: &str) -> String {
   slot = "sessions",
   capabilities = {{ "run" }},
   render = function()
-    local got = ((thurbox and thurbox.runs) or {{}})["mine"]
+    local got = ((talos and talos.runs) or {{}})["mine"]
     local text = got and got.stdout or "nothing"
     return {{ type = "text", text = text }}
   end,
@@ -270,7 +270,7 @@ fn a_plugin_may_be_written_as_several_modules() {
     // this is a guarantee rather than an accident of how `require` resolves.
     let home = tempfile::tempdir().expect("tempdir");
     let ui = home.path().join("ui");
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
     std::fs::create_dir_all(ui.join("mine")).expect("mkdir");
     std::fs::write(
         ui.join("mine").join("parse.lua"),
@@ -326,8 +326,8 @@ fn an_ask_names_a_session_that_must_exist() {
         key: "k".into(),
         program: "true".into(),
         session: "nope".into(),
-        ttl: thurbox::kernel::runs::DEFAULT_TTL,
-        timeout: thurbox::kernel::runs::DEFAULT_TIMEOUT,
+        ttl: talos::kernel::runs::DEFAULT_TTL,
+        timeout: talos::kernel::runs::DEFAULT_TIMEOUT,
         refresh: false,
     };
     assert_eq!(ask.session, "nope");

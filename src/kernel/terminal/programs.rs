@@ -325,7 +325,7 @@ impl Terminals {
     ) -> Option<String> {
         // `window_panes`, not `discover`: a program window has no session id to
         // resolve by, only its deterministic name. Discovery does list it, but
-        // stamped `@thurbox_role=program` and unowned, so it can never be
+        // stamped `@talos_role=program` and unowned, so it can never be
         // adopted as a session's agent (ADR-25).
         let mut live = None;
         for (backend_id, dead) in backend.window_panes(window).unwrap_or_default() {

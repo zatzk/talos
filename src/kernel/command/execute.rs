@@ -293,7 +293,7 @@ fn session_name(
 ///
 /// The whole pipeline — repo resolution, worktree checkout, multi-repo
 /// workspace, agent launch — already exists as `spawn_session_headless` and is
-/// what `thurbox-cli session create` uses. Reusing it unchanged means creation
+/// what `talos-cli session create` uses. Reusing it unchanged means creation
 /// behaves identically whether it came from a plugin or a script, and there is
 /// one cleanup path for a failure rather than two.
 #[allow(clippy::too_many_arguments)]
@@ -334,7 +334,7 @@ fn create(
     // Same reasoning as `repo_path` above, and the same local-only caveat: an
     // opened worktree becomes the session's cwd, so a path that isn't there
     // yields a pane that cannot start rather than a stated error. The picker
-    // only offers paths `git worktree list` reported, but `thurbox-cli` and
+    // only offers paths `git worktree list` reported, but `talos-cli` and
     // plugins can name any path at all.
     let opened = worktree_path.map(crate::paths::expand_tilde);
     if let Some(worktree) = &opened {
@@ -540,7 +540,7 @@ fn bookmark_add(
 /// Fork a session: a new one on the same repository, recording its parent.
 ///
 /// The work is [`crate::session_ops::fork_session_headless`], so the interface
-/// and `thurbox-cli session fork` produce the same session rather than two
+/// and `talos-cli session fork` produce the same session rather than two
 /// implementations that drift.
 fn fork(
     db: &Database,
@@ -638,7 +638,7 @@ fn task(
     }
 
     if let Some(status) = status {
-        // The same three names `thurbox-cli task edit --status` accepts, so a
+        // The same three names `talos-cli task edit --status` accepts, so a
         // plugin and a script speak one vocabulary.
         let status = match status.as_str() {
             "todo" => TaskStatus::Todo,
@@ -668,7 +668,7 @@ fn task(
 
 /// Hand a task to an agent.
 ///
-/// The prompt is `Task::agent_prompt()` — the same one `thurbox-cli task run`
+/// The prompt is `Task::agent_prompt()` — the same one `talos-cli task run`
 /// builds — so an agent gets identical context however it was handed the work,
 /// and there is one place to change what it is told.
 fn dispatch_task(
@@ -906,8 +906,8 @@ mod tests {
     #[test]
     fn a_plain_session_is_named_after_its_repository() {
         assert_eq!(
-            session_name("", None, None, std::path::Path::new("/srv/thurbox")),
-            "thurbox"
+            session_name("", None, None, std::path::Path::new("/srv/talos")),
+            "talos"
         );
     }
 

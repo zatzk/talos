@@ -10,15 +10,15 @@ use ratatui::layout::Rect;
 use ratatui::Terminal;
 
 use ratatui::style::Color;
-use thurbox::kernel::bands::BandState;
-use thurbox::kernel::command::{Command, CommandBus, InFlight};
-use thurbox::kernel::host::{LuaHost, Published, RenderContext};
-use thurbox::kernel::layout::{resolve, SlotRect};
-use thurbox::kernel::node::ClickVerb;
-use thurbox::kernel::registry::Registry;
-use thurbox::kernel::snapshot::{AutomationRow, SessionRow, Snapshot};
-use thurbox::kernel::theme::Themes;
-use thurbox::session::SessionState;
+use talos::kernel::bands::BandState;
+use talos::kernel::command::{Command, CommandBus, InFlight};
+use talos::kernel::host::{LuaHost, Published, RenderContext};
+use talos::kernel::layout::{resolve, SlotRect};
+use talos::kernel::node::ClickVerb;
+use talos::kernel::registry::Registry;
+use talos::kernel::snapshot::{AutomationRow, SessionRow, Snapshot};
+use talos::kernel::theme::Themes;
+use talos::session::SessionState;
 
 fn host() -> LuaHost {
     let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui");
@@ -98,10 +98,10 @@ fn publish_with(
     let mut registry = Registry::default();
     let (bindings, settings) = host.declarations();
     registry.declare(bindings, settings);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     host.publish(&Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot,
         attach_errors: &Default::default(),
         inflight,
@@ -183,11 +183,11 @@ fn screen(
     let mut terminal = Terminal::new(TestBackend::new(width, height)).expect("terminal");
     terminal
         .draw(|frame| {
-            thurbox::kernel::paint::render(
+            talos::kernel::paint::render(
                 frame,
                 frame.area(),
                 &node,
-                &thurbox::kernel::paint::PlaceholderSurfaces,
+                &talos::kernel::paint::PlaceholderSurfaces,
             )
         })
         .expect("draw");
@@ -234,11 +234,11 @@ fn rect_of(placed: &[SlotRect], slot: &str) -> Option<Rect> {
 // ── Chrome bands (kernel-rendered, arrangement-placed) ─────────────────────
 
 /// Place a band and paint it, returning the row it drew.
-fn band_row(band: thurbox::kernel::bands::Band, state: &BandState<'_>, width: u16) -> String {
+fn band_row(band: talos::kernel::bands::Band, state: &BandState<'_>, width: u16) -> String {
     let mut terminal = Terminal::new(TestBackend::new(width, 1)).expect("terminal");
     terminal
         .draw(|frame| {
-            thurbox::kernel::bands::render(frame, frame.area(), band, state);
+            talos::kernel::bands::render(frame, frame.area(), band, state);
         })
         .expect("draw");
     let buffer = terminal.backend().buffer().clone();
@@ -252,7 +252,7 @@ fn band_row(band: thurbox::kernel::bands::Band, state: &BandState<'_>, width: u1
 fn band_state<'a>(
     registry: &'a Registry,
     themes: &'a Themes,
-    message: Option<(&'a str, thurbox::kernel::bands::Level)>,
+    message: Option<(&'a str, talos::kernel::bands::Level)>,
 ) -> BandState<'a> {
     BandState {
         version: "9.9.9",
@@ -275,9 +275,9 @@ fn the_identity_band_names_the_product_its_version_and_the_theme() {
     let themes = Themes::load(None);
     let registry = Registry::default();
     let state = band_state(&registry, &themes, None);
-    let row = band_row(thurbox::kernel::bands::Band::Identity, &state, 110);
+    let row = band_row(talos::kernel::bands::Band::Identity, &state, 110);
 
-    assert!(row.contains("thurbox"), "{row}");
+    assert!(row.contains("talos"), "{row}");
     assert!(row.contains("v9.9.9"), "the running version: {row}");
     assert!(row.contains("Default"), "the active theme: {row}");
     assert!(row.contains("fix-osc52"), "the selected session: {row}");
@@ -293,7 +293,7 @@ fn the_identity_band_announces_a_newer_version_when_one_is_known() {
     let registry = Registry::default();
     let mut state = band_state(&registry, &themes, None);
     state.update_available = Some("10.0.0");
-    let row = band_row(thurbox::kernel::bands::Band::Identity, &state, 110);
+    let row = band_row(talos::kernel::bands::Band::Identity, &state, 110);
 
     assert!(row.contains("v9.9.9"), "still names what is running: {row}");
     assert!(row.contains("v10.0.0 available"), "{row}");
@@ -301,7 +301,7 @@ fn the_identity_band_announces_a_newer_version_when_one_is_known() {
 
 #[test]
 fn the_message_band_badges_each_severity_differently() {
-    use thurbox::kernel::bands::Level;
+    use talos::kernel::bands::Level;
     let themes = Themes::load(None);
     let registry = Registry::default();
 
@@ -311,7 +311,7 @@ fn the_message_band_badges_each_severity_differently() {
         (Level::Error, "ERROR"),
     ] {
         let state = band_state(&registry, &themes, Some(("something happened", level)));
-        let row = band_row(thurbox::kernel::bands::Band::Message, &state, 60);
+        let row = band_row(talos::kernel::bands::Band::Message, &state, 60);
         assert!(row.contains(badge), "{level:?} should badge {badge}: {row}");
         assert!(row.contains("something happened"), "{row}");
     }
@@ -323,7 +323,7 @@ fn the_message_band_draws_nothing_when_there_is_nothing_to_say() {
     let registry = Registry::default();
     let state = band_state(&registry, &themes, None);
     assert_eq!(
-        band_row(thurbox::kernel::bands::Band::Message, &state, 60),
+        band_row(talos::kernel::bands::Band::Message, &state, 60),
         "",
         "an empty message band must not paint"
     );
@@ -331,14 +331,14 @@ fn the_message_band_draws_nothing_when_there_is_nothing_to_say() {
 
 #[test]
 fn progress_outranks_a_message_because_it_outlives_one() {
-    use thurbox::kernel::bands::Level;
+    use talos::kernel::bands::Level;
     let themes = Themes::load(None);
     let registry = Registry::default();
     let mut state = band_state(&registry, &themes, Some(("done", Level::Info)));
-    state.progress = Some("creating thurbox");
-    let row = band_row(thurbox::kernel::bands::Band::Message, &state, 60);
+    state.progress = Some("creating talos");
+    let row = band_row(talos::kernel::bands::Band::Message, &state, 60);
 
-    assert!(row.contains("creating thurbox"), "{row}");
+    assert!(row.contains("creating talos"), "{row}");
     assert!(
         !row.contains("done"),
         "the toast yields to live work: {row}"
@@ -353,12 +353,12 @@ fn the_action_band_carries_the_focus_the_counts_and_the_entries() {
     // plus the kernel's own, so the band sees what it sees at runtime.
     let mut registry = Registry::default();
     let (mut bindings, settings, mut pills) = host.all_declarations();
-    bindings.extend(thurbox::kernel::modals::bindings());
-    pills.extend(thurbox::kernel::modals::pills());
+    bindings.extend(talos::kernel::modals::bindings());
+    pills.extend(talos::kernel::modals::pills());
     registry.declare_all(bindings, settings, pills);
 
     let state = band_state(&registry, &themes, None);
-    let row = band_row(thurbox::kernel::bands::Band::Action, &state, 110);
+    let row = band_row(talos::kernel::bands::Band::Action, &state, 110);
 
     // v1's left cluster, in its four parts: the focused surface as a badge, the
     // counts in v1's own `session(s)` spelling, then the informational chords.
@@ -384,15 +384,15 @@ fn the_action_band_carries_the_focus_the_counts_and_the_entries() {
 }
 
 /// Paint the action band and return both the row and the hitboxes it recorded.
-fn action_band(state: &BandState<'_>, width: u16) -> (String, Vec<thurbox::kernel::bands::Hit>) {
+fn action_band(state: &BandState<'_>, width: u16) -> (String, Vec<talos::kernel::bands::Hit>) {
     let mut hits = Vec::new();
     let mut terminal = Terminal::new(TestBackend::new(width, 1)).expect("terminal");
     terminal
         .draw(|frame| {
-            hits = thurbox::kernel::bands::render(
+            hits = talos::kernel::bands::render(
                 frame,
                 frame.area(),
-                thurbox::kernel::bands::Band::Action,
+                talos::kernel::bands::Band::Action,
                 state,
             );
         })
@@ -407,8 +407,8 @@ fn action_band(state: &BandState<'_>, width: u16) -> (String, Vec<thurbox::kerne
 fn action_registry(host: &LuaHost) -> Registry {
     let mut registry = Registry::default();
     let (mut bindings, settings, mut pills) = host.all_declarations();
-    bindings.extend(thurbox::kernel::modals::bindings());
-    pills.extend(thurbox::kernel::modals::pills());
+    bindings.extend(talos::kernel::modals::bindings());
+    pills.extend(talos::kernel::modals::pills());
     registry.declare_all(bindings, settings, pills);
     registry
 }
@@ -435,7 +435,7 @@ fn every_entry_is_a_button_with_a_hitbox_over_its_own_label() {
         // Quit is the one exception, and by design: it is reserved rather than
         // declared, so there is no binding for it to be found under.
         assert!(
-            action == thurbox::kernel::bands::QUIT_ACTION
+            action == talos::kernel::bands::QUIT_ACTION
                 || registry.bindings().iter().any(|b| b.action == action),
             "{action} is not declared anywhere"
         );
@@ -476,11 +476,11 @@ fn the_left_cluster_gives_up_its_parts_tail_first() {
     let registry = action_registry(&host);
     let state = band_state(&registry, &themes, None);
 
-    let wide = band_row(thurbox::kernel::bands::Band::Action, &state, 160);
+    let wide = band_row(talos::kernel::bands::Band::Action, &state, 160);
     assert!(wide.contains("^O Open"), "everything fits at 160: {wide}");
 
     // Narrow enough that the hints cannot survive beside the entries.
-    let narrow = band_row(thurbox::kernel::bands::Band::Action, &state, 60);
+    let narrow = band_row(talos::kernel::bands::Band::Action, &state, 60);
     assert!(
         narrow.contains("Agent"),
         "the badge outlives the rest: {narrow}"
@@ -492,7 +492,7 @@ fn the_left_cluster_gives_up_its_parts_tail_first() {
     assert!(!wide.contains("automation"), "none configured: {wide}");
     let mut busy = band_state(&registry, &themes, None);
     busy.automation_count = 2;
-    let with_autos = band_row(thurbox::kernel::bands::Band::Action, &busy, 160);
+    let with_autos = band_row(talos::kernel::bands::Band::Action, &busy, 160);
     assert!(with_autos.contains("2 automation(s)"), "{with_autos}");
 }
 
@@ -505,11 +505,11 @@ fn quit_outlives_every_other_entry_when_the_band_narrows() {
     let registry = action_registry(&host);
     let state = band_state(&registry, &themes, None);
 
-    let wide = band_row(thurbox::kernel::bands::Band::Action, &state, 160);
+    let wide = band_row(talos::kernel::bands::Band::Action, &state, 160);
     assert!(wide.contains("Help · F1"), "{wide}");
     assert!(wide.contains("Quit · ^Q"), "{wide}");
 
-    let narrow = band_row(thurbox::kernel::bands::Band::Action, &state, 20);
+    let narrow = band_row(talos::kernel::bands::Band::Action, &state, 20);
     assert!(narrow.contains("Quit · ^Q"), "quit survives: {narrow}");
     assert!(
         !narrow.contains("Help"),
@@ -533,10 +533,10 @@ fn an_entry_is_formatted_the_way_v1_formats_a_footer_pill() {
     let mut terminal = Terminal::new(TestBackend::new(width, 1)).expect("terminal");
     terminal
         .draw(|frame| {
-            hits = thurbox::kernel::bands::render(
+            hits = talos::kernel::bands::render(
                 frame,
                 frame.area(),
-                thurbox::kernel::bands::Band::Action,
+                talos::kernel::bands::Band::Action,
                 &state,
             );
         })
@@ -601,10 +601,10 @@ fn a_hovered_entry_lights_and_its_neighbours_do_not() {
         let mut terminal = Terminal::new(TestBackend::new(110, 1)).expect("terminal");
         terminal
             .draw(|frame| {
-                thurbox::kernel::bands::render(
+                talos::kernel::bands::render(
                     frame,
                     frame.area(),
-                    thurbox::kernel::bands::Band::Action,
+                    talos::kernel::bands::Band::Action,
                     state,
                 );
             })
@@ -674,8 +674,8 @@ fn a_housekeeping_sweep_neither_captions_the_band_nor_reflows_the_frame() {
     // runs on a thread of its own and would otherwise open — and sweep — the
     // developer's real database. nextest runs a process per test.
     let home = tempfile::tempdir().expect("tempdir");
-    std::env::set_var("THURBOX_CONFIG_DIR", home.path().join("config"));
-    std::env::set_var("THURBOX_DATA_DIR", home.path().join("data"));
+    std::env::set_var("TALOS_CONFIG_DIR", home.path().join("config"));
+    std::env::set_var("TALOS_DATA_DIR", home.path().join("data"));
 
     let host = host();
     let themes = Themes::load(None);
@@ -683,7 +683,7 @@ fn a_housekeeping_sweep_neither_captions_the_band_nor_reflows_the_frame() {
     let quiet = rect_of(&slots(&host, &world(0), 160, 40), "sessions").expect("a session column");
 
     let bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     bus.dispatch(Command::Reap);
     assert!(
@@ -715,7 +715,7 @@ fn a_housekeeping_sweep_neither_captions_the_band_nor_reflows_the_frame() {
     let label = progress_label(&bus);
     state.progress = label.as_deref();
     assert_eq!(
-        band_row(thurbox::kernel::bands::Band::Message, &state, 60),
+        band_row(talos::kernel::bands::Band::Message, &state, 60),
         "",
         "and there is nothing to caption"
     );
@@ -755,7 +755,7 @@ fn pane_slots(placed: &[SlotRect]) -> Vec<&str> {
     placed
         .iter()
         .map(|s| s.slot.as_str())
-        .filter(|slot| thurbox::kernel::bands::Band::from_slot(slot).is_none())
+        .filter(|slot| talos::kernel::bands::Band::from_slot(slot).is_none())
         .collect()
 }
 
@@ -852,18 +852,18 @@ fn framed(host: &LuaHost, pane: &str, focused: bool, theme: &str) -> ratatui::bu
 }
 
 fn paint_node(
-    node: &thurbox::kernel::node::Node,
+    node: &talos::kernel::node::Node,
     width: u16,
     height: u16,
 ) -> ratatui::buffer::Buffer {
     let mut terminal = Terminal::new(TestBackend::new(width, height)).expect("terminal");
     terminal
         .draw(|frame| {
-            thurbox::kernel::paint::render(
+            talos::kernel::paint::render(
                 frame,
                 frame.area(),
                 node,
-                &thurbox::kernel::paint::PlaceholderSurfaces,
+                &talos::kernel::paint::PlaceholderSurfaces,
             )
         })
         .expect("draw");
@@ -890,7 +890,7 @@ fn role(theme: &str, name: &str) -> String {
 }
 
 fn colour(color: Color) -> String {
-    thurbox::kernel::theme::color_to_string(&color).to_lowercase()
+    talos::kernel::theme::color_to_string(&color).to_lowercase()
 }
 
 #[test]
@@ -1020,7 +1020,7 @@ fn widgets_panel_keeps_the_shape_it_always_returned() {
     // `borders` and `padding`. The focus frame is added beside them.
     let home = tempfile::tempdir().expect("tempdir");
     let ui = home.path().join("ui");
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
     std::fs::write(
         ui.join("plugins").join("50_shape.lua"),
         r#"local widgets = require("lib.widgets")
@@ -1106,7 +1106,7 @@ fn a_third_party_pane_calling_ui_panel_gets_the_focus_treatment_for_free() {
     // `ui.panel`. Nothing else: no border type, no colour, no mark.
     let home = tempfile::tempdir().expect("tempdir");
     let ui = home.path().join("ui");
-    thurbox::kernel::bundled::materialize(&ui);
+    talos::kernel::bundled::materialize(&ui);
     std::fs::write(
         ui.join("plugins").join("50_notes.lua"),
         r#"local ui = require("lib.ui")
@@ -1237,14 +1237,14 @@ fn the_welcome_screen_draws_no_strip() {
 /// compares cells, so a band that repainted the same text in a different style
 /// would still keep it awake.
 fn band_cells(
-    band: thurbox::kernel::bands::Band,
+    band: talos::kernel::bands::Band,
     state: &BandState<'_>,
     width: u16,
 ) -> Vec<ratatui::buffer::Cell> {
     let mut terminal = Terminal::new(TestBackend::new(width, 1)).expect("terminal");
     terminal
         .draw(|frame| {
-            thurbox::kernel::bands::render(frame, frame.area(), band, state);
+            talos::kernel::bands::render(frame, frame.area(), band, state);
         })
         .expect("draw");
     let buffer = terminal.backend().buffer().clone();
@@ -1268,8 +1268,8 @@ fn a_band_repaints_identically_from_identical_state() {
     let state = band_state(&registry, &themes, None);
 
     for band in [
-        thurbox::kernel::bands::Band::Identity,
-        thurbox::kernel::bands::Band::Action,
+        talos::kernel::bands::Band::Identity,
+        talos::kernel::bands::Band::Action,
     ] {
         let first = band_cells(band, &state, 110);
         let again = band_cells(band, &state, 110);
@@ -1292,11 +1292,11 @@ fn a_band_repaints_differently_when_what_it_says_changes() {
     let noisy = band_state(
         &registry,
         &themes,
-        Some(("worktree created", thurbox::kernel::bands::Level::Info)),
+        Some(("worktree created", talos::kernel::bands::Level::Info)),
     );
 
-    let before = band_cells(thurbox::kernel::bands::Band::Message, &quiet, 110);
-    let after = band_cells(thurbox::kernel::bands::Band::Message, &noisy, 110);
+    let before = band_cells(talos::kernel::bands::Band::Message, &quiet, 110);
+    let after = band_cells(talos::kernel::bands::Band::Message, &noisy, 110);
     assert!(
         before != after,
         "the message band painted the same cells with and without a message"

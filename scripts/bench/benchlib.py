@@ -319,7 +319,7 @@ ANSI = re.compile(rb"\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(\x07|\x1b\\)|\x1
 
 
 class PtyClient:
-    """An interactive client (``tmux attach``, ``herdr``, ``thurbox``) running
+    """An interactive client (``tmux attach``, ``herdr``, ``talos``) running
     on a pty of ``COLS``x``ROWS``, the way a user's terminal would host it.
 
     Everything it prints is kept, so a scenario can ask "has X appeared since

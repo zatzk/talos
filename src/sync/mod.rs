@@ -1,6 +1,6 @@
 //! Shared-state types for multi-instance synchronization.
 //!
-//! Multiple thurbox processes (the TUI, `thurbox-cli`, an automation tick) share
+//! Multiple talos processes (the TUI, `talos-cli`, an automation tick) share
 //! one SQLite database in WAL mode; each notices the others' commits by polling
 //! `PRAGMA data_version` (`storage::Database::data_version`) and re-reading the
 //! rows it cares about. What lives here is the data those readers exchange —

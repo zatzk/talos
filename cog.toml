@@ -41,7 +41,7 @@ revert = { changelog_title = "Reverts", order = 6 }
 path = "CHANGELOG.md"
 template = "remote"
 remote = "github.com"
-repository = "thurbox"
+repository = "talos"
 owner = "Thurbeen"
 
 # Map git signatures to GitHub usernames

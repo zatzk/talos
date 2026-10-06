@@ -1,4 +1,4 @@
-//! Every `git` invocation thurbox makes, local or on a remote host.
+//! Every `git` invocation talos makes, local or on a remote host.
 //!
 //! Split by concern — `command` builds the process (and scrubs the inherited
 //! `GIT_*` that would silently retarget it), `plugin` clones a plugin's working

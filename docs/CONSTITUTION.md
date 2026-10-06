@@ -1,6 +1,6 @@
 # Constitution
 
-Non-negotiable rules that define what Thurbox **must** always be.
+Non-negotiable rules that define what Talos **must** always be.
 Each principle has an automated enforcement mechanism
 — if it can't be enforced, it doesn't belong here.
 
@@ -179,7 +179,7 @@ with a mechanism rather than a review habit:
 4. **Capabilities by absence** — an ungranted capability is *not in the
    environment*; `io`, `os`, `debug`, `package` and the loaders are
    withheld.
-   *Enforced by* `thurbox.yml` (selene's stdlib for `ui/`, which declares
+   *Enforced by* `talos.yml` (selene's stdlib for `ui/`, which declares
    no `base:`), `lua-language-server`'s `runtime.builtin`, and
    `tests/kernel_mvp.rs`, which enumerates the plugin environment
    global-by-global so a new one has to be added deliberately.
@@ -193,7 +193,7 @@ No ad-hoc event handlers, no component-local state, no callback chains.
 
 Coding-agent sessions run via a `SessionBackend` trait, one backend per route
 in the registry (ADR-29). The default is the platform's multiplexer run
-locally (`tmux -L thurbox`; `psmux` on native Windows). Each adapter —
+locally (`tmux -L talos`; `psmux` on native Windows). Each adapter —
 `TmuxBackend`, `PsmuxBackend`, `RmuxBackend`, peers over one tmux-protocol server (ADR-31) —
 runs over a transport, local, SSH or WSL, so a session can live on another
 host with no adapter of its own for that (ADR-13). The multiplexer provides
@@ -204,7 +204,7 @@ The backend is the source of truth for session lifecycle.
 ### 9. Logging never touches stdout
 
 Stdout belongs to the TUI. All diagnostic output goes to the log file
-at `~/.local/share/thurbox/thurbox.log`.
+at `~/.local/share/talos/talos.log`.
 
 ### 10. Test-driven development (Red, Green, Refactor)
 
@@ -244,7 +244,7 @@ binaries have correct versions while keeping the source tree clean.
 
 1. Release workflow (`release.yml`) analyzes commits via `cog bump --auto --dry-run`
 2. Workflow creates lightweight tag (v{version}) and passes version via environment variable
-3. `build.rs` reads `THURBOX_RELEASE_VERSION` and injects into binary
+3. `build.rs` reads `TALOS_RELEASE_VERSION` and injects into binary
 4. Cargo.toml version remains `0.0.0-dev` (development marker only)
 
 **Result:**
@@ -262,7 +262,7 @@ binaries have correct versions while keeping the source tree clean.
 | Permissive licenses | `cargo-deny check bans licenses` | `deny.toml` |
 | Zero vulnerabilities | `cargo-deny check advisories` | `deny.toml` |
 | Conventional commits | `scripts/ci/check-pr-title.sh` (required `PR Title` check) + `cog verify` in `commit-msg` | `cog.toml` |
-| Plugin-kernel rules | `tests/kernel_mvp.rs` + `thurbox.yml` (selene) + `.luarc.json` (luals) | `thurbox.yml` |
+| Plugin-kernel rules | `tests/kernel_mvp.rs` + `talos.yml` (selene) + `.luarc.json` (luals) | `talos.yml` |
 | Backend-first model | Code review | — |
 | Logging off stdout | Code review | — |
 | TDD (Red/Green/Refactor) | `cargo-nextest` + code review | `.config/nextest.toml` |

@@ -9,7 +9,7 @@
     behavioral tests for the two pure helpers exposed for testing -
     Get-Target and Get-ExpectedChecksum.
 
-    install.ps1 guards the installer behind $env:THURBOX_PS_TEST, so dot-sourcing
+    install.ps1 guards the installer behind $env:TALOS_PS_TEST, so dot-sourcing
     it here defines every function without running Invoke-Install.
 
 .EXAMPLE
@@ -23,14 +23,14 @@
 
 BeforeAll {
     $script:ScriptPath = Join-Path $PSScriptRoot 'install.ps1'
-    $env:THURBOX_PS_TEST = '1'
+    $env:TALOS_PS_TEST = '1'
     # Dot-source so the helper functions land in this scope; the
-    # THURBOX_PS_TEST guard keeps Invoke-Install from firing.
+    # TALOS_PS_TEST guard keeps Invoke-Install from firing.
     . $script:ScriptPath
 }
 
 AfterAll {
-    Remove-Item Env:\THURBOX_PS_TEST -ErrorAction SilentlyContinue
+    Remove-Item Env:\TALOS_PS_TEST -ErrorAction SilentlyContinue
 }
 
 Describe 'install.ps1 source' {
@@ -57,8 +57,8 @@ Describe 'install.ps1 source' {
             Should -BeFalse
     }
 
-    It 'guards the installer behind $env:THURBOX_PS_TEST' {
-        (Get-Content $script:ScriptPath -Raw) | Should -Match 'THURBOX_PS_TEST'
+    It 'guards the installer behind $env:TALOS_PS_TEST' {
+        (Get-Content $script:ScriptPath -Raw) | Should -Match 'TALOS_PS_TEST'
     }
 
     It 'defines the <Name> function' -ForEach @(
@@ -107,7 +107,7 @@ Describe 'Get-Target' {
 
 Describe 'Get-ExpectedChecksum' {
     BeforeAll {
-        $script:Archive = 'thurbox-v1.2.3-x86_64-pc-windows-msvc.zip'
+        $script:Archive = 'talos-v1.2.3-x86_64-pc-windows-msvc.zip'
         $script:Hash    = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
     }
 
@@ -141,9 +141,9 @@ Describe 'Get-ExpectedChecksum' {
     It 'selects the correct line among several entries' {
         $other = 'a' * 64
         Set-Content -Path $script:Checksums -Value @(
-            "$other  thurbox-v1.2.3-x86_64-unknown-linux-musl.tar.gz"
+            "$other  talos-v1.2.3-x86_64-unknown-linux-musl.tar.gz"
             "$script:Hash  $script:Archive"
-            "$other  thurbox-v1.2.3-aarch64-apple-darwin.tar.gz"
+            "$other  talos-v1.2.3-aarch64-apple-darwin.tar.gz"
         )
         Get-ExpectedChecksum -ChecksumFile $script:Checksums -ArchiveName $script:Archive |
             Should -Be $script:Hash
@@ -168,7 +168,7 @@ Describe 'Install-Archive' {
             param([string]$Dir, [string]$Payload)
             $src = Join-Path $Dir 'zip-src'
             New-Item -ItemType Directory -Path $src -Force | Out-Null
-            foreach ($name in 'thurbox.exe', 'thurbox-cli.exe') {
+            foreach ($name in 'talos.exe', 'talos-cli.exe') {
                 Set-Content -Path (Join-Path $src $name) -Value $Payload -NoNewline
             }
             $zip = Join-Path $Dir 'release.zip'
@@ -178,7 +178,7 @@ Describe 'Install-Archive' {
     }
 
     BeforeEach {
-        $script:Work = Join-Path ([System.IO.Path]::GetTempPath()) ('thurbox-test-' + [guid]::NewGuid().ToString('N'))
+        $script:Work = Join-Path ([System.IO.Path]::GetTempPath()) ('talos-test-' + [guid]::NewGuid().ToString('N'))
         $script:Dest = Join-Path $script:Work 'install'
         New-Item -ItemType Directory -Path $script:Dest -Force | Out-Null
         $script:Zip = New-ReleaseZip -Dir $script:Work -Payload 'new'
@@ -190,23 +190,23 @@ Describe 'Install-Archive' {
 
     It 'installs into an empty directory' {
         Install-Archive -ZipPath $script:Zip -Destination $script:Dest
-        Get-Content -Raw (Join-Path $script:Dest 'thurbox.exe') | Should -Be 'new'
-        Get-Content -Raw (Join-Path $script:Dest 'thurbox-cli.exe') | Should -Be 'new'
+        Get-Content -Raw (Join-Path $script:Dest 'talos.exe') | Should -Be 'new'
+        Get-Content -Raw (Join-Path $script:Dest 'talos-cli.exe') | Should -Be 'new'
     }
 
     It 'replaces an existing install and leaves no backup behind' {
-        foreach ($name in 'thurbox.exe', 'thurbox-cli.exe') {
+        foreach ($name in 'talos.exe', 'talos-cli.exe') {
             Set-Content -Path (Join-Path $script:Dest $name) -Value 'old' -NoNewline
         }
         Install-Archive -ZipPath $script:Zip -Destination $script:Dest
-        Get-Content -Raw (Join-Path $script:Dest 'thurbox.exe') | Should -Be 'new'
+        Get-Content -Raw (Join-Path $script:Dest 'talos.exe') | Should -Be 'new'
         @(Get-ChildItem -Force $script:Dest -Filter '*.old').Count | Should -Be 0
     }
 
-    It 'replaces thurbox.exe while it is running' -Skip:(-not $script:OnWindows) {
+    It 'replaces talos.exe while it is running' -Skip:(-not $script:OnWindows) {
         # A real executable, so Windows maps it the way it maps a running
-        # thurbox: deleting it is refused, renaming it is not.
-        $exe = Join-Path $script:Dest 'thurbox.exe'
+        # talos: deleting it is refused, renaming it is not.
+        $exe = Join-Path $script:Dest 'talos.exe'
         Copy-Item (Join-Path $env:SystemRoot 'System32\PING.EXE') $exe
         $proc = Start-Process -FilePath $exe -ArgumentList '-n', '60', '127.0.0.1' -WindowStyle Hidden -PassThru
         try {
@@ -220,20 +220,20 @@ Describe 'Install-Archive' {
     }
 
     It 'names the process to close when the backup is still running too' -Skip:(-not $script:OnWindows) {
-        $exe = Join-Path $script:Dest 'thurbox.exe'
+        $exe = Join-Path $script:Dest 'talos.exe'
         $ping = Join-Path $env:SystemRoot 'System32\PING.EXE'
         Copy-Item $ping $exe
         $first = Start-Process -FilePath $exe -ArgumentList '-n', '60', '127.0.0.1' -WindowStyle Hidden -PassThru
         $second = $null
         try {
-            # The first update moves the running image to .thurbox.exe.old ...
+            # The first update moves the running image to .talos.exe.old ...
             Install-Archive -ZipPath $script:Zip -Destination $script:Dest
-            # ... and a second thurbox, started from the new binary, then holds
+            # ... and a second talos, started from the new binary, then holds
             # both files the next update has to move.
             Copy-Item $ping $exe -Force
             $second = Start-Process -FilePath $exe -ArgumentList '-n', '60', '127.0.0.1' -WindowStyle Hidden -PassThru
             { Install-Archive -ZipPath $script:Zip -Destination $script:Dest } |
-                Should -Throw "*in use by thurbox (PID *$($first.Id)*Close it and run the installer again*"
+                Should -Throw "*in use by talos (PID *$($first.Id)*Close it and run the installer again*"
         }
         finally {
             foreach ($p in @($first, $second) | Where-Object { $_ }) {
@@ -244,14 +244,14 @@ Describe 'Install-Archive' {
     }
 
     It 'puts the installed file back when the new one cannot be moved in' {
-        $exe = Join-Path $script:Dest 'thurbox.exe'
+        $exe = Join-Path $script:Dest 'talos.exe'
         Set-Content -Path $exe -Value 'old' -NoNewline
-        # Only the move of the new thurbox.exe fails - after the installed one
+        # Only the move of the new talos.exe fails - after the installed one
         # has been moved aside, which is the state that must not be left.
         $real = Get-Command Move-Item -CommandType Cmdlet
         Mock Move-Item { & $real @PesterBoundParameters }
         Mock Move-Item { throw 'simulated failure' } -ParameterFilter {
-            $LiteralPath -like '*.install-*' -and (Split-Path -Leaf $LiteralPath) -eq 'thurbox.exe'
+            $LiteralPath -like '*.install-*' -and (Split-Path -Leaf $LiteralPath) -eq 'talos.exe'
         }
         { Install-Archive -ZipPath $script:Zip -Destination $script:Dest } |
             Should -Throw '*simulated failure*'
@@ -259,7 +259,7 @@ Describe 'Install-Archive' {
     }
 
     It 'removes the backup a previous update left once nothing runs from it' {
-        $old = Join-Path $script:Dest '.thurbox.exe.old'
+        $old = Join-Path $script:Dest '.talos.exe.old'
         Set-Content -Path $old -Value 'stale' -NoNewline
         Install-Archive -ZipPath $script:Zip -Destination $script:Dest
         Test-Path $old | Should -BeFalse

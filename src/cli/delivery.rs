@@ -3,7 +3,7 @@
 //! `message send` used to type the word `inbox` into the recipient's pane and
 //! hope the agent drained its mailbox. The body never travelled that way — only
 //! a nudge did, by keystroke injection — and every consumer had to guess from
-//! screen contents whether typing was safe. Both agents thurbox runs most have a
+//! screen contents whether typing was safe. Both agents talos runs most have a
 //! real inbox instead, and this module hands the *body* to it:
 //!
 //! - **Claude Code** binds a Unix socket per session and exports its path to
@@ -28,15 +28,15 @@ use crate::sync::SharedSession;
 
 /// Session-meta key holding the Claude inbox socket, captured from the agent's
 /// own hook environment by `session signal` (see [`remember_claude_socket`]).
-pub(crate) const CLAUDE_SOCKET_META: &str = "thurbox.claude_messaging_socket";
+pub(crate) const CLAUDE_SOCKET_META: &str = "talos.claude_messaging_socket";
 
 /// Session-meta key holding the Claude session registry the recipient's own
 /// hook saw, which differs from the sender's when the two run with different
 /// `$CLAUDE_CONFIG_DIR`s.
-const CLAUDE_REGISTRY_META: &str = "thurbox.claude_registry_dir";
+const CLAUDE_REGISTRY_META: &str = "talos.claude_registry_dir";
 
 /// Session-meta key `session bind-codex` records the Codex thread under.
-const CODEX_THREAD_META: &str = "thurbox.codex_conversation_id";
+const CODEX_THREAD_META: &str = "talos.codex_conversation_id";
 
 /// The env var Claude Code exports to hooks and its Bash tool.
 const CLAUDE_SOCKET_ENV: &str = "CLAUDE_CODE_MESSAGING_SOCKET";
@@ -188,7 +188,7 @@ fn claude_registry_dir() -> Option<PathBuf> {
     Some(base.join("sessions"))
 }
 
-/// Inbox sockets of the interactive Claude sessions running *as* thurbox
+/// Inbox sockets of the interactive Claude sessions running *as* talos
 /// session `session_id` in its agent pane `pane`, newest first.
 ///
 /// Each running Claude Code writes `<pid>.json` naming its pid, its `kind` and
@@ -199,15 +199,15 @@ fn claude_registry_dir() -> Option<PathBuf> {
 /// - **`kind` is `interactive`.** A `claude -p` run from inside the pane
 ///   inherits the pane's identity, so only the kind tells it apart from the
 ///   session the pane shows.
-/// - **The process's own environment carries `THURBOX_SESSION=<session_id>`.**
-///   thurbox injects that into every pane it spawns, so it is the recipient's
+/// - **The process's own environment carries `TALOS_SESSION=<session_id>`.**
+///   talos injects that into every pane it spawns, so it is the recipient's
 ///   identity read off the process that owns the socket. The weaker signals
 ///   are each wrong somewhere: the registry's `tmux` field names a pane id,
 ///   which another tmux server reuses; and `$CLAUDE_CODE_MESSAGING_SOCKET` in a
 ///   hook is inherited by every pane of a tmux server started from inside some
 ///   other Claude session.
 /// - **The process runs in the agent pane: its `TMUX_PANE` is `pane`.** The
-///   session's shell pane carries the same `THURBOX_SESSION`, so a `claude`
+///   session's shell pane carries the same `TALOS_SESSION`, so a `claude`
 ///   started there passes every check above, yet is not the agent the message
 ///   is for. Checked only when `pane` is a tmux pane id (`%N`).
 /// - **The path is still a socket.** An entry outlives a crashed process.
@@ -216,7 +216,7 @@ fn claude_registry_dir() -> Option<PathBuf> {
 /// is not used: the message then waits in the mailbox rather than risking the
 /// wrong recipient. The registry's `tmux` field is not consulted at all (the
 /// pane is read off the process, alongside its identity), and neither is
-/// thurbox's `agent_session_id`, which drifts from Claude's after a resume.
+/// talos's `agent_session_id`, which drifts from Claude's after a resume.
 fn owned_sockets(dir: &Path, session_id: &str, pane: &str) -> Vec<PathBuf> {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return Vec::new();
@@ -231,7 +231,7 @@ fn owned_sockets(dir: &Path, session_id: &str, pane: &str) -> Vec<PathBuf> {
             let socket = PathBuf::from(v["messagingSocketPath"].as_str()?);
             let pid = u32::try_from(v["pid"].as_u64()?).ok()?;
             let owned = is_socket(&socket)
-                && process_env_var(pid, "THURBOX_SESSION").as_deref() == Some(session_id)
+                && process_env_var(pid, "TALOS_SESSION").as_deref() == Some(session_id)
                 && (!pane.starts_with('%')
                     || process_env_var(pid, "TMUX_PANE").as_deref() == Some(pane));
             owned.then(|| (v["startedAt"].as_i64().unwrap_or(0), socket))
@@ -336,7 +336,7 @@ fn env_value<'a>(fields: impl Iterator<Item = &'a [u8]>, name: &str) -> Option<S
 }
 
 /// Record the Claude inbox socket of the calling agent, from the environment
-/// Claude Code gives its hooks. Called by `session signal`, which every thurbox
+/// Claude Code gives its hooks. Called by `session signal`, which every talos
 /// Claude hook runs, so a restarted session is recorded on its `SessionStart`.
 ///
 /// Recorded only once [`owned_sockets`] proves the socket belongs to
@@ -478,7 +478,7 @@ fn claude_envelope(text: &str) -> String {
 /// delivery, and the row is marked read so a drain does not repeat it.
 pub(crate) fn delivery_text(message: &SessionMessage, sender: Option<&str>) -> String {
     format!(
-        "[thurbox message #{} · kind: {} · from: {}]\n\n{}",
+        "[talos message #{} · kind: {} · from: {}]\n\n{}",
         message.id,
         message.kind,
         sender.unwrap_or("unknown sender"),
@@ -926,7 +926,7 @@ mod tests {
         assert_eq!(
             head,
             format!(
-                "[thurbox message #{} · kind: result · from: coder-x]",
+                "[talos message #{} · kind: result · from: coder-x]",
                 msg.id
             )
         );
@@ -976,11 +976,11 @@ mod tests {
     #[test]
     fn procargs_env_is_read_past_the_arguments() {
         let mut buf = 2i32.to_ne_bytes().to_vec();
-        buf.extend_from_slice(b"/bin/claude\0\0\0claude\0THURBOX_SESSION=arg\0");
-        buf.extend_from_slice(b"HOME=/h\0THURBOX_SESSION=abc\0\0junk=1\0");
+        buf.extend_from_slice(b"/bin/claude\0\0\0claude\0TALOS_SESSION=arg\0");
+        buf.extend_from_slice(b"HOME=/h\0TALOS_SESSION=abc\0\0junk=1\0");
         // The argument that merely looks like the variable is skipped.
         assert_eq!(
-            procargs_env_var(&buf, "THURBOX_SESSION").as_deref(),
+            procargs_env_var(&buf, "TALOS_SESSION").as_deref(),
             Some("abc")
         );
         assert_eq!(procargs_env_var(&buf, "HOME").as_deref(), Some("/h"));
@@ -989,8 +989,8 @@ mod tests {
         assert_eq!(procargs_env_var(&buf[..3], "HOME"), None);
     }
 
-    /// A live process started with `THURBOX_SESSION=<session>`, standing in for
-    /// the Claude Code a thurbox pane runs. It is this test binary running
+    /// A live process started with `TALOS_SESSION=<session>`, standing in for
+    /// the Claude Code a talos pane runs. It is this test binary running
     /// [`idle_as_a_claude_stand_in`]: macOS will not read the arguments of an
     /// Apple platform binary such as `/bin/sleep`, even a copy of one.
     #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -1009,7 +1009,7 @@ mod tests {
                 "cli::delivery::tests::idle_as_a_claude_stand_in",
                 "--ignored",
             ])
-            .env("THURBOX_SESSION", session)
+            .env("TALOS_SESSION", session)
             .env("TMUX_PANE", pane)
             .env(STAND_IN_ENV, "1")
             .stdout(std::process::Stdio::null())
@@ -1019,7 +1019,7 @@ mod tests {
     }
 
     #[cfg(any(target_os = "linux", target_os = "macos"))]
-    const STAND_IN_ENV: &str = "THURBOX_DELIVERY_TEST_STAND_IN";
+    const STAND_IN_ENV: &str = "TALOS_DELIVERY_TEST_STAND_IN";
 
     /// Not a test: the body of [`process_as`]'s child. Idles only when that
     /// child is what runs it.
@@ -1048,7 +1048,7 @@ mod tests {
         let listener = live.then(|| std::os::unix::net::UnixListener::bind(&socket).unwrap());
         let entry = serde_json::json!({
             "pid": pid, "kind": kind, "startedAt": started,
-            "tmux": "thurbox:@7.%7", "messagingSocketPath": socket,
+            "tmux": "talos:@7.%7", "messagingSocketPath": socket,
         });
         std::fs::write(dir.join(format!("{name}.json")), entry.to_string()).unwrap();
         (socket, listener)
@@ -1081,7 +1081,7 @@ mod tests {
         assert!(owned_sockets(dir.path(), me, "%7").is_empty());
     }
 
-    /// The session's shell pane carries its `THURBOX_SESSION` too, so a
+    /// The session's shell pane carries its `TALOS_SESSION` too, so a
     /// `claude` the user starts there has the recipient's identity; it is not
     /// the agent the session runs, and newest-first would otherwise pick it.
     #[cfg(any(target_os = "linux", target_os = "macos"))]

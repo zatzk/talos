@@ -25,10 +25,10 @@ use std::sync::Arc;
 
 use clap::Parser;
 use serde_json::Value;
-use thurbox::backend::{SessionBackend, WindowRole};
-use thurbox::session::{Multiplexer, Route, SessionId, Via};
-use thurbox::storage::Database;
-use thurbox::sync::SharedSession;
+use talos::backend::{SessionBackend, WindowRole};
+use talos::session::{Multiplexer, Route, SessionId, Via};
+use talos::storage::Database;
+use talos::sync::SharedSession;
 
 #[path = "support/tmux_server.rs"]
 mod tmux_server;
@@ -39,7 +39,7 @@ mod recording_backend;
 use recording_backend::RecordingBackend;
 use tmux_server::TmuxServer;
 
-const SOCKET: &str = "thurbox-hook-status-routing";
+const SOCKET: &str = "talos-hook-status-routing";
 
 /// Sharing off on every host, so nothing here delegates to a host's own CLI:
 /// the backend registered for each route is the only thing that can answer.
@@ -86,10 +86,10 @@ impl Instance {
     fn new(automations: bool) -> Self {
         let root = tempfile::tempdir().expect("tempdir");
         let server = TmuxServer::pin(SOCKET);
-        thurbox::paths::set_test_dir(root.path());
-        std::env::set_var(thurbox::paths::CONFIG_DIR_OVERRIDE_ENV, root.path());
-        std::env::set_var(thurbox::paths::DATA_DIR_OVERRIDE_ENV, root.path());
-        let config = thurbox::paths::config_file()
+        talos::paths::set_test_dir(root.path());
+        std::env::set_var(talos::paths::CONFIG_DIR_OVERRIDE_ENV, root.path());
+        std::env::set_var(talos::paths::DATA_DIR_OVERRIDE_ENV, root.path());
+        let config = talos::paths::config_file()
             .expect("config path")
             .parent()
             .expect("config dir")
@@ -119,17 +119,17 @@ impl Instance {
         let mut dirs = vec![bin];
         dirs.extend(std::env::split_paths(&path));
         std::env::set_var("PATH", std::env::join_paths(dirs).expect("PATH"));
-        for var in ["TMUX", "TMUX_PANE", "THURBOX_SESSION", "THURBOX_SESSION_ID"] {
+        for var in ["TMUX", "TMUX_PANE", "TALOS_SESSION", "TALOS_SESSION_ID"] {
             std::env::remove_var(var);
         }
-        let mut settings = thurbox::session::settings::Settings::default();
+        let mut settings = talos::session::settings::Settings::default();
         settings.features.automations = automations;
-        thurbox::session::settings::init(settings);
+        talos::session::settings::init(settings);
         Self { root, server }
     }
 
     fn db(&self) -> Database {
-        Database::open(&thurbox::paths::database_file().expect("db path")).expect("open db")
+        Database::open(&talos::paths::database_file().expect("db path")).expect("open db")
     }
 
     fn ssh_log(&self) -> String {
@@ -183,24 +183,24 @@ fn seed_row(db: &Database, name: &str, backend_type: &str, pane: &str) -> Sessio
     id
 }
 
-/// `thurbox-cli --json <args>` in-process, returning the document it printed.
+/// `talos-cli --json <args>` in-process, returning the document it printed.
 fn cli(
     db: &Database,
-    backends: &thurbox::cli::Backends<'_>,
+    backends: &talos::cli::Backends<'_>,
     args: &[&str],
 ) -> Result<Value, String> {
     let parsed =
-        thurbox::cli::Cli::try_parse_from(["thurbox-cli", "--json"].iter().chain(args).copied())
+        talos::cli::Cli::try_parse_from(["talos-cli", "--json"].iter().chain(args).copied())
             .map_err(|e| format!("parse {args:?}: {e}"))?;
     let output = match parsed.command {
-        Some(thurbox::cli::Command::Session { action }) => {
-            thurbox::cli::sessions::run(action, db, backends).map_err(|e| e.message)?
+        Some(talos::cli::Command::Session { action }) => {
+            talos::cli::sessions::run(action, db, backends).map_err(|e| e.message)?
         }
-        Some(thurbox::cli::Command::Automation { action }) => {
-            thurbox::cli::automations::run(action, db, backends)?
+        Some(talos::cli::Command::Automation { action }) => {
+            talos::cli::automations::run(action, db, backends)?
         }
-        Some(thurbox::cli::Command::Runtime { action }) => {
-            thurbox::cli::runtime::run(action, backends)
+        Some(talos::cli::Command::Runtime { action }) => {
+            talos::cli::runtime::run(action, backends)
         }
         other => panic!("not a command this test drives: {other:?}"),
     };
@@ -258,8 +258,8 @@ impl Routes {
 
     /// The registry the binary builds, with every route above served by its
     /// recorded backend — the tmux and psmux hosts' real adapters replaced.
-    fn registry(&self) -> thurbox::backend::BackendRegistry {
-        let (mut backends, _hosts, _warnings) = thurbox::backend::wiring::configured();
+    fn registry(&self) -> talos::backend::BackendRegistry {
+        let (mut backends, _hosts, _warnings) = talos::backend::wiring::configured();
         backends.register(local_probe(), self.local.clone());
         backends.register(far_probe(), self.far.clone());
         backends.register(tmux_host(), self.tmux_host.clone());
@@ -314,7 +314,7 @@ fn automation_tick_records_each_routes_own_hook_state() {
     db.set_hook_state(down, "working")
         .expect("seed a held state");
 
-    let backends = thurbox::cli::Backends::ready(routes.registry());
+    let backends = talos::cli::Backends::ready(routes.registry());
     cli(&db, &backends, &["automation", "tick"]).expect("automation tick");
 
     for (name, id, state) in &rows {
@@ -354,7 +354,7 @@ fn session_signal_reaches_the_rows_own_backend() {
         .local
         .open("tb-local-probe", &id.to_string(), WindowRole::Agent);
 
-    let backends = thurbox::cli::Backends::ready(routes.registry());
+    let backends = talos::cli::Backends::ready(routes.registry());
     cli(
         &db,
         &backends,
@@ -415,17 +415,17 @@ fn session_signal_on_a_local_row_builds_no_host_registry() {
     )
     .expect("wsl.exe stand-in");
     std::fs::set_permissions(&wsl, std::fs::Permissions::from_mode(0o700)).expect("chmod");
-    let hosts = || -> thurbox::backend::BackendRegistry {
+    let hosts = || -> talos::backend::BackendRegistry {
         panic!("a local signal built the registry of every host")
     };
     // What the binary's root hands down: this machine's adapters alone, with
     // the probe serving the row's local route.
     let here = || {
-        let mut registry = thurbox::backend::wiring::local_only();
+        let mut registry = talos::backend::wiring::local_only();
         registry.register(local_probe(), routes.local.clone());
         registry
     };
-    let backends = thurbox::cli::Backends::lazy(&hosts).with_local(&here);
+    let backends = talos::cli::Backends::lazy(&hosts).with_local(&here);
     cli(
         &db,
         &backends,
@@ -468,7 +468,7 @@ fn the_heartbeat_is_kept_by_the_local_backend() {
     let default = registry.default_route().clone();
     let here = RecordingBackend::new(&default);
     registry.register(default, here.clone());
-    let backends = thurbox::cli::Backends::ready(registry);
+    let backends = talos::cli::Backends::ready(registry);
 
     cli(
         &db,

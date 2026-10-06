@@ -2,10 +2,10 @@
 --
 -- NOT bundled. Install it into your interface with:
 --
---     thurbox-cli plugin install tasks
+--     talos-cli plugin install tasks
 --
 -- v1 had a tasks column on `F5`/`Ctrl+W` and v2 removed it with the rest of
--- `src/ui`. The records never went anywhere — `thurbox.tasks` is in the snapshot
+-- `src/ui`. The records never went anywhere — `talos.tasks` is in the snapshot
 -- and the kernel takes `task` commands — so the pane is a file you can add back,
 -- which is the whole claim the interface rests on. Nothing here is privileged:
 -- reads come from the snapshot, writes go out as commands, and it declares no
@@ -42,7 +42,7 @@ local function status_style(status)
 end
 
 local function tasks()
-  return (thurbox and thurbox.tasks) or {}
+  return (talos and talos.tasks) or {}
 end
 
 --- The next status in the cycle, so one key moves a task forward.

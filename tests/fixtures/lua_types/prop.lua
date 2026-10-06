@@ -6,7 +6,7 @@
 return {
   name = "prop_probe",
   render = function()
-    ---@type thurbox.TextNode
+    ---@type talos.TextNode
     local row = { type = "text", txet = "hello" }
     return row
   end,

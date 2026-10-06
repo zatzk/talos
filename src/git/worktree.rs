@@ -24,7 +24,7 @@ use crate::session::HostDef;
 /// Deterministic worktree directory path for a repo + branch on the given host.
 ///
 /// Local hosts use [`worktree_path`]. Remote hosts place worktrees under the
-/// host's `worktrees_dir` (or `$HOME/.local/share/thurbox/worktrees` resolved
+/// host's `worktrees_dir` (or `$HOME/.local/share/talos/worktrees` resolved
 /// over ssh), preserving the same `<repo-hash>/<sanitized-branch>` layout.
 pub(super) fn worktree_path_for(
     host: Option<&HostDef>,
@@ -36,10 +36,10 @@ pub(super) fn worktree_path_for(
         Some(h) => {
             let base = match &h.worktrees_dir {
                 Some(dir) => dir.clone(),
-                None => format!("{}/.local/share/thurbox/worktrees", remote_home(h)?),
+                None => format!("{}/.local/share/talos/worktrees", remote_home(h)?),
             };
             // The host is remote (always POSIX), so the path must be `/`-joined
-            // even when thurbox itself runs on Windows — `PathBuf::join` would
+            // even when talos itself runs on Windows — `PathBuf::join` would
             // otherwise insert `\` and produce a path the remote shell rejects.
             Ok(PathBuf::from(worktree_subpath_posix(
                 &base, repo_path, branch,
@@ -51,7 +51,7 @@ pub(super) fn worktree_path_for(
 /// Create a git worktree on a new branch and return the worktree directory path.
 ///
 /// Creates `new_branch` starting from `base_branch`.
-/// Path format: `~/.local/share/thurbox/worktrees/<repo-hash>/<sanitized-branch>`
+/// Path format: `~/.local/share/talos/worktrees/<repo-hash>/<sanitized-branch>`
 pub fn create_worktree(repo_path: &Path, new_branch: &str, base_branch: &str) -> Result<PathBuf> {
     create_worktree_on(None, repo_path, new_branch, base_branch)
 }
@@ -258,9 +258,9 @@ pub fn branch_exists_on(host: Option<&HostDef>, repo_path: &Path, branch: &str) 
 
 /// A worktree the repository already has, as git reports it.
 ///
-/// Distinct from thurbox's own derived layout: `path` is wherever the checkout
+/// Distinct from talos's own derived layout: `path` is wherever the checkout
 /// actually is (`.worktrees/…`, a sibling directory, anywhere), which is the
-/// whole point — a worktree made outside thurbox is invisible to the derived
+/// whole point — a worktree made outside talos is invisible to the derived
 /// `<repo-hash>/<branch>` layout.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExistingWorktree {
@@ -363,7 +363,7 @@ fn offered(
 /// the source repo (which would cause Claude Code to discover duplicate
 /// `.claude/commands/` skill files).
 ///
-/// Path format: `~/.local/share/thurbox/worktrees/<repo-hash>/<sanitized-branch>`
+/// Path format: `~/.local/share/talos/worktrees/<repo-hash>/<sanitized-branch>`
 pub(super) fn worktree_path(repo_path: &Path, branch: &str) -> Option<PathBuf> {
     Some(worktree_subpath(
         paths::worktrees_directory()?,

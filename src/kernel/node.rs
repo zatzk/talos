@@ -134,7 +134,7 @@ pub enum ClickVerb {
     /// The one verb whose value is not a name the kernel resolves, and the
     /// reason it is a verb at all: the node's drawn cells are also re-printed
     /// wrapped in OSC 8, which is what hands `Ctrl+Click` over them to the
-    /// terminal thurbox itself runs in — the only leg with a browser to reach
+    /// terminal talos itself runs in — the only leg with a browser to reach
     /// when the interface is on the far end of an ssh connection. A pane emits
     /// no escapes of its own, so without this there is no route from painted
     /// pane content to a link the outer terminal knows about.

@@ -51,8 +51,8 @@ pub const BUNDLED: &[(&str, &str)] = &[
     // what gives an author (or an agent) `lua-language-server --check .` there
     // with no config to write. Nothing requires it; the VM never sees it.
     (
-        "lib/thurbox.d.lua",
-        include_str!("../../ui/lib/thurbox.d.lua"),
+        "lib/talos.d.lua",
+        include_str!("../../ui/lib/talos.d.lua"),
     ),
     ("lib/theme.lua", include_str!("../../ui/lib/theme.lua")),
     ("lib/widgets.lua", include_str!("../../ui/lib/widgets.lua")),
@@ -788,15 +788,15 @@ fn write_manifest(dir: &Path, manifest: &BTreeMap<String, Record>) -> Result<(),
 /// when it expected a checkout's `./ui` learns nothing from the path alone.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Chosen {
-    /// `THURBOX_UI_DIR` named it.
+    /// `TALOS_UI_DIR` named it.
     Override,
-    /// A `ui` directory beside the working directory, named by `THURBOX_UI_DIR`.
+    /// A `ui` directory beside the working directory, named by `TALOS_UI_DIR`.
     ///
     /// Kept as a distinct reason from [`Chosen::Override`] purely so the report can
     /// say "the checkout" when the override happens to point at one. It is no
     /// longer reachable without the variable: an automatic `./ui` rule made the
-    /// interface the one config that ignored the `thurbox` / `thurbox-dev` split,
-    /// so `cargo run` in the repository read `~/.config/thurbox-dev` for agents,
+    /// interface the one config that ignored the `talos` / `talos-dev` split,
+    /// so `cargo run` in the repository read `~/.config/talos-dev` for agents,
     /// settings, themes and the database and the *checkout* for its panes.
     Checkout,
     /// The user's own copy, materialized from the embedded interface.
@@ -820,8 +820,8 @@ impl Chosen {
     /// Why this directory, in words.
     pub fn reason(self) -> &'static str {
         match self {
-            Chosen::Override => "THURBOX_UI_DIR names it",
-            Chosen::Checkout => "THURBOX_UI_DIR pointing at a checkout's ./ui",
+            Chosen::Override => "TALOS_UI_DIR names it",
+            Chosen::Checkout => "TALOS_UI_DIR pointing at a checkout's ./ui",
             Chosen::UserCopy => "your own copy of the interface",
             Chosen::Fallback => "the embedded interface — your copy could not be written",
         }
@@ -830,7 +830,7 @@ impl Chosen {
 
 /// The interface directory, and which rule chose it.
 ///
-/// Two rules, in order: `THURBOX_UI_DIR`, then the user's own copy —
+/// Two rules, in order: `TALOS_UI_DIR`, then the user's own copy —
 /// materialized from the embedded interface on first run, preserving anything
 /// they edited. There is deliberately no automatic `./ui` rule; the comment on
 /// the branch below says why. A missing or unwritable config directory is not
@@ -841,7 +841,7 @@ impl Chosen {
 /// directory is live" gets the same answer the interface will use — two
 /// implementations of that is the mistake this exists to prevent.
 pub fn resolve(materialize_user_copy: bool) -> Result<(PathBuf, Chosen, Report), String> {
-    if let Some(dir) = std::env::var_os("THURBOX_UI_DIR") {
+    if let Some(dir) = std::env::var_os("TALOS_UI_DIR") {
         let dir = PathBuf::from(dir);
         if dir.is_dir() {
             // Reported as the checkout when that is plainly what it is, so the
@@ -858,16 +858,16 @@ pub fn resolve(materialize_user_copy: bool) -> Result<(PathBuf, Chosen, Report),
             return Ok((absolute(dir), chosen, Report::default()));
         }
         return Err(format!(
-            "THURBOX_UI_DIR is not a directory: {}",
+            "TALOS_UI_DIR is not a directory: {}",
             dir.display()
         ));
     }
     // No automatic `./ui` rule. It existed so a checkout could edit its own
     // interface, and the cost was that the interface stopped following the config
     // path every other setting follows: `cargo run` from the repository loaded the
-    // repository's panes while reading `~/.config/thurbox-dev` for everything else,
+    // repository's panes while reading `~/.config/talos-dev` for everything else,
     // silently, with nothing on screen to say which. Editing a checkout's interface
-    // is now an explicit `THURBOX_UI_DIR=ui` (see `just tui-ui`), which is the same
+    // is now an explicit `TALOS_UI_DIR=ui` (see `just tui-ui`), which is the same
     // request stated out loud.
     if let Some(dir) = user_ui_dir() {
         // Only the interface writes; a report is a read, and must not create a
@@ -926,7 +926,7 @@ pub fn fallback_dir() -> Result<PathBuf, String> {
     // Created **exclusively**, not `create_dir_all`ed into. The name is
     // predictable (a pid), the system temp directory is world-writable, and
     // `materialize` deliberately preserves files it finds — so a directory
-    // pre-created by somebody else would hand thurbox their Lua as its whole
+    // pre-created by somebody else would hand talos their Lua as its whole
     // interface, with whatever the user has trusted. A directory we did not create
     // is not ours to load from, so move to the next name rather than adopt it.
     let base = std::env::temp_dir();
@@ -934,8 +934,8 @@ pub fn fallback_dir() -> Result<PathBuf, String> {
     let mut refused = Vec::new();
     for attempt in 0..64u32 {
         let dir = match attempt {
-            0 => base.join(format!("thurbox-ui-fallback-{pid}")),
-            n => base.join(format!("thurbox-ui-fallback-{pid}-{n}")),
+            0 => base.join(format!("talos-ui-fallback-{pid}")),
+            n => base.join(format!("talos-ui-fallback-{pid}-{n}")),
         };
         match std::fs::create_dir(&dir) {
             Ok(()) => {
@@ -1063,18 +1063,18 @@ mod tests {
     /// run, and this is what stops it coming back.
     #[test]
     fn a_stored_path_becomes_the_identity_the_loader_compares() {
-        let dir = Path::new("/home/me/.config/thurbox/ui");
+        let dir = Path::new("/home/me/.config/talos/ui");
         assert_eq!(
-            relative_to(dir, "/home/me/.config/thurbox/ui/plugins/90_notes.lua").as_deref(),
+            relative_to(dir, "/home/me/.config/talos/ui/plugins/90_notes.lua").as_deref(),
             Some("plugins/90_notes.lua")
         );
 
         // A Windows root, with the separators `Path::join` would have written.
-        let windows = Path::new(r"C:\Users\me\AppData\Roaming\thurbox\ui");
+        let windows = Path::new(r"C:\Users\me\AppData\Roaming\talos\ui");
         assert_eq!(
             relative_to(
                 windows,
-                r"C:\Users\me\AppData\Roaming\thurbox\ui\plugins\90_notes.lua"
+                r"C:\Users\me\AppData\Roaming\talos\ui\plugins\90_notes.lua"
             )
             .as_deref(),
             Some("plugins/90_notes.lua"),
@@ -1085,8 +1085,8 @@ mod tests {
         // identity, and returning `""` for the second is how an empty entry used
         // to reach the disabled set.
         assert_eq!(relative_to(dir, "/elsewhere/plugins/x.lua"), None);
-        assert_eq!(relative_to(dir, "/home/me/.config/thurbox/ui"), None);
-        assert_eq!(relative_to(dir, "/home/me/.config/thurbox/ui/"), None);
+        assert_eq!(relative_to(dir, "/home/me/.config/talos/ui"), None);
+        assert_eq!(relative_to(dir, "/home/me/.config/talos/ui/"), None);
     }
 
     /// The directory tells whoever edits it how to, under the name their tool reads.
@@ -1107,7 +1107,7 @@ mod tests {
 
         let agents = file("AGENTS.md");
         assert!(
-            agents.contains("thurbox-cli plugin install"),
+            agents.contains("talos-cli plugin install"),
             "the command an agent needs when told to install a plugin"
         );
         assert!(
@@ -1116,7 +1116,7 @@ mod tests {
              instruction is unmissable"
         );
         assert!(
-            agents.contains("thurbox-cli plugin check"),
+            agents.contains("talos-cli plugin check"),
             "and the gate for every edit"
         );
 
@@ -1621,7 +1621,7 @@ mod tests {
     #[test]
     fn the_fallback_refuses_a_directory_it_did_not_create() {
         let planted =
-            std::env::temp_dir().join(format!("thurbox-ui-fallback-{}", std::process::id()));
+            std::env::temp_dir().join(format!("talos-ui-fallback-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&planted);
         std::fs::create_dir_all(planted.join("plugins")).expect("plant");
         std::fs::write(planted.join("plugins/99_evil.lua"), "return {}").expect("plant");
@@ -1646,9 +1646,9 @@ mod tests {
     fn the_resolved_directory_is_absolute_and_still_the_one_that_was_asked_for() {
         let dir = tempfile::tempdir().expect("tempdir");
         std::fs::create_dir_all(dir.path().join("plugins")).expect("mkdir");
-        std::env::set_var("THURBOX_UI_DIR", dir.path());
+        std::env::set_var("TALOS_UI_DIR", dir.path());
         let (resolved, chosen, _) = resolve(false).expect("resolve");
-        std::env::remove_var("THURBOX_UI_DIR");
+        std::env::remove_var("TALOS_UI_DIR");
 
         assert_eq!(chosen, Chosen::Override);
         assert!(

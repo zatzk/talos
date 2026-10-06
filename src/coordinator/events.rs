@@ -18,10 +18,10 @@ use std::collections::VecDeque;
 
 use ratatui::DefaultTerminal;
 
-use thurbox::kernel::bands::Level;
-use thurbox::kernel::events::{Deriver, Event, Field, MAX_DEPTH};
-use thurbox::kernel::host::PluginError;
-use thurbox::kernel::terminal::{ProgramKey, ProgramTransition};
+use talos::kernel::bands::Level;
+use talos::kernel::events::{Deriver, Event, Field, MAX_DEPTH};
+use talos::kernel::host::PluginError;
+use talos::kernel::terminal::{ProgramKey, ProgramTransition};
 
 use crate::{App, TrackedCommand};
 

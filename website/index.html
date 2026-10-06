@@ -1,7 +1,7 @@
 ---
 layout: base.njk
-title: 'Thurbox — Orchestrate coding agents'
-description: 'Thurbox runs any coding-agent CLI (Claude Code, Codex, Antigravity, opencode, aider, GitHub Copilot CLI, Vibe, pi, Oh My Pi) in persistent tmux panes — with a fully customizable interface: every pane is a Lua file you can edit, move, turn off or replace.'
+title: 'Talos — Orchestrate coding agents'
+description: 'Talos runs any coding-agent CLI (Claude Code, Codex, Antigravity, opencode, aider, GitHub Copilot CLI, Vibe, pi, Oh My Pi) in persistent tmux panes — with a fully customizable interface: every pane is a Lua file you can edit, move, turn off or replace.'
 root: '.'
 extraCss: ['landing.css']
 footer: true
@@ -16,14 +16,14 @@ footer: true
               <span class="hero-headline-phrase">agents</span>
             </h1>
             <p class="subtitle">
-              Thurbox runs any CLI agent you define, side by side in persistent tmux panes.
+              Talos runs any CLI agent you define, side by side in persistent tmux panes.
             </p>
             <p class="subtitle subtitle--thesis">
-              <strong>The agents keep running</strong> after you quit thurbox.
+              <strong>The agents keep running</strong> after you quit talos.
             </p>
             <p class="hero-stability">
               One command installs it, and
-              <code>thurbox</code>
+              <code>talos</code>
               runs it &mdash; that is the whole setup.
             </p>
             <div class="hero-ctas">
@@ -127,16 +127,16 @@ footer: true
               Linux &amp; macOS, and the
               <strong>recommended</strong>
               route. Auto-detects your platform, verifies checksums, and installs both
-              <code>thurbox</code>
+              <code>talos</code>
               and
-              <code>thurbox-cli</code>
+              <code>talos-cli</code>
               to
               <code>~/.local/bin</code>
               .
             </p>
-            <pre data-wrap><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/install.sh | sh</code></pre>
+            <pre data-wrap><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/zatzk/talos/main/scripts/install.sh | sh</code></pre>
             <p>Then run it:</p>
-            <pre><code class="language-bash">thurbox</code></pre>
+            <pre><code class="language-bash">talos</code></pre>
           </div>
 
           <div
@@ -151,7 +151,7 @@ footer: true
               <strong>recommended route</strong>
               on Windows &mdash; unlike winget and Chocolatey it always carries the newest release.
               Verifies checksums and installs to
-              <code>%LOCALAPPDATA%\Programs\thurbox</code>
+              <code>%LOCALAPPDATA%\Programs\talos</code>
               (added to your user
               <code>PATH</code>
               ). Needs
@@ -159,9 +159,9 @@ footer: true
               as the default multiplexer (installed separately).
               <a href="docs/installation.html#rmux">RMUX 0.10.0+</a> is opt-in, tested locally on Linux.
             </p>
-            <pre data-wrap><code class="language-powershell">irm https://raw.githubusercontent.com/Thurbeen/thurbox/main/scripts/install.ps1 | iex</code></pre>
+            <pre data-wrap><code class="language-powershell">irm https://raw.githubusercontent.com/zatzk/talos/main/scripts/install.ps1 | iex</code></pre>
             <p>Then run it:</p>
-            <pre><code class="language-powershell">thurbox</code></pre>
+            <pre><code class="language-powershell">talos</code></pre>
           </div>
 
           <div class="install-panel" role="tabpanel" id="panel-winget" aria-labelledby="tab-winget" hidden>
@@ -171,9 +171,9 @@ footer: true
                 winget
               </a>
               (bundled with Windows 10/11). Installs the prebuilt
-              <code>thurbox.exe</code>
+              <code>talos.exe</code>
               +
-              <code>thurbox-cli.exe</code>
+              <code>talos-cli.exe</code>
               as portable commands on your
               <code>PATH</code>
               . Needs
@@ -189,19 +189,19 @@ footer: true
               <strong>PowerShell</strong>
               installer.
             </p>
-            <pre><code class="language-powershell">winget install Thurbeen.thurbox</code></pre>
+            <pre><code class="language-powershell">winget install Thurbeen.talos</code></pre>
           </div>
 
           <div class="install-panel" role="tabpanel" id="panel-choco" aria-labelledby="tab-choco" hidden>
             <p>
               Windows x86_64 via the
-              <a href="https://community.chocolatey.org/packages/thurbox" target="_blank" rel="noopener">
+              <a href="https://community.chocolatey.org/packages/talos" target="_blank" rel="noopener">
                 Chocolatey community repository
               </a>
               . Installs the prebuilt
-              <code>thurbox.exe</code>
+              <code>talos.exe</code>
               +
-              <code>thurbox-cli.exe</code>
+              <code>talos-cli.exe</code>
               and shims them onto your
               <code>PATH</code>
               . Needs
@@ -212,20 +212,20 @@ footer: true
             <p>
               <strong>Heads-up:</strong>
               the Chocolatey community repo is moderated and rate-limited, so
-              thurbox pushes a new version there at most once every 30 days
+              talos pushes a new version there at most once every 30 days
               &mdash; this channel trails the newest build. For the latest
               release right away, use the
               <strong>PowerShell</strong>
               installer.
             </p>
-            <pre><code class="language-powershell">choco install thurbox</code></pre>
+            <pre><code class="language-powershell">choco install talos</code></pre>
           </div>
 
           <div class="install-panel" role="tabpanel" id="panel-brew" aria-labelledby="tab-brew" hidden>
             <p>
               macOS (Apple Silicon) &amp; Linux x86_64. Prebuilt binaries from the
-              <a href="https://github.com/Thurbeen/homebrew-thurbox" target="_blank" rel="noopener">
-                thurbox tap
+              <a href="https://github.com/Thurbeen/homebrew-talos" target="_blank" rel="noopener">
+                talos tap
               </a>
               ; pulls in
               <code>tmux</code>
@@ -233,21 +233,21 @@ footer: true
               <code>git</code>
               automatically.
             </p>
-            <pre><code class="language-bash">brew install thurbeen/thurbox/thurbox</code></pre>
+            <pre><code class="language-bash">brew install thurbeen/talos/talos</code></pre>
           </div>
 
           <div class="install-panel" role="tabpanel" id="panel-aur" aria-labelledby="tab-aur" hidden>
             <p>
               <a
-                href="https://aur.archlinux.org/packages/thurbox-bin"
+                href="https://aur.archlinux.org/packages/talos-bin"
                 target="_blank"
                 rel="noopener"
               >
-                <code>thurbox-bin</code>
+                <code>talos-bin</code>
               </a>
               (prebuilt binary) or
-              <a href="https://aur.archlinux.org/packages/thurbox" target="_blank" rel="noopener">
-                <code>thurbox</code>
+              <a href="https://aur.archlinux.org/packages/talos" target="_blank" rel="noopener">
+                <code>talos</code>
               </a>
               (builds from source) &mdash; use
               <code>paru</code>
@@ -255,8 +255,8 @@ footer: true
               <code>yay</code>
               , or your preferred AUR helper.
             </p>
-            <pre><code class="language-bash">paru -S thurbox-bin   # prebuilt (fastest)
-paru -S thurbox       # build from source</code></pre>
+            <pre><code class="language-bash">paru -S talos-bin   # prebuilt (fastest)
+paru -S talos       # build from source</code></pre>
           </div>
 
           <div class="install-panel" role="tabpanel" id="panel-nix" aria-labelledby="tab-nix" hidden>
@@ -272,23 +272,23 @@ paru -S thurbox       # build from source</code></pre>
               <a href="docs/installation.html#nix">module setup</a>
               .
             </p>
-            <pre data-wrap><code class="language-bash">nix profile install github:Thurbeen/thurbox</code></pre>
+            <pre data-wrap><code class="language-bash">nix profile install github:zatzk/talos</code></pre>
             <p>Or try it without installing:</p>
-            <pre><code class="language-bash">nix run github:Thurbeen/thurbox</code></pre>
+            <pre><code class="language-bash">nix run github:zatzk/talos</code></pre>
           </div>
 
           <div class="install-panel" role="tabpanel" id="panel-source" aria-labelledby="tab-source" hidden>
             <p>
               Any platform with Rust 1.75+. Builds both the
-              <code>thurbox</code>
+              <code>talos</code>
               TUI and the
-              <code>thurbox-cli</code>
+              <code>talos-cli</code>
               headless binary into
               <code>target/release/</code>
               .
             </p>
-            <pre><code class="language-bash">git clone https://github.com/Thurbeen/thurbox.git
-cd thurbox
+            <pre><code class="language-bash">git clone https://github.com/zatzk/talos.git
+cd talos
 cargo build --release</code></pre>
           </div>
           </div>
@@ -297,12 +297,12 @@ cargo build --release</code></pre>
             <div class="hero-demo">
               <div class="terminal-frame">
                 <div class="terminal-header">
-                  <span class="terminal-title">thurbox</span>
+                  <span class="terminal-title">talos</span>
                 </div>
                 <div class="terminal-body">
                   <video
-                    src="assets/thurbox-demo.mp4"
-                    poster="assets/thurbox-demo-poster.webp"
+                    src="assets/talos-demo.mp4"
+                    poster="assets/talos-demo-poster.webp"
                     width="1944"
                     height="1288"
                     autoplay
@@ -400,7 +400,7 @@ cargo build --release</code></pre>
                 <div class="terminal-dot red"></div>
                 <div class="terminal-dot yellow"></div>
                 <div class="terminal-dot green"></div>
-                <span class="terminal-title">thurbox</span>
+                <span class="terminal-title">talos</span>
               </div>
               <div class="ui-lab__screen" id="ui-lab-screen" aria-hidden="true">
                 <!-- prettier-ignore -->
@@ -425,7 +425,7 @@ cargo build --release</code></pre>
                   </span>
   <span class="ui-pane__body">
                     <span class="ui-pane__host"><span class="tui-dot done">&#x25CF;</span> &#x2302; local <small>5 sessions</small></span>
-                    <span class="ui-pane__group">thurbox</span>
+                    <span class="ui-pane__group">talos</span>
                     <span class="ui-pane__row is-selected">
                       <i class="tui-dot working">&#x2807;</i>
                       <svg class="tui-branch" aria-hidden="true" focusable="false"><use href="#tui-branch-mark" /></svg>
@@ -577,7 +577,7 @@ cargo build --release</code></pre>
         </div>
 
         <p class="ui-lab__foot">
-          That last one is not shipped. <code>thurbox-cli plugin new git-status</code> writes a file
+          That last one is not shipped. <code>talos-cli plugin new git-status</code> writes a file
           that already loads, and it is a pane the moment you save it. Adding or removing a pane is
           two edits, as it is above: the plugin, and the slot in
           <code>ui/layout.lua</code> that says where it goes.
@@ -598,9 +598,9 @@ cargo build --release</code></pre>
             <code>F10</code>
             :
           </p>
-          <pre data-wrap><code class="language-bash">thurbox-cli plugin install tasks
-thurbox-cli plugin install top
-cp examples/lua/layout.lua ~/.config/thurbox/ui/layout.lua</code></pre>
+          <pre data-wrap><code class="language-bash">talos-cli plugin install tasks
+talos-cli plugin install top
+cp examples/lua/layout.lua ~/.config/talos/ui/layout.lua</code></pre>
           <p class="ui-lab__demo-note">
             The
             <code>top</code>
@@ -616,11 +616,11 @@ cp examples/lua/layout.lua ~/.config/thurbox/ui/layout.lua</code></pre>
         <div class="ui-lab__demo">
           <p class="ui-lab__demo-lede">
             <strong>Or just ask the agent.</strong>
-            You do not have to learn Lua to change any of this. thurbox
+            You do not have to learn Lua to change any of this. talos
             <em>runs coding agents</em>, and the interface is a directory of plain text files those
             agents can read &mdash; so point a session at it and say what you want:
           </p>
-          <pre data-wrap><code class="language-bash">thurbox-cli session create --name ui --repo-path ~/.config/thurbox/ui</code></pre>
+          <pre data-wrap><code class="language-bash">talos-cli session create --name ui --repo-path ~/.config/talos/ui</code></pre>
           <ul class="prompts">
             <li>Install the info panel plugin.</li>
             <li>
@@ -631,7 +631,7 @@ cp examples/lua/layout.lua ~/.config/thurbox/ui/layout.lua</code></pre>
             <li>Move the search strip to the bottom, and make the session column 30% wide.</li>
           </ul>
           <p class="ui-lab__demo-note">
-            The directory tells the agent how to work on itself, so these read as thurbox commands
+            The directory tells the agent how to work on itself, so these read as talos commands
             rather than as guesses. Press
             <kbd>F10</kbd>
             and the change is on your screen.
@@ -685,9 +685,9 @@ cp examples/lua/layout.lua ~/.config/thurbox/ui/layout.lua</code></pre>
             <h3>You can see what each pane costs</h3>
             <p>
               Turn timing on with the F12 HUD or
-              <code>THURBOX_PERF_LOG=1</code>
+              <code>TALOS_PERF_LOG=1</code>
               and
-              <code>thurbox-cli perf --plugins</code>
+              <code>talos-cli perf --plugins</code>
               ranks every pane by what it cost &mdash; total, p95, max, its share of the frame, and
               how often its cache was reused instead of re-run. On an interface made of your own
               panes, that is the question actually worth asking.
@@ -737,7 +737,7 @@ cp examples/lua/layout.lua ~/.config/thurbox/ui/layout.lua</code></pre>
               <h3>Persistent Sessions</h3>
               <p>
                 Run multiple coding-agent CLIs side-by-side, each in its own tmux pane. Sessions
-                persist across crashes, restarts, and multiple concurrent Thurbox instances.
+                persist across crashes, restarts, and multiple concurrent Talos instances.
               </p>
             </div>
           </a>
@@ -782,7 +782,7 @@ cp examples/lua/layout.lua ~/.config/thurbox/ui/layout.lua</code></pre>
               <h3>Agent Definitions</h3>
               <p>
                 Agents are declared as data in
-                <code>~/.config/thurbox/agents.toml</code>
+                <code>~/.config/talos/agents.toml</code>
                 , seeded with built-ins on first run. Add or tweak an agent &mdash; command and
                 argument templates &mdash; with no recompile.
               </p>
@@ -798,7 +798,7 @@ cp examples/lua/layout.lua ~/.config/thurbox/ui/layout.lua</code></pre>
                 a prompt to a session,
                 <strong>spawn</strong>
                 a fresh one, or run a plain shell command. A detached tmux keeper fires them
-                <strong>whether or not thurbox is open</strong>
+                <strong>whether or not talos is open</strong>
                 .
               </p>
             </div>
@@ -814,7 +814,7 @@ cp examples/lua/layout.lua ~/.config/thurbox/ui/layout.lua</code></pre>
                 Records carry a
                 <code>source</code>
                 and an external id, so a sync script of your own can import from a tracker
-                without thurbox knowing which one.
+                without talos knowing which one.
               </p>
             </div>
           </a>
@@ -837,10 +837,10 @@ cp examples/lua/layout.lua ~/.config/thurbox/ui/layout.lua</code></pre>
               <p>
                 Opt-in,
                 <strong>agent-agnostic</strong>
-                add-ons that compose Thurbox through
-                <code>thurbox-cli</code>
+                add-ons that compose Talos through
+                <code>talos-cli</code>
                 &mdash; never the binary. Install one from a declarative manifest in a single
-                command, and Thurbox keeps its session and automation
+                command, and Talos keeps its session and automation
                 <strong>self-healed</strong>
                 . Two ship built in;
                 <code>fleet</code>
@@ -854,7 +854,7 @@ cp examples/lua/layout.lua ~/.config/thurbox/ui/layout.lua</code></pre>
               <h3>Headless CLI</h3>
               <p>
                 The
-                <code>thurbox-cli</code>
+                <code>talos-cli</code>
                 binary scripts everything from the terminal: create and drive sessions, schedule
                 commands, pass messages between agents &mdash; all against the same SQLite database
                 the interface reads.
@@ -971,8 +971,8 @@ cp examples/lua/layout.lua ~/.config/thurbox/ui/layout.lua</code></pre>
             <span class="step-number">1</span>
             <div class="step-content">
               <h3>Launch</h3>
-              <p>Start Thurbox. The session sidebar and terminal panel appear.</p>
-              <pre><code class="language-bash">thurbox</code></pre>
+              <p>Start Talos. The session sidebar and terminal panel appear.</p>
+              <pre><code class="language-bash">talos</code></pre>
             </div>
           </div>
 
@@ -987,7 +987,7 @@ cp examples/lua/layout.lua ~/.config/thurbox/ui/layout.lua</code></pre>
               </p>
               <div class="tui-demo">
                 <div class="terminal-header">
-                  <span class="terminal-title">thurbox</span>
+                  <span class="terminal-title">talos</span>
                 </div>
                 <div class="terminal-body">
                   <pre>Ctrl+N  New session
@@ -1008,7 +1008,7 @@ cp examples/lua/layout.lua ~/.config/thurbox/ui/layout.lua</code></pre>
               </p>
               <div class="tui-demo">
                 <div class="terminal-header">
-                  <span class="terminal-title">thurbox</span>
+                  <span class="terminal-title">talos</span>
                 </div>
                 <div class="terminal-body">
                   <pre>Ctrl+N  New session
@@ -1030,7 +1030,7 @@ Ctrl+,  Settings, incl. the Interface tab</pre>
     <!-- Just ask for it -->
     <!-- The two things you would otherwise script by hand — fleets of sessions,
          and the interface itself — are both reachable in plain English from
-         inside a session, because thurbox-cli is installed beside thurbox and
+         inside a session, because talos-cli is installed beside talos and
          the interface is a directory of text files. Two parallel categories, so
          a 2-up card grid rather than the numbered .step list used above. -->
     <section class="section ask-section" id="just-ask">
@@ -1038,9 +1038,9 @@ Ctrl+,  Settings, incl. the Interface tab</pre>
         <p class="section-eyebrow">You are already in a coding agent</p>
         <h2>Just ask for it</h2>
         <p class="section-lede">
-          <code>thurbox-cli</code>
+          <code>talos-cli</code>
           is installed beside
-          <code>thurbox</code>
+          <code>talos</code>
           and the interface is a directory of text files &mdash; so the two things you would
           otherwise script by hand are a sentence from inside any session.
         </p>
@@ -1057,7 +1057,7 @@ Ctrl+,  Settings, incl. the Interface tab</pre>
             <ul class="prompts">
               <li>
                 Using
-                <code>thurbox-cli</code>
+                <code>talos-cli</code>
                 , start refactor sessions for this repo &mdash; one per crate, each on its own
                 worktree branch off
                 <code>main</code>
@@ -1084,14 +1084,14 @@ Ctrl+,  Settings, incl. the Interface tab</pre>
             <p>
               Every pane is a Lua file, so changing the UI is also just a request. It works from
               <strong>any</strong>
-              session, in whichever CLI you run, because thurbox ships a
-              <code>thurbox-ui</code>
+              session, in whichever CLI you run, because talos ships a
+              <code>talos-ui</code>
               skill that loads when the request is about the interface. Press
               <kbd>F10</kbd>
               and the change is on your screen.
             </p>
             <ul class="prompts">
-              <li>Add my project logs within a dedicated pane on the right in the thurbox UI.</li>
+              <li>Add my project logs within a dedicated pane on the right in the talos UI.</li>
               <li>
                 Add a pane on the left with CPU and RAM usage. There is a
                 <code>top</code>
@@ -1132,7 +1132,7 @@ Ctrl+,  Settings, incl. the Interface tab</pre>
                 <strong>edited</strong>
                 because the demo replaced the shipped one. Here
                 <code>85_top.lua</code>
-                &mdash; a pane thurbox never shipped &mdash; is switched off with
+                &mdash; a pane talos never shipped &mdash; is switched off with
                 <code>space</code>
                 : the file stays on disk, intact, and its row is not reserved, so the tasks pane
                 takes the whole column. The same machinery, for a file you wrote.
@@ -1146,7 +1146,7 @@ Ctrl+,  Settings, incl. the Interface tab</pre>
                 </div>
                 <div class="terminal-body">
                   <!-- prettier-ignore -->
-                  <video src="assets/thurbox-interface.mp4" width="1920" height="1080" autoplay loop muted playsinline preload="none">
+                  <video src="assets/talos-interface.mp4" width="1920" height="1080" autoplay loop muted playsinline preload="none">
                     Turning off a pane from examples/panes/ in the Interface tab; the file stays on
                     disk and the arrangement closes up around it
                   </video>
@@ -1203,7 +1203,7 @@ Ctrl+,  Settings, incl. the Interface tab</pre>
                 </div>
                 <div class="terminal-body">
                   <!-- prettier-ignore -->
-                  <video src="assets/thurbox-session-creation.mp4" data-poster="assets/thurbox-session-creation-poster.webp" width="1920" height="1080" autoplay loop muted playsinline preload="none">
+                  <video src="assets/talos-session-creation.mp4" data-poster="assets/talos-session-creation-poster.webp" width="1920" height="1080" autoplay loop muted playsinline preload="none">
                     Creating a new session: repo picker, name, agent picker
                   </video>
                 </div>
@@ -1229,7 +1229,7 @@ Ctrl+,  Settings, incl. the Interface tab</pre>
                   <span class="terminal-title">Themes</span>
                 </div>
                 <div class="terminal-body">
-                  <video src="assets/thurbox-theme.mp4" data-poster="assets/thurbox-theme-poster.webp" width="1920" height="1080" autoplay loop muted playsinline preload="none">
+                  <video src="assets/talos-theme.mp4" data-poster="assets/talos-theme-poster.webp" width="1920" height="1080" autoplay loop muted playsinline preload="none">
                     Switching between light and dark themes live
                   </video>
                 </div>
@@ -1245,7 +1245,7 @@ Ctrl+,  Settings, incl. the Interface tab</pre>
       <div class="container">
         <div class="section-title">
           <h2>Prerequisites</h2>
-          <p>What you need before running Thurbox &mdash; plus extra install options</p>
+          <p>What you need before running Talos &mdash; plus extra install options</p>
         </div>
 
         <div class="install-main">
@@ -1257,7 +1257,7 @@ Ctrl+,  Settings, incl. the Interface tab</pre>
             <div class="install-alt-item">
               <h4>Pin a version</h4>
               <p><code>export VERSION=v2.5.4</code></p>
-              <p><code>$env:THURBOX_VERSION = 'v2.5.4'</code></p>
+              <p><code>$env:TALOS_VERSION = 'v2.5.4'</code></p>
             </div>
             <div class="install-alt-item">
               <h4>Full Guide</h4>

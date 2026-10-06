@@ -23,10 +23,10 @@ use std::process::Command;
 use std::sync::Arc;
 
 use clap::Parser;
-use thurbox::backend::{SessionBackend, WindowRole};
-use thurbox::session::{Multiplexer, Route, SessionId, Via};
-use thurbox::storage::Database;
-use thurbox::sync::SharedSession;
+use talos::backend::{SessionBackend, WindowRole};
+use talos::session::{Multiplexer, Route, SessionId, Via};
+use talos::storage::Database;
+use talos::sync::SharedSession;
 
 #[path = "support/tmux_server.rs"]
 mod tmux_server;
@@ -37,7 +37,7 @@ mod recording_backend;
 use recording_backend::RecordingBackend;
 use tmux_server::TmuxServer;
 
-const SOCKET: &str = "thurbox-lifecycle-routing";
+const SOCKET: &str = "talos-lifecycle-routing";
 
 /// Where the probe hosts sit in `hosts.toml`. Driven directly: sharing off,
 /// so nothing is delegated to a CLI on the host.
@@ -69,8 +69,8 @@ impl Instance {
     fn new() -> Self {
         let root = tempfile::tempdir().expect("tempdir");
         let server = TmuxServer::pin(SOCKET);
-        thurbox::paths::set_test_dir(root.path());
-        let config = thurbox::paths::config_file()
+        talos::paths::set_test_dir(root.path());
+        let config = talos::paths::config_file()
             .expect("config path")
             .parent()
             .expect("config dir")
@@ -95,15 +95,15 @@ impl Instance {
         let mut dirs = vec![bin];
         dirs.extend(std::env::split_paths(&path));
         std::env::set_var("PATH", std::env::join_paths(dirs).expect("PATH"));
-        for var in ["TMUX", "TMUX_PANE", "THURBOX_SESSION", "THURBOX_SESSION_ID"] {
+        for var in ["TMUX", "TMUX_PANE", "TALOS_SESSION", "TALOS_SESSION_ID"] {
             std::env::remove_var(var);
         }
         // No automations, so no heartbeat: `session create` arms one, and it is
         // a supervisor window on this machine's own multiplexer whatever the
         // session's route — status and the heartbeat are routed separately.
-        let mut settings = thurbox::session::settings::Settings::default();
+        let mut settings = talos::session::settings::Settings::default();
         settings.features.automations = false;
-        thurbox::session::settings::init(settings);
+        talos::session::settings::init(settings);
 
         Self {
             root,
@@ -142,15 +142,15 @@ impl Instance {
     }
 }
 
-/// `thurbox-cli <args>`, run in-process against `db` and `backends` — the seam
+/// `talos-cli <args>`, run in-process against `db` and `backends` — the seam
 /// the binary itself uses, with no switch a test could flip in it.
-fn cli(db: &Database, backends: &thurbox::cli::Backends<'_>, args: &[&str]) -> Result<(), String> {
+fn cli(db: &Database, backends: &talos::cli::Backends<'_>, args: &[&str]) -> Result<(), String> {
     let parsed =
-        thurbox::cli::Cli::try_parse_from(["thurbox-cli", "--json"].iter().chain(args).copied())
+        talos::cli::Cli::try_parse_from(["talos-cli", "--json"].iter().chain(args).copied())
             .map_err(|e| format!("parse {args:?}: {e}"))?;
-    match thurbox::cli::run(parsed, db, backends) {
-        Ok(thurbox::cli::Outcome::Ok) => Ok(()),
-        Ok(thurbox::cli::Outcome::Failed { message, .. }) => Err(message),
+    match talos::cli::run(parsed, db, backends) {
+        Ok(talos::cli::Outcome::Ok) => Ok(()),
+        Ok(talos::cli::Outcome::Failed { message, .. }) => Err(message),
         Err(e) => Err(e.message),
     }
 }
@@ -177,7 +177,7 @@ fn repo() -> tempfile::TempDir {
     let dir = tempfile::tempdir().expect("tempdir");
     git(dir.path(), &["init", "-q", "-b", "main"]);
     git(dir.path(), &["config", "user.email", "t@example.com"]);
-    git(dir.path(), &["config", "user.name", "thurbox-test"]);
+    git(dir.path(), &["config", "user.name", "talos-test"]);
     git(dir.path(), &["config", "commit.gpgsign", "false"]);
     std::fs::write(dir.path().join("README.md"), "# probe\n").expect("write");
     git(dir.path(), &["add", "."]);
@@ -235,18 +235,18 @@ fn agent_window(probe: &RecordingBackend, id: SessionId, after: &str) -> recordi
 }
 
 fn the_registry() -> (
-    thurbox::cli::Backends<'static>,
+    talos::cli::Backends<'static>,
     Arc<RecordingBackend>,
     Arc<RecordingBackend>,
 ) {
-    let (mut backends, _hosts, _warnings) = thurbox::backend::wiring::configured();
+    let (mut backends, _hosts, _warnings) = talos::backend::wiring::configured();
     let local_route = Route::local(Some(Multiplexer::Rmux));
     let local = RecordingBackend::new(&local_route);
     backends.register(local_route, local.clone());
     let remote_route = Route::remote(Via::Ssh, "probehost", Some(Multiplexer::Rmux));
     let remote = RecordingBackend::new(&remote_route);
     backends.register(remote_route, remote.clone());
-    (thurbox::cli::Backends::ready(backends), local, remote)
+    (talos::cli::Backends::ready(backends), local, remote)
 }
 
 #[test]
@@ -345,7 +345,7 @@ fn every_lifecycle_verb_reaches_the_backend_the_route_names() {
     // window has closed
     cli(&db, &backends, &["session", "delete", &uuid]).expect("soft delete");
     backdate_delete(&db, id);
-    let reaped = thurbox::session_ops::reap_overdue_soft_deletes(&db, backends.get());
+    let reaped = talos::session_ops::reap_overdue_soft_deletes(&db, backends.get());
     assert_eq!(
         reaped,
         vec![uuid.clone()],
@@ -414,7 +414,7 @@ fn every_lifecycle_verb_reaches_the_backend_the_route_names() {
         "the teardown the host missed is owed"
     );
     far.set_reachable(true);
-    let finished = thurbox::session_ops::retry_owed_remote_teardowns(&db, backends.get());
+    let finished = talos::session_ops::retry_owed_remote_teardowns(&db, backends.get());
     assert_eq!(finished, vec![far_id.to_string()]);
     assert!(
         far.windows_of(&far_id.to_string()).is_empty(),
@@ -464,7 +464,7 @@ fn a_route_nothing_serves_is_refused_by_every_lifecycle_verb() {
     }
     let instance = Instance::new();
     let db = Database::open_in_memory().expect("db");
-    let backends = thurbox::cli::Backends::ready(thurbox::backend::wiring::configured().0);
+    let backends = talos::cli::Backends::ready(talos::backend::wiring::configured().0);
     let repo = instance.repo().display().to_string();
 
     // create
@@ -548,7 +548,7 @@ fn a_route_nothing_serves_is_refused_by_every_lifecycle_verb() {
             "{key}: reap was taken"
         );
         backdate_delete(&db, id);
-        let reaped = thurbox::session_ops::reap_overdue_soft_deletes(&db, backends.get());
+        let reaped = talos::session_ops::reap_overdue_soft_deletes(&db, backends.get());
         assert!(reaped.is_empty(), "{key}: the sweep reaped {reaped:?}");
         assert!(row_state(&db, id).deleted);
         instance.assert_tmux_untouched(&format!("{key}: restore and reap"));
@@ -573,7 +573,7 @@ fn a_route_nothing_serves_is_refused_by_every_lifecycle_verb() {
         .unwrap()
         .iter()
         .any(|r| r.id == far));
-    let finished = thurbox::session_ops::retry_owed_remote_teardowns(&db, backends.get());
+    let finished = talos::session_ops::retry_owed_remote_teardowns(&db, backends.get());
     assert!(
         finished.is_empty(),
         "an undrivable teardown was marked done"

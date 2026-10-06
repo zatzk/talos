@@ -1,4 +1,4 @@
-//! What survives a restart — of one session, and of thurbox itself.
+//! What survives a restart — of one session, and of talos itself.
 //!
 //! Both were divergences from v1 that only appear when something you were
 //! relying on is missing, which is why neither showed up in an audit of what v2
@@ -8,14 +8,14 @@
 //!     interface attached to the pane it had just killed — a frozen last frame
 //!     that takes no keys. v1 had no equivalent because its `Session::restart`
 //!     (since removed) rebound the live object in place.
-//!   * Restarting *thurbox* after the tmux server had gone left every session
+//!   * Restarting *talos* after the tmux server had gone left every session
 //!     unattached forever. v1 relaunches the agent when restore finds no
 //!     matching window (`respawn_stale_session`), which is how a session
 //!     survives a reboot.
 
-use thurbox::kernel::snapshot::{SessionRow, Snapshot};
-use thurbox::kernel::terminal::Terminals;
-use thurbox::session::SessionState;
+use talos::kernel::snapshot::{SessionRow, Snapshot};
+use talos::kernel::terminal::Terminals;
+use talos::session::SessionState;
 
 /// The guard every tmux server in this file is reaped by — see its own doc.
 #[path = "support/tmux_server.rs"]
@@ -70,7 +70,7 @@ fn nothing_is_relaunched_before_the_windows_have_been_looked_at() {
     // "we looked and it is gone" are the same silence. Relaunching on the first
     // would start a second agent beside a perfectly good one.
     let terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let rows = snapshot(vec![row("aaa", "demo", "local-tmux", None)]);
     assert!(
@@ -84,7 +84,7 @@ fn a_session_that_names_a_pane_is_not_treated_as_missing_its_agent() {
     // It is failing to attach to a pane it has, which is a different problem
     // with a different fix — relaunching would abandon a live agent.
     let terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let rows = snapshot(vec![row("aaa", "demo", "local-tmux", Some("%7"))]);
     assert!(terminals.missing_agents(&rows).is_empty());
@@ -104,17 +104,17 @@ async fn a_session_whose_window_is_gone_is_reported_as_missing_its_agent() {
         eprintln!("skipping: tmux is not installed");
         return;
     }
-    let _server = TmuxServer::pin("thurbox-life-test");
+    let _server = TmuxServer::pin("talos-life-test");
 
-    let socket = ["-L", "thurbox-life-test"];
+    let socket = ["-L", "talos-life-test"];
     let _ = tokio::process::Command::new("tmux")
         .args(socket)
-        .args(["new-session", "-d", "-s", "thurbox-dev", "-n", "bash", "sh"])
+        .args(["new-session", "-d", "-s", "talos-dev", "-n", "bash", "sh"])
         .output()
         .await;
 
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let rows = snapshot(vec![row("aaa", "demo", "local-tmux", None)]);
 
@@ -155,12 +155,12 @@ async fn a_session_whose_window_exists_is_not_relaunched() {
         eprintln!("skipping: tmux is not installed");
         return;
     }
-    let _server = TmuxServer::pin("thurbox-life-ok");
+    let _server = TmuxServer::pin("talos-life-ok");
 
-    let socket = ["-L", "thurbox-life-ok"];
+    let socket = ["-L", "talos-life-ok"];
     let _ = tokio::process::Command::new("tmux")
         .args(socket)
-        .args(["new-session", "-d", "-s", "thurbox-dev", "-n", "bash", "sh"])
+        .args(["new-session", "-d", "-s", "talos-dev", "-n", "bash", "sh"])
         .output()
         .await;
     let _ = tokio::process::Command::new("tmux")
@@ -168,7 +168,7 @@ async fn a_session_whose_window_exists_is_not_relaunched() {
         .args([
             "new-window",
             "-t",
-            "thurbox-dev",
+            "talos-dev",
             "-n",
             "tb-demo",
             "sh -c 'while :; do sleep 1; done'",
@@ -177,7 +177,7 @@ async fn a_session_whose_window_exists_is_not_relaunched() {
         .await;
 
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let rows = snapshot(vec![row("aaa", "demo", "local-tmux", None)]);
     for _ in 0..40 {
@@ -218,18 +218,18 @@ async fn a_session_created_after_the_last_survey_is_not_relaunched() {
         eprintln!("skipping: tmux is not installed");
         return;
     }
-    let _server = TmuxServer::pin("thurbox-life-new");
+    let _server = TmuxServer::pin("talos-life-new");
 
-    let socket = ["-L", "thurbox-life-new"];
+    let socket = ["-L", "talos-life-new"];
     let idle = "sh -c 'while :; do sleep 1; done'";
     let _ = tokio::process::Command::new("tmux")
         .args(socket)
-        .args(["new-session", "-d", "-s", "thurbox-dev", "-n", "bash", "sh"])
+        .args(["new-session", "-d", "-s", "talos-dev", "-n", "bash", "sh"])
         .output()
         .await;
     let _ = tokio::process::Command::new("tmux")
         .args(socket)
-        .args(["new-window", "-t", "thurbox-dev", "-n", "tb-alpha", idle])
+        .args(["new-window", "-t", "talos-dev", "-n", "tb-alpha", idle])
         .output()
         .await;
 
@@ -237,7 +237,7 @@ async fn a_session_created_after_the_last_survey_is_not_relaunched() {
     // session" precondition, and it is what made the bug fire on every later
     // creation rather than the first.
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let alpha = snapshot(vec![row("aaa", "alpha", "local-tmux", None)]);
     for _ in 0..40 {
@@ -251,7 +251,7 @@ async fn a_session_created_after_the_last_survey_is_not_relaunched() {
     // Now a second session appears, window first, exactly as spawn orders it.
     let _ = tokio::process::Command::new("tmux")
         .args(socket)
-        .args(["new-window", "-t", "thurbox-dev", "-n", "tb-beta", idle])
+        .args(["new-window", "-t", "talos-dev", "-n", "tb-beta", idle])
         .output()
         .await;
     let both = snapshot(vec![
@@ -312,7 +312,7 @@ fn nothing_is_producing_output_before_anything_is_attached() {
     // It has to be cheap and it has to be stable while nothing is happening, or
     // the screen repaints forever.
     let terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     assert_eq!(terminals.output_generation(), 0);
     assert_eq!(
@@ -327,7 +327,7 @@ fn a_session_with_no_shell_recorded_is_not_asked_about() {
     // The re-adoption runs every iteration, so the common case — no shell — must
     // cost nothing and must not invent one.
     let terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     assert_eq!(terminals.shell_pane_id("aaa"), None);
     assert!(!terminals.has_shell("aaa"));
@@ -347,16 +347,16 @@ fn a_row_carries_the_shell_it_had_open() {
 #[test]
 fn an_outcome_names_what_it_happened_to() {
     // `restart` alone leaves the reader working out which of six sessions it
-    // was, and a bare error reads like a bug in thurbox rather than something
+    // was, and a bare error reads like a bug in talos rather than something
     // about their session.
     let failed =
-        thurbox::kernel::messages::failed("restart", Some("fix-osc52"), "no window on that host");
+        talos::kernel::messages::failed("restart", Some("fix-osc52"), "no window on that host");
     assert!(failed.contains("fix-osc52"), "{failed}");
     assert!(failed.contains("restart"), "{failed}");
     assert!(failed.contains("no window"), "{failed}");
 
     assert_eq!(
-        thurbox::kernel::messages::done("sync", Some("fix-osc52")).as_deref(),
+        talos::kernel::messages::done("sync", Some("fix-osc52")).as_deref(),
         Some("synced fix-osc52")
     );
 }
@@ -367,7 +367,7 @@ fn what_is_already_on_screen_is_not_announced() {
     // band, which is what makes the messages that matter unreadable.
     for quiet in ["reorder", "order", "theme", "setting", "focus", "reap"] {
         assert_eq!(
-            thurbox::kernel::messages::done(quiet, Some("x")),
+            talos::kernel::messages::done(quiet, Some("x")),
             None,
             "{quiet} is visible where it happened"
         );
@@ -397,8 +397,8 @@ async fn letting_go_of_a_pane_makes_the_next_sync_attach_afresh() {
         eprintln!("skipping: tmux is not installed");
         return;
     }
-    let _server = TmuxServer::pin("thurbox-forget-test");
-    let socket = ["-L", "thurbox-forget-test"];
+    let _server = TmuxServer::pin("talos-forget-test");
+    let socket = ["-L", "talos-forget-test"];
     // An `async fn` rather than a closure: it awaits, and a closure body is not
     // an async context.
     async fn window(socket: [&str; 2], name: &str) {
@@ -407,7 +407,7 @@ async fn letting_go_of_a_pane_makes_the_next_sync_attach_afresh() {
             .args([
                 "new-window",
                 "-t",
-                "thurbox-dev",
+                "talos-dev",
                 "-n",
                 name,
                 "sh -c 'while :; do sleep 1; done'",
@@ -418,13 +418,13 @@ async fn letting_go_of_a_pane_makes_the_next_sync_attach_afresh() {
 
     let _ = tokio::process::Command::new("tmux")
         .args(socket)
-        .args(["new-session", "-d", "-s", "thurbox-dev", "-n", "bash", "sh"])
+        .args(["new-session", "-d", "-s", "talos-dev", "-n", "bash", "sh"])
         .output()
         .await;
     window(socket, "tb-demo").await;
 
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let rows = snapshot(vec![row("aaa", "demo", "local-tmux", None)]);
     for _ in 0..60 {
@@ -444,7 +444,7 @@ async fn letting_go_of_a_pane_makes_the_next_sync_attach_afresh() {
     // replacement about half a second later.
     let _ = tokio::process::Command::new("tmux")
         .args(socket)
-        .args(["kill-window", "-t", "thurbox-dev:tb-demo"])
+        .args(["kill-window", "-t", "talos-dev:tb-demo"])
         .output()
         .await;
     window(socket, "tb-demo").await;
@@ -518,15 +518,15 @@ fn a_stopped_session_is_never_relaunched_as_a_missing_agent() {
         eprintln!("skipping: tmux is not installed");
         return;
     }
-    let _server = TmuxServer::pin("thurbox-stopped-test");
-    let socket = ["-L", "thurbox-stopped-test"];
+    let _server = TmuxServer::pin("talos-stopped-test");
+    let socket = ["-L", "talos-stopped-test"];
     let _ = std::process::Command::new("tmux")
         .args(socket)
-        .args(["new-session", "-d", "-s", "thurbox-dev", "-n", "bash", "sh"])
+        .args(["new-session", "-d", "-s", "talos-dev", "-n", "bash", "sh"])
         .output();
 
     let mut terminals = Terminals::with_registry(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     let running = snapshot(vec![row("aaa", "demo", "local-tmux", None)]);
     let mut stopped_row = row("aaa", "demo", "local-tmux", None);

@@ -64,7 +64,7 @@ pub struct ExtensionHealth {
     pub automations: Vec<(String, bool)>,
     /// The extension's own declared version (`version` in its manifest), if any.
     pub version: Option<String>,
-    /// The thurbox version that installed it (`installed_with`), if recorded.
+    /// The talos version that installed it (`installed_with`), if recorded.
     pub installed_with: Option<String>,
     /// The running binary's version (the staleness reference point).
     pub current_binary: String,
@@ -72,7 +72,7 @@ pub struct ExtensionHealth {
     /// refresh it. Always `false` on a dev build.
     pub stale: bool,
     /// A compatibility warning when the binary is older than the extension's
-    /// declared `min_thurbox_version`, else `None`.
+    /// declared `min_talos_version`, else `None`.
     pub compat_warning: Option<String>,
 }
 
@@ -200,7 +200,7 @@ fn ensure_session(
 /// The id of the live session already answering to `name` on `backend`, if one
 /// does.
 ///
-/// More than one is possible — thurbox enforces no uniqueness on the column —
+/// More than one is possible — talos enforces no uniqueness on the column —
 /// and the first is reused rather than refused: a pair already there is not this
 /// pass's doing, creating nothing is already the safe answer, and a message
 /// about it would be toasted every 60 s for as long as the pair lasted. Logged
@@ -244,7 +244,7 @@ fn create_under_claim(
         report.sessions_blocked.push(format!(
             "session '{}' was not recreated: it was just deleted ({}) and the undo is still \
              on offer, so creating it now would leave two sessions of that name. Self-heal \
-             takes it up again once that window closes; `thurbox-cli session restore {}` \
+             takes it up again once that window closes; `talos-cli session restore {}` \
              brings the original back before then",
             sess.name, row.id, row.id
         ));
@@ -389,7 +389,7 @@ pub fn deactivate_extension(
 /// so one bad extension can't block the others (or, in tick, the firing pass).
 ///
 /// The active set is read from SQLite `metadata`; `activate_extension` /
-/// `deactivate_extension` (i.e. `thurbox-cli extension …`) manage membership.
+/// `deactivate_extension` (i.e. `talos-cli extension …`) manage membership.
 pub fn heal_active_extensions(
     db: &Database,
     backends: &crate::backend::BackendRegistry,
@@ -416,7 +416,7 @@ fn heal_one_extension(
     let Some(def) = crate::agent::extension_config::load_manifest(name) else {
         messages.push(format!(
             "extension '{name}' is active but its manifest is missing; reinstall it \
-             or run `thurbox-cli extension deactivate {name}`"
+             or run `talos-cli extension deactivate {name}`"
         ));
         return;
     };
@@ -504,8 +504,8 @@ pub(super) fn heal_version_drift(
 /// by self-heal when an extension is stale and auto-update is off (or failed).
 fn stale_extension_nudge(def: &ExtensionDef, name: &str, current: &str) -> String {
     format!(
-        "extension '{name}' was installed under thurbox {} but this binary is {current}; \
-         run `thurbox-cli extension update {name}` to refresh it",
+        "extension '{name}' was installed under talos {} but this binary is {current}; \
+         run `talos-cli extension update {name}` to refresh it",
         def.installed_with.as_deref().unwrap_or("an older version")
     )
 }
@@ -531,7 +531,7 @@ fn heal_recreated_message(report: &EnsureReport, name: &str) -> String {
     }
     format!(
         "Repaired {} for managed extension '{name}' \
-         (`thurbox-cli extension deactivate {name}` to turn it off)",
+         (`talos-cli extension deactivate {name}` to turn it off)",
         parts.join(" + ")
     )
 }

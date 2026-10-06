@@ -6,9 +6,9 @@
 /// `PRAGMA data_version` moves.)
 use std::path::PathBuf;
 
-use thurbox::session::SessionId;
-use thurbox::storage::Database;
-use thurbox::sync::{SharedSession, SharedWorktree};
+use talos::session::SessionId;
+use talos::storage::Database;
+use talos::sync::{SharedSession, SharedWorktree};
 
 /// Helper to create a test session.
 fn make_session(id: SessionId, name: &str) -> SharedSession {
@@ -16,7 +16,7 @@ fn make_session(id: SessionId, name: &str) -> SharedSession {
         id,
         name: name.to_string(),
         agent: "developer".to_string(),
-        backend_id: "thurbox:@0".to_string(),
+        backend_id: "talos:@0".to_string(),
         backend_type: "tmux".to_string(),
         agent_session_id: Some(format!("claude-{name}")),
         cwd: None,
@@ -148,7 +148,7 @@ fn db_worktree_persisted_with_session() {
         repo_path: PathBuf::from("/repo"),
         worktree_path: PathBuf::from("/repo/.git/wt/feat"),
         branch: "feat".to_string(),
-        created_by_thurbox: true,
+        created_by_talos: true,
     }];
     db.upsert_session(&session).unwrap();
 
@@ -168,13 +168,13 @@ fn db_multi_worktree_persisted_and_loaded_via_sessions() {
             repo_path: PathBuf::from("/repo1"),
             worktree_path: PathBuf::from("/repo1/.git/wt/feat"),
             branch: "feat".to_string(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         },
         SharedWorktree {
             repo_path: PathBuf::from("/repo2"),
             worktree_path: PathBuf::from("/repo2/.git/wt/feat"),
             branch: "feat".to_string(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         },
     ];
     db.upsert_session(&session).unwrap();
@@ -201,13 +201,13 @@ fn db_multi_worktree_propagates_across_instances() {
             repo_path: PathBuf::from("/repo1"),
             worktree_path: PathBuf::from("/repo1/.git/wt/feat"),
             branch: "feat".to_string(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         },
         SharedWorktree {
             repo_path: PathBuf::from("/repo2"),
             worktree_path: PathBuf::from("/repo2/.git/wt/feat"),
             branch: "feat".to_string(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         },
     ];
     db_a.upsert_session(&session).unwrap();
@@ -231,7 +231,7 @@ fn db_session_metadata_preserved_across_instances() {
         id: session_id,
         name: "Dev Session".to_string(),
         agent: "developer".to_string(),
-        backend_id: "thurbox:@0".to_string(),
+        backend_id: "talos:@0".to_string(),
         backend_type: "tmux".to_string(),
         agent_session_id: Some("claude-123".to_string()),
         cwd: Some(PathBuf::from("/home/dev")),
@@ -252,7 +252,7 @@ fn db_session_metadata_preserved_across_instances() {
     assert_eq!(s.id, session_id);
     assert_eq!(s.name, "Dev Session");
     assert_eq!(s.agent, "developer");
-    assert_eq!(s.backend_id, "thurbox:@0");
+    assert_eq!(s.backend_id, "talos:@0");
     assert_eq!(s.agent_session_id, Some("claude-123".to_string()));
     assert_eq!(s.cwd, Some(PathBuf::from("/home/dev")));
 }
@@ -299,7 +299,7 @@ fn db_multiple_sessions_created_and_deleted() {
     assert!(remaining_ids.contains(&sid3));
 }
 
-/// `thurbox-cli watch` streams changes instead of making its reader poll.
+/// `talos-cli watch` streams changes instead of making its reader poll.
 ///
 /// Driven through the real binary against a real database file, because the
 /// property under test is exactly the cross-process one: the writer is a
@@ -316,7 +316,7 @@ fn watch_emits_a_line_when_another_process_changes_a_session() {
 
     // A relocated instance: its own database, and its own tmux socket name,
     // so nothing here can reach the operator's server even by accident.
-    let mut child = Command::new(env!("CARGO_BIN_EXE_thurbox-cli"))
+    let mut child = Command::new(env!("CARGO_BIN_EXE_talos-cli"))
         // `--json`: watch honours the CLI-wide format rule, and a pipe would
         // otherwise get TOON.
         .args(["watch", "--json", "--for-secs", "20"])
@@ -324,9 +324,9 @@ fn watch_emits_a_line_when_another_process_changes_a_session() {
         .env("USERPROFILE", dir.path())
         .env("XDG_DATA_HOME", dir.path().join("xdg-data"))
         .env("XDG_CONFIG_HOME", dir.path().join("xdg-config"))
-        .env("THURBOX_DATA_DIR", &data)
-        .env_remove("THURBOX_SOCKET")
-        .env_remove("THURBOX_SOCKET_FOR")
+        .env("TALOS_DATA_DIR", &data)
+        .env_remove("TALOS_SOCKET")
+        .env_remove("TALOS_SOCKET_FOR")
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()
@@ -336,7 +336,7 @@ fn watch_emits_a_line_when_another_process_changes_a_session() {
     // below is unambiguously a *change* rather than part of the initial state.
     std::thread::sleep(std::time::Duration::from_millis(700));
 
-    let db = Database::open(&data.join("thurbox.db")).expect("open the same database");
+    let db = Database::open(&data.join("talos.db")).expect("open the same database");
     let id = SessionId::default();
     db.upsert_session(&make_session(id, "watched"))
         .expect("write");

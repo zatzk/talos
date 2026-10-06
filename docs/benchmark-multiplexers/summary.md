@@ -15,7 +15,7 @@ Run 20260923T085355Z + 20260923T091234Z + 20260923T115849Z · reps 5 (+1 warm-up
   "versions": {
     "herdr": "herdr 0.9.1",
     "python": "3.13.15",
-    "thurbox": "0.0.0-dev (schema v47)",
+    "talos": "0.0.0-dev (schema v47)",
     "tmux": "tmux 3.7c"
   }
 }
@@ -23,7 +23,7 @@ Run 20260923T085355Z + 20260923T091234Z + 20260923T115849Z · reps 5 (+1 warm-up
 
 ## create
 
-| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | thurbox median | thurbox p95 |
+| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | talos median | talos p95 |
 |---|---|---|---|---|---|---|---|
 | N=1 | first_ready_ms | 37.8 | 37.9 | 147 | 148 | 88.1 | 92.1 |
 | N=1 | last_create_ms | 13.5 | 13.6 | 121 | 122 | 118 | 119 |
@@ -44,7 +44,7 @@ Run 20260923T085355Z + 20260923T091234Z + 20260923T115849Z · reps 5 (+1 warm-up
 
 ## attach
 
-| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | thurbox median | thurbox p95 |
+| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | talos median | talos p95 |
 |---|---|---|---|---|---|---|---|
 | N=1 | attach_ms | 10.8 | 16.2 | 67.6 | 68.7 | 168 | 179 |
 | N=1 | detach_ms | 2.65 | 2.66 | 11.0 | 12.4 | 12.3 | 12.5 |
@@ -61,7 +61,7 @@ Run 20260923T085355Z + 20260923T091234Z + 20260923T115849Z · reps 5 (+1 warm-up
 
 ## resources
 
-| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | thurbox median | thurbox p95 |
+| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | talos median | talos p95 |
 |---|---|---|---|---|---|---|---|
 | N=1 attached idle | cpu_pct | 0.00 | 0.00 | 1.00 | 1.10 | 2.80 | 2.99 |
 | N=1 attached idle | first_view_stale | 0.00 | 0.00 | 0.00 | 0.00 | 1.00 | 1.00 |
@@ -108,7 +108,7 @@ Run 20260923T085355Z + 20260923T091234Z + 20260923T115849Z · reps 5 (+1 warm-up
 
 ## throughput
 
-| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | thurbox median | thurbox p95 |
+| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | talos median | talos p95 |
 |---|---|---|---|---|---|---|---|
 | attached | host_cpu_s | 0.23 | 0.23 | 0.20 | 0.20 | 0.38 | 0.41 |
 | attached | intact | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 |
@@ -124,7 +124,7 @@ Run 20260923T085355Z + 20260923T091234Z + 20260923T115849Z · reps 5 (+1 warm-up
 
 ## scrollback
 
-| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | thurbox median | thurbox p95 |
+| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | talos median | talos p95 |
 |---|---|---|---|---|---|---|---|
 | after 1 burst | held_mib | 2.11 | 2.11 | 6.96 | 6.96 | 1.66 | 1.66 |
 | after 1 burst | read_all_ms | 7.82 | 9.15 | 6.25 | 6.29 | 47.4 | 49.7 |
@@ -133,7 +133,7 @@ Run 20260923T085355Z + 20260923T091234Z + 20260923T115849Z · reps 5 (+1 warm-up
 
 ## latency
 
-| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | thurbox median | thurbox p95 |
+| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | talos median | talos p95 |
 |---|---|---|---|---|---|---|---|
 | idle | echo_ms | 1.03 | 1.09 | 2.19 | 2.34 | 25.4 | 48.5 |
 | idle | timeouts | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
@@ -142,7 +142,7 @@ Run 20260923T085355Z + 20260923T091234Z + 20260923T115849Z · reps 5 (+1 warm-up
 
 ## survival
 
-| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | thurbox median | thurbox p95 |
+| variant | metric | tmux median | tmux p95 | herdr median | herdr p95 | talos median | talos p95 |
 |---|---|---|---|---|---|---|---|
 | crash | alive_after_client_kill | 3.00 | 3.00 | 3.00 | 3.00 | 3.00 | 3.00 |
 | crash | alive_after_server_kill | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |

@@ -1,7 +1,7 @@
 ---
 layout: docs.njk
-title: 'Keybindings — Thurbox Docs'
-description: 'Thurbox keybindings: what the kernel owns, what each pane declares, and how to rebind anything. Every chord goes through one registry.'
+title: 'Keybindings — Talos Docs'
+description: 'Talos keybindings: what the kernel owns, what each pane declares, and how to rebind anything. Every chord goes through one registry.'
 currentPage: 'keybindings'
 breadcrumb: 'Keybindings'
 ---
@@ -34,7 +34,7 @@ breadcrumb: 'Keybindings'
     </tr>
   </thead>
   <tbody>
-    <tr><td><kbd>Ctrl</kbd>+<kbd>Q</kbd></td><td>Quit. Sessions keep running &mdash; tmux owns them, not thurbox</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>Q</kbd></td><td>Quit. Sessions keep running &mdash; tmux owns them, not talos</td></tr>
     <tr><td><kbd>Ctrl</kbd>+<kbd>H</kbd> / <kbd>Ctrl</kbd>+<kbd>L</kbd></td><td>Move focus back / forward through the ring</td></tr>
     <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Copy a selection / paste</td></tr>
     <tr><td><kbd>F1</kbd> or <kbd>Ctrl</kbd>+<kbd>G</kbd></td><td>Keybindings help &mdash; the registry, rendered</td></tr>
@@ -188,7 +188,7 @@ breadcrumb: 'Keybindings'
   <a href="#terminal-conflicts" class="heading-anchor">#</a>
 </h2>
 <p>
-  thurbox shares the <kbd>Ctrl</kbd>+<em>letter</em> namespace with readline, so while an agent has
+  talos shares the <kbd>Ctrl</kbd>+<em>letter</em> namespace with readline, so while an agent has
   focus some chords are handed to it instead: <kbd>Ctrl</kbd>+<kbd>A</kbd> and
   <kbd>Ctrl</kbd>+<kbd>E</kbd> for line start/end, <kbd>Ctrl</kbd>+<kbd>W</kbd> and
   <kbd>Ctrl</kbd>+<kbd>U</kbd> for delete-word and kill-line, <kbd>Ctrl</kbd>+<kbd>R</kbd> for
@@ -201,7 +201,7 @@ breadcrumb: 'Keybindings'
   On macOS, <kbd>Cmd</kbd> chords are bindable where the terminal supports the kitty keyboard
   protocol (iTerm2 3.5+, kitty, WezTerm, Ghostty &mdash; not Terminal.app). Shortcuts the emulator
   itself consumes (<kbd>Cmd</kbd>+<kbd>Q</kbd>/<kbd>W</kbd>/<kbd>T</kbd>/<kbd>K</kbd>&hellip;) never
-  reach thurbox, so only bind what your terminal leaves free. F-keys need <kbd>Fn</kbd> on Mac
+  reach talos, so only bind what your terminal leaves free. F-keys need <kbd>Fn</kbd> on Mac
   laptops unless you have enabled standard function keys.
 </p>
 
@@ -211,8 +211,8 @@ breadcrumb: 'Keybindings'
 </h2>
 <p>
   A pane declares its own keys, so installing one can add chords the shipped set leaves free:
-  <a href="https://github.com/Thurbeen/thurbox-code-review" target="_blank" rel="noopener">thurbox-code-review</a>
+  <a href="https://github.com/zatzk/talos-code-review" target="_blank" rel="noopener">talos-code-review</a>
   claims <kbd>Ctrl</kbd>+<kbd>X</kbd>/<kbd>F7</kbd> and
-  <a href="https://github.com/Thurbeen/thurbox-info-panel" target="_blank" rel="noopener">thurbox-info-panel</a>
+  <a href="https://github.com/zatzk/talos-info-panel" target="_blank" rel="noopener">talos-info-panel</a>
   claims <kbd>F2</kbd> &mdash; see <a href="interface.html#installable-panes">the interface</a>.
 </p>

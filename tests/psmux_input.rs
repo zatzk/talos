@@ -1,6 +1,6 @@
 use crossterm::event::{KeyCode, KeyModifiers};
-use thurbox::agent::input::key_to_bytes;
-use thurbox::backend::psmux::psmux_send_keys_commands;
+use talos::agent::input::key_to_bytes;
+use talos::backend::psmux::psmux_send_keys_commands;
 
 #[test]
 fn insert_and_delete_reach_psmux_as_one_key_event() {

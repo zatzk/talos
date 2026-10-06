@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
-# Run a thurbox *dev build* in an isolated sandbox — one command to launch the
-# `thurbox-dev` TUI/CLI against a throwaway or persistent environment that never
-# touches your real ~/.config/thurbox or tmux server.
+# Run a talos *dev build* in an isolated sandbox — one command to launch the
+# `talos-dev` TUI/CLI against a throwaway or persistent environment that never
+# touches your real ~/.config/talos or tmux server.
 #
-# By default only *thurbox's own* config/data are redirected (via THURBOX_*_DIR)
+# By default only *talos's own* config/data are redirected (via TALOS_*_DIR)
 # — your real HOME/agents stay intact, so authenticated claude/codex/antigravity work.
 # Pass --isolate-home for a fully hermetic env (fresh HOME, agents boot without
 # credentials), e.g. to reproduce the demo/smoke conditions.
@@ -17,12 +17,12 @@
 #   scripts/dev/sandbox.sh --demo          # seed a demo repo + sessions, then launch
 #   scripts/dev/sandbox.sh --demo-big      # …and the large-diff repo as well
 #   scripts/dev/sandbox.sh --shell         # drop into a shell with the sandbox env
-#                                          #   (run `thurbox-cli ...` against the sandbox DB)
-#   scripts/dev/sandbox.sh -- session list # run `thurbox-cli <args>` in the sandbox
+#                                          #   (run `talos-cli ...` against the sandbox DB)
+#   scripts/dev/sandbox.sh -- session list # run `talos-cli <args>` in the sandbox
 #   scripts/dev/sandbox.sh --clean [name]  # kill + wipe a persistent profile, then exit
 #
-# The interface materializes at `<sandbox>/thurbox-config/ui/` along with agents,
-# settings and the database, because THURBOX_CONFIG_DIR points there — which is
+# The interface materializes at `<sandbox>/talos-config/ui/` along with agents,
+# settings and the database, because TALOS_CONFIG_DIR points there — which is
 # what `--fresh` then gives you a clean one of.
 #
 # A bare sandbox has NO repositories and NO sessions, which is the state most
@@ -31,7 +31,7 @@
 # whose branch has changes, and a session whose branch deliberately has none.
 #
 # The TUI is still launched FROM THE SANDBOX ROOT rather than the repo. That used
-# to be load-bearing: thurbox preferred a `./ui` in the working directory over the
+# to be load-bearing: talos preferred a `./ui` in the working directory over the
 # user's own copy, so starting from the repo isolated the database and not the
 # interface. That rule is gone (standing somewhere no longer decides which
 # interface loads), and the cd is kept as belt-and-braces.
@@ -57,7 +57,7 @@ die() { printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 
 mode="persistent"
 profile="default"
-isolation="thurbox" # thurbox | full
+isolation="talos" # talos | full
 demo="" # "" | standard | big
 action="tui"        # tui | shell | cli | clean
 cli_args=()
@@ -86,11 +86,11 @@ if [ "$action" = "clean" ]; then
 fi
 
 # Build the dev binaries BEFORE the HOME override (so cargo finds ~/.cargo).
-# thurbox-cli is built either way: it drives the same database and is what an
+# talos-cli is built either way: it drives the same database and is what an
 # agent hook inside a session calls.
-tui_binary="thurbox"
-log "building $tui_binary + thurbox-cli (dev)"
-( cd "$TBX_REPO_ROOT" && cargo build --bin "$tui_binary" --bin thurbox-cli >&2 )
+tui_binary="talos"
+log "building $tui_binary + talos-cli (dev)"
+( cd "$TBX_REPO_ROOT" && cargo build --bin "$tui_binary" --bin talos-cli >&2 )
 
 if [ "$isolation" = "full" ]; then
     tbx_sandbox_init_full "$mode" "$profile"
@@ -113,10 +113,10 @@ fi
 run_in_sandbox() {
     case "$action" in
         shell)
-            log "entering sandbox shell — \`$tui_binary\`/\`thurbox-cli\` target this sandbox; exit to leave"
+            log "entering sandbox shell — \`$tui_binary\`/\`talos-cli\` target this sandbox; exit to leave"
             "${SHELL:-bash}" -i
             ;;
-        cli) "$TBX_REPO_ROOT/target/debug/thurbox-cli" "${cli_args[@]}" ;;
+        cli) "$TBX_REPO_ROOT/target/debug/talos-cli" "${cli_args[@]}" ;;
         # Run from the sandbox root, not the repo: see the note in the header.
         # Otherwise the sandbox isolates the database but not the interface.
         tui) ( cd "$TBX_SANDBOX_ROOT" && "$TBX_REPO_ROOT/target/debug/$tui_binary" ) ;;

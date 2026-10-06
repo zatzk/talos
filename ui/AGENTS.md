@@ -1,6 +1,6 @@
-# You are working in thurbox's interface
+# You are working in talos's interface
 
-This directory **is** the running interface of thurbox, a multi-session
+This directory **is** the running interface of talos, a multi-session
 coding-agent orchestrator. Every pane on its screen is a Lua file here. Saving a
 file reloads it; there is no build step.
 
@@ -31,16 +31,16 @@ content cell. And a run inside a line carries its own `id`/`role`, so a chip is 
 click target without becoming a sized node; adjacent runs sharing an identity are
 one hitbox.
 
-## "Install a plugin" means `thurbox-cli plugin install`
+## "Install a plugin" means `talos-cli plugin install`
 
-A *plugin* here is a thurbox interface pane, not a package from a language
+A *plugin* here is a talos interface pane, not a package from a language
 registry. If someone asks you to install one:
 
 ```bash
-thurbox-cli plugin available          # what installs by bare name
-thurbox-cli plugin install <name>     # or a URL, or a path
-thurbox-cli plugin install git+<url>  # a repository: cloned, payload and all
-thurbox-cli plugin sync               # after editing plugins.toml by hand
+talos-cli plugin available          # what installs by bare name
+talos-cli plugin install <name>     # or a URL, or a path
+talos-cli plugin install git+<url>  # a repository: cloned, payload and all
+talos-cli plugin sync               # after editing plugins.toml by hand
 ```
 
 A plugin that carries a program or a data file is a **repository**, and `git+<url>`
@@ -50,7 +50,7 @@ repository's files on the user's disk, executables included.** Nothing is execut
 installing, and a program still needs the `program` capability the user grants — but
 the files are theirs now, so do not install a repository the user did not name.
 
-`thurbox.platform` gives a pane `os` and `arch`, which is how a plugin shipping
+`talos.platform` gives a pane `os` and `arch`, which is how a plugin shipping
 several binaries picks one. The manifest does not do it for you.
 
 **Never build under this directory, and never write inside an installed plugin's
@@ -80,10 +80,10 @@ each entry resolved to. You may edit the first by hand; never hand-edit the seco
 ## Check your work after every edit
 
 ```bash
-thurbox-cli plugin check
+talos-cli plugin check
 ```
 
-It loads the interface exactly as thurbox does and **exits non-zero** on failure.
+It loads the interface exactly as talos does and **exits non-zero** on failure.
 Do not report an edit as done without it. It catches four things, and the three
 after the first are the ones that look like success:
 
@@ -103,13 +103,13 @@ after the first are the ones that look like success:
 
 `check` loads; it does not read names. The mistakes it cannot see are the quiet
 ones — a node prop the kernel drops, a command option no verb reads, a theme role
-no palette defines — and `lib/thurbox.d.lua` is what turns those into findings:
+no palette defines — and `lib/talos.d.lua` is what turns those into findings:
 
 ```bash
 lua-language-server --check . --checklevel=Warning
 ```
 
-Annotate the node you build (`---@type thurbox.TextNode` above the table) so a
+Annotate the node you build (`---@type talos.TextNode` above the table) so a
 misspelt prop reads back as a missing required field. An **extra** key is never
 reported, so the annotation is what does the work.
 
@@ -129,7 +129,7 @@ offset — `widgets.chars` is that.
 
 The plugin file, **and** its slot in `layout.lua`. A pane names a slot; the
 arrangement decides where that slot goes. Miss the second and you get the
-silent-but-loading failure above. `thurbox-cli plugin install` prints the line for
+silent-but-loading failure above. `talos-cli plugin install` prints the line for
 you.
 
 There is a quieter version of the same failure: a slot in **`switch`** mode shows one
@@ -155,9 +155,9 @@ pane from being the thing that makes the whole interface feel slow:
   `command` — move those into
   `on_key`/`on_action`/`on_click`/`on_context`/`on_outside`/`on_scroll`/`on_event`. Floats
   especially: a float renders every frame *even while closed*.
-- **Memoize on table identity.** The published groups (`thurbox.sessions`,
-  `thurbox.theme`, `thurbox.registry`, `thurbox.bookmarks`, …) keep the *same
-  table* until their data moves, so `rawequal(thurbox.sessions, cache.src)` is
+- **Memoize on table identity.** The published groups (`talos.sessions`,
+  `talos.theme`, `talos.registry`, `talos.bookmarks`, …) keep the *same
+  table* until their data moves, so `rawequal(talos.sessions, cache.src)` is
   a sound one-comparison test that a derived model is still valid.
   `10_sessions`'s model and the flow's row cache are the pattern to copy.
 - **Window first, build second.** Compute the visible rows (`widgets.window`)
@@ -171,7 +171,7 @@ of a fresh table (writing the same *value* is free; a new table never is).
 
 **Finding the slow pane:** `F12`, then read the `panes` table under the
 counters — most expensive first, the worst in red, `!` where a hint applies.
-Then `thurbox-cli perf --plugins` prints every column for every pane, with the
+Then `talos-cli perf --plugins` prints every column for every pane, with the
 hint spelled out (not pure but rendering every frame, a float rendering while
 closed, fresh tables written to `store` from a render, a pure pane re-rendering
 while idle); add `--json` to script it. A `slow op` in the output names the pane
@@ -182,7 +182,7 @@ whose call took the time.
 - **No `os`, `io`, `debug`, `package`, `print`, `dofile`, `load`.** They are not
   blocked, they are *missing*: `os.time()` is `attempt to index a nil value`, not a
   permission error. The VM enforces it, so `plugin check` is what catches it here —
-  the static lint that also enforces it needs the thurbox checkout's own config.
+  the static lint that also enforces it needs the talos checkout's own config.
 - **No blocking.** Reads come from a snapshot and return instantly; writes are
   `command(...)` calls the kernel applies later. There is nothing to await. Two of
   those writes reach outside your own rect: `command("message", { text =, level = })`
@@ -197,7 +197,7 @@ whose call took the time.
 
 ## What `lib/` promises a file that calls it
 
-Thurbox never overwrites a file you edited. So an edited `layout.lua` or pane
+Talos never overwrites a file you edited. So an edited `layout.lua` or pane
 stays as it was while an upgrade keeps updating the untouched `lib/` files it
 calls. Every third-party pane is in the same position. `lib/` therefore keeps one
 promise, and it is everything such a file may rely on:
@@ -214,13 +214,13 @@ promise, and it is everything such a file may rely on:
 
 Nothing else is promised: a module's `local` functions, its private state, the
 exact styles and text it draws, or writes into a module's tables.
-`thurbox.d.lua` is types, not a module.
+`talos.d.lua` is types, not a module.
 
 This is a compatibility promise rather than a version number. A preserved file is
 frozen at whichever release it was edited in. A version could only tell that file
 it no longer fits; it could not make it work. Side-by-side copies of `lib/` would
 mean landing every fix once per copy, and published plugins declare no version to
-pin to. The thurbox repository's test suite holds `lib/` to this promise. It
+pin to. The talos repository's test suite holds `lib/` to this promise. It
 loads edited files frozen from an old release, and it pins a list of every
 exported name.
 
@@ -232,11 +232,11 @@ Put your own helpers in a module of your own, such as `lib/mine.lua`.
 
 `layout.lua` and `lib/` are shared by every pane; a mistake there takes the whole
 screen, not one pane. Prefer adding a file over editing those two. Anything shipped
-with thurbox can be restored (`Ctrl+,` → `]` → `r`), so a bad edit is recoverable —
+with talos can be restored (`Ctrl+,` → `]` → `r`), so a bad edit is recoverable —
 but only if you say what you changed. Restoring an edited `layout.lua` keeps your
 copy as `layout.lua.bak` (then `.bak.2`, never over an earlier one).
 
 A file **you** added has no shipped copy to restore, so the way back for it is
 `space` on its row in that same tab: turned off, untouched on disk, and the
-interface loads without it. `thurbox-cli plugin check` reports the failure with no
+interface loads without it. `talos-cli plugin check` reports the failure with no
 TTY, which is the one you can run yourself.

@@ -1,18 +1,18 @@
 # Static analysis for the Lua interface (`ui/`).
 #
-# `std` names `thurbox.yml`, which declares the plugin VM's real standard
+# `std` names `talos.yml`, which declares the plugin VM's real standard
 # library — the five stdlib tables the kernel grants plus its six injected
 # globals, with everything it withholds simply *absent*: the file inherits no
 # `base:`, so there is nothing to mark removed. It checks two things at once:
 # that the Lua is sound, and that it stays inside the sandbox.
-std = "thurbox"
+std = "talos"
 
 # The type definitions are declarations, not code: nothing loads
-# `lib/thurbox.d.lua` into the VM, and describing a global means *assigning* it,
+# `lib/talos.d.lua` into the VM, and describing a global means *assigning* it,
 # which is the one thing the sandbox forbids of a plugin. Linting it against the
 # sandbox would therefore reject the file for saying exactly what the sandbox
 # is. `lua-language-server` checks it instead — see `scripts/ci/check-lua-types.sh`.
-exclude = ["ui/lib/thurbox.d.lua"]
+exclude = ["ui/lib/talos.d.lua"]
 
 [lints]
 # A plugin is one file returning one table; the kernel calls its fields. Nothing

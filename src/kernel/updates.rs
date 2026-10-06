@@ -82,7 +82,7 @@ impl Updates {
                         latest,
                     }) => tracing::info!(
                         "auto-update: v{latest} is a new major over v{current} — reported, \
-                         not installed. `thurbox-cli update --force` takes it."
+                         not installed. `talos-cli update --force` takes it."
                     ),
                     // Up to date, or a dev build — `perform_update` skips those
                     // itself, which is why nothing is decided here.
@@ -111,7 +111,7 @@ impl Updates {
                 Done::Checked(latest) => self.latest = latest,
                 Done::Installed(to) => {
                     self.latest = Some(to.clone());
-                    message = Some(format!("Updated to v{to} — restart thurbox to apply."));
+                    message = Some(format!("Updated to v{to} — restart talos to apply."));
                 }
             }
         }
@@ -135,7 +135,7 @@ mod tests {
     /// doubling one.
     ///
     /// `cli::update` is the deliberate other caller: a person typing
-    /// `thurbox-cli update` is not the interface updating itself.
+    /// `talos-cli update` is not the interface updating itself.
     #[test]
     fn only_this_module_installs_a_release() {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");

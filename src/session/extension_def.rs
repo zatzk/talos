@@ -1,13 +1,13 @@
-//! Extension manifests — pure data describing the thurbox resources an opt-in
+//! Extension manifests — pure data describing the talos resources an opt-in
 //! extension needs to function (a dedicated session, a tick automation, …).
 //!
 //! Extensions (see `extensions/<name>/`) are agent-agnostic add-ons built on
-//! `thurbox-cli`; per ADR-20 they live as data + shell scripts, never embedded
+//! `talos-cli`; per ADR-20 they live as data + shell scripts, never embedded
 //! in the binary. An extension ships an `extension.toml` manifest; its installer
-//! copies it into the discovery dir (`~/.config/thurbox/extensions/<name>.toml`),
-//! and thurbox core reads *any* manifest without knowing the extension by name.
+//! copies it into the discovery dir (`~/.config/talos/extensions/<name>.toml`),
+//! and talos core reads *any* manifest without knowing the extension by name.
 //!
-//! The manifest is the declarative contract behind `thurbox-cli extension
+//! The manifest is the declarative contract behind `talos-cli extension
 //! activate/deactivate` and the startup/tick self-heal: it names the
 //! sessions/automations to (re)create idempotently. Kept here in `session` (the
 //! dependency sink) so both `agent` (the loader) and `session_ops` (the
@@ -57,10 +57,10 @@ impl ExtensionFile {
 }
 
 /// A file the installer places **outside** the extension home — into an agent's
-/// own config dir (e.g. `~/.config/opencode/plugin/thurbox-status.js`). `path`
+/// own config dir (e.g. `~/.config/opencode/plugin/talos-status.js`). `path`
 /// may be absolute, start with `~`, or contain [`HOME_TOKEN`]. Unlike
 /// [`ExtensionFile`] (home-confined), this is how a hook plugin reaches an agent
-/// that has no launch flag. Removed on uninstall when still thurbox-managed.
+/// that has no launch flag. Removed on uninstall when still talos-managed.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExternalFile {
     /// Destination path: absolute, `~`-relative, or containing `{home}`.
@@ -202,7 +202,7 @@ pub struct ExtensionSession {
 pub struct ExtensionAutomation {
     /// Automation name. Used to find/reuse it.
     pub name: String,
-    /// Trigger spec, same grammar as `thurbox-cli automation create --trigger`
+    /// Trigger spec, same grammar as `talos-cli automation create --trigger`
     /// (`hourly` | `daily` | `weekdays` | `weekly` | `cron:<expr>` | `at:<ms>`).
     pub trigger: String,
     /// Name of the extension session this automation sends its prompt to. Must
@@ -248,11 +248,11 @@ impl ExtensionAutomation {
 /// active. One manifest per `extension.toml` file.
 ///
 /// Unknown fields are tolerated but reported by the loader as a warning, so a
-/// newer manifest doesn't strand an older thurbox on defaults.
+/// newer manifest doesn't strand an older talos on defaults.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExtensionDef {
     /// Unique extension name (matches the discovery file stem and what
-    /// `thurbox-cli extension activate <name>` expects).
+    /// `talos-cli extension activate <name>` expects).
     pub name: String,
     /// Optional human-readable summary, shown in `extension list`.
     #[serde(default)]
@@ -265,14 +265,14 @@ pub struct ExtensionDef {
     /// `extension update` report what moved and surfaces in `extension list`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
-    /// Minimum thurbox version this extension needs (e.g. `"0.113.0"`). Install
+    /// Minimum talos version this extension needs (e.g. `"0.113.0"`). Install
     /// and activate emit a compatibility **warning** (never a hard block, to
     /// stay graceful) when the running binary is older. Dev builds skip it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub min_thurbox_version: Option<String>,
-    /// The thurbox version that performed the install. **Stamped** into the
+    pub min_talos_version: Option<String>,
+    /// The talos version that performed the install. **Stamped** into the
     /// discovery-dir copy by the installer (never authored in source); compared
-    /// against the running binary to flag a stale extension after a thurbox
+    /// against the running binary to flag a stale extension after a talos
     /// upgrade. `None` in a source manifest.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub installed_with: Option<String>,
@@ -375,7 +375,7 @@ impl ExtensionDef {
     }
 
     /// Stamp install provenance onto the (resolved) manifest before it's written
-    /// to the discovery dir: which thurbox version installed it and where it came
+    /// to the discovery dir: which talos version installed it and where it came
     /// from, so staleness can be detected and `update` can re-fetch. Returns
     /// `self` for chaining off [`Self::resolved_for_home`].
     pub fn with_provenance(mut self, installed_with: &str, source: &str) -> ExtensionDef {
@@ -384,7 +384,7 @@ impl ExtensionDef {
         self
     }
 
-    /// Whether this extension was installed under a thurbox version different
+    /// Whether this extension was installed under a talos version different
     /// from `current` — i.e. an upgrade has happened since and re-running
     /// `extension update` would refresh it. Always `false` for a dev build
     /// (`current` is unstable) or a manifest with no recorded install version.
@@ -398,18 +398,18 @@ impl ExtensionDef {
         }
     }
 
-    /// A compatibility warning if this extension declares a `min_thurbox_version`
+    /// A compatibility warning if this extension declares a `min_talos_version`
     /// the running `current` binary doesn't satisfy, else `None`. Dev builds are
     /// treated as compatible with everything (their version is unstable).
     pub fn compat_warning(&self, current: &str) -> Option<String> {
         if is_dev_version(current) {
             return None;
         }
-        let min = self.min_thurbox_version.as_deref()?;
+        let min = self.min_talos_version.as_deref()?;
         if compare_versions(current, min) == std::cmp::Ordering::Less {
             Some(format!(
-                "extension '{}' wants thurbox >= {min} but this binary is {current}; \
-                 some features may not work — upgrade thurbox",
+                "extension '{}' wants talos >= {min} but this binary is {current}; \
+                 some features may not work — upgrade talos",
                 self.name
             ))
         } else {
@@ -452,7 +452,7 @@ pub fn is_dev_version(v: &str) -> bool {
 /// `-suffix` ignored), or `None` when there is no leading number to read.
 ///
 /// Split out from [`compare_versions`] because a *major* difference is not just
-/// a bigger ordering: thurbox's 2.x line changed the whole interface, so
+/// a bigger ordering: talos's 2.x line changed the whole interface, so
 /// crossing that boundary is a decision rather than a newer patch.
 pub fn major_version(v: &str) -> Option<u64> {
     v.trim()
@@ -469,7 +469,7 @@ pub fn major_version(v: &str) -> Option<u64> {
 /// `-suffix` ignored) numerically, component by component. Missing trailing
 /// components count as `0` (so `1.2` == `1.2.0`). Non-numeric components sort as
 /// `0`. A dependency-free stand-in for the `semver` crate, sufficient for the
-/// `major.minor.patch` tags thurbox ships.
+/// `major.minor.patch` tags talos ships.
 pub fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
     let parts = |s: &str| -> Vec<u64> {
         s.trim_start_matches('v')
@@ -497,7 +497,7 @@ pub fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
 mod tests {
     use super::*;
 
-    /// Every manifest thurbox ships must parse, and every payload it names must
+    /// Every manifest talos ships must parse, and every payload it names must
     /// be in the directory beside it. A manifest that survives a payload rename
     /// fails at install time on the user's machine, where the only symptom is a
     /// fetch error for a file nobody thought about — so the check belongs here,
@@ -551,7 +551,7 @@ mod tests {
             checked.push(named.to_string());
         }
         // The exact set, not a count: it also pins that the walk found the real
-        // tree, and that the two built-ins — the only extensions thurbox ships,
+        // tree, and that the two built-ins — the only extensions talos ships,
         // and the ones `session_ops::builtin` embeds — are both still there.
         checked.sort();
         assert_eq!(checked, ["hooks", "ui-skill"]);
@@ -621,7 +621,7 @@ prompt = "tick"
             description: None,
             config_version: Some(1),
             version: Some("1.0.0".into()),
-            min_thurbox_version: Some("0.113.0".into()),
+            min_talos_version: Some("0.113.0".into()),
             installed_with: Some("0.113.0".into()),
             source: Some("flow".into()),
             home: Some("~/flow".into()),
@@ -864,7 +864,7 @@ prompt = "tick"
     fn compat_warning_fires_only_when_binary_too_old() {
         let def = ExtensionDef {
             name: "flow".into(),
-            min_thurbox_version: Some("0.113.0".into()),
+            min_talos_version: Some("0.113.0".into()),
             ..Default::default()
         };
         assert!(

@@ -110,7 +110,7 @@ end
 --- start from it and add what it needs.
 ---@param title string
 ---@param level string
----@return thurbox.Frame
+---@return talos.Frame
 function chrome.frame(title, level)
   return {
     title = { { text = chrome.label(title, level), style = chrome.title_style(level) } },

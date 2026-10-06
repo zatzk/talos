@@ -238,7 +238,7 @@ mod tests {
     #[test]
     fn forgetting_a_folder_racing_its_rescan_leaves_no_orphans() {
         let dir = tempfile::TempDir::new().unwrap();
-        let path = dir.path().join("thurbox.db");
+        let path = dir.path().join("talos.db");
         let db = Database::open(&path).unwrap();
         let children: Vec<PathBuf> = (0..8)
             .map(|n| PathBuf::from(format!("/srv/r{n}")))
@@ -331,7 +331,7 @@ mod tests {
         use std::time::{Duration, Instant};
 
         let dir = tempfile::TempDir::new().unwrap();
-        let path = dir.path().join("thurbox.db");
+        let path = dir.path().join("talos.db");
         let db = Database::open(&path).unwrap();
         db.upsert_repo_bookmark_kind("ssh:box", Path::new("/srv/a"), true)
             .unwrap();

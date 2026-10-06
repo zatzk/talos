@@ -21,13 +21,13 @@ use crossterm::event::{
     Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEventKind,
 };
 
-use thurbox::agent::input::key_to_bytes;
-use thurbox::kernel::bands::Level;
-use thurbox::kernel::clipboard;
-use thurbox::kernel::command::Command;
-use thurbox::kernel::host::KeyPress;
-use thurbox::kernel::modals::ModalKind;
-use thurbox::kernel::registry::{canonical_chord, is_ctrl_letter_chord};
+use talos::agent::input::key_to_bytes;
+use talos::kernel::bands::Level;
+use talos::kernel::clipboard;
+use talos::kernel::command::Command;
+use talos::kernel::host::KeyPress;
+use talos::kernel::modals::ModalKind;
+use talos::kernel::registry::{canonical_chord, is_ctrl_letter_chord};
 
 use super::paste::Input;
 use super::{next_event, to_press};
@@ -42,7 +42,7 @@ impl App {
     /// the leftover reports are what printed `\x1b[<35;92;31M` into the terminal
     /// afterwards.
     ///
-    /// The batch is also what `thurbox.*` is published for: once, before the first
+    /// The batch is also what `talos.*` is published for: once, before the first
     /// event that runs Lua, rather than once per event. A handler has to read
     /// something current, and almost nothing between two events of one batch can
     /// change what it would say — the snapshot is refreshed at the top of the
@@ -88,7 +88,7 @@ impl App {
                 // Input is not worth the process. A terminal can hand
                 // crossterm a sequence it cannot parse — a burst of keys
                 // interleaving with a mouse report is enough — and
-                // propagating that error exited thurbox with every session
+                // propagating that error exited talos with every session
                 // detached. Logged, dropped, and retried next iteration; only
                 // a stream that keeps failing (a closed stdin, say) is fatal,
                 // since polling a dead terminal would otherwise spin.
@@ -190,7 +190,7 @@ impl App {
         Ok(())
     }
 
-    /// Dispatch one resolved input, publishing `thurbox.*` once per batch.
+    /// Dispatch one resolved input, publishing `talos.*` once per batch.
     fn apply_input(&mut self, input: Input, published: &mut bool) {
         self.publish_for_batch(published);
         match input {
@@ -216,7 +216,7 @@ impl App {
         // exception: it clears the selection like any key, finds none, and
         // falls through as the interrupt (Herdr's rule).
         let is_copy = kernel_action.as_deref() == Some(clipboard::COPY_ACTION)
-            && !thurbox::session::settings::global()
+            && !talos::session::settings::global()
                 .clipboard
                 .copy_on_select;
         if !is_copy && self.selection.take().is_some() {
@@ -282,7 +282,7 @@ impl App {
             self.toggle_modal(kind);
             return true;
         }
-        if !thurbox::kernel::modals::escapes(key) {
+        if !talos::kernel::modals::escapes(key) {
             self.dispatch_modal_key(key);
             return true;
         }
@@ -340,7 +340,7 @@ impl App {
     /// outrank a global one.
     pub(crate) fn kernel_action(&self, press: &KeyPress) -> Option<String> {
         let binding = self.registry.resolve(press, None)?;
-        (binding.plugin == thurbox::kernel::modals::OWNER).then(|| binding.action.clone())
+        (binding.plugin == talos::kernel::modals::OWNER).then(|| binding.action.clone())
     }
 
     /// Copy and paste, run ahead of a float's exclusive grab and of every plugin
@@ -395,7 +395,7 @@ impl App {
     /// with **no selection** declines, so `Ctrl+C` falls through to the focused
     /// agent and still interrupts a turn; paste with **nothing pasteable**
     /// declines for the reason [`Self::paste_into_focused`] gives. Decided per
-    /// press rather than by the binding — see [`thurbox::kernel::clipboard`].
+    /// press rather than by the binding — see [`talos::kernel::clipboard`].
     pub(crate) fn run_clipboard_action(&mut self, action: &str) -> Option<bool> {
         match action {
             clipboard::COPY_ACTION => {
@@ -491,7 +491,7 @@ impl App {
         // A chord the kernel declared for itself opens a system modal; there is
         // no plugin to hand it to. (The kernel's other declarations — copy and
         // paste — are resolved before a float can grab them, above.)
-        if plugin == thurbox::kernel::modals::OWNER {
+        if plugin == talos::kernel::modals::OWNER {
             if let Some(kind) = ModalKind::from_action(&action) {
                 self.toggle_modal(kind);
                 return true;
@@ -628,7 +628,7 @@ impl App {
             );
             return;
         }
-        if plugin == thurbox::kernel::modals::OWNER {
+        if plugin == talos::kernel::modals::OWNER {
             if let Some(kind) = ModalKind::from_action(action) {
                 self.toggle_modal(kind);
                 return;
@@ -640,7 +640,7 @@ impl App {
             match self.run_clipboard_action(action) {
                 Some(true) => return,
                 Some(false) => {
-                    self.toast(if action == thurbox::kernel::clipboard::PASTE_ACTION {
+                    self.toast(if action == talos::kernel::clipboard::PASTE_ACTION {
                         "nothing to paste — the clipboard holds no text"
                     } else {
                         "nothing to copy"
@@ -650,8 +650,8 @@ impl App {
                 None => {}
             }
             match action {
-                thurbox::kernel::modals::palette::RELOAD_ACTION => self.reload_by_key(),
-                thurbox::kernel::modals::palette::QUIT_ACTION => self.quit = true,
+                talos::kernel::modals::palette::RELOAD_ACTION => self.reload_by_key(),
+                talos::kernel::modals::palette::QUIT_ACTION => self.quit = true,
                 other => self.report(format!("no kernel action named {other:?}"), Level::Error),
             }
             return;
@@ -782,9 +782,9 @@ impl App {
     /// would otherwise fire on the first one.
     ///
     /// **A local clipboard holding no text is not an error, it is someone else's
-    /// paste.** An image is the case that matters: thurbox can only send text, so
+    /// paste.** An image is the case that matters: talos can only send text, so
     /// swallowing `Ctrl+V` there means the press does nothing at all — which is
-    /// what "pasting a screenshot into claude through thurbox does nothing" was.
+    /// what "pasting a screenshot into claude through talos does nothing" was.
     /// The agent in the pane does know how to fetch it: Claude Code reads the
     /// clipboard itself when it sees `Ctrl+V`, shelling out to `xclip`/`wl-paste`
     /// (and, under WSL, to PowerShell). Declining lets the press reach it.
@@ -807,7 +807,7 @@ impl App {
         // stage runs before `dispatch_grabbed` and the answer then found the
         // float still up. Pasting a repository path into the new-session wizard
         // did nothing at all under WSL.
-        if thurbox::clipboard::ImageProbe::applies() && !self.overlay_owns_input() {
+        if talos::clipboard::ImageProbe::applies() && !self.overlay_owns_input() {
             return self.ask_windows_about_this_press();
         }
         self.paste_text_or_decline()
@@ -892,9 +892,9 @@ impl App {
 
     /// Paste the clipboard's text, or decline the chord when there is none.
     ///
-    /// Declining is what makes an image paste work at all. thurbox can only
+    /// Declining is what makes an image paste work at all. talos can only
     /// send text, so swallowing the press there means it does nothing — which
-    /// is what "pasting a screenshot into claude through thurbox does nothing"
+    /// is what "pasting a screenshot into claude through talos does nothing"
     /// was. The agent in the pane *can* fetch an image, and does so on seeing
     /// the paste chord itself, so the press is worth more to it than to us.
     ///
@@ -905,10 +905,10 @@ impl App {
     /// terminals disable clipboard *reads* by default and probing for one can
     /// stall for seconds.
     fn paste_text_or_decline(&mut self) -> bool {
-        let text = thurbox::clipboard::paste(self.clipboard.as_mut());
+        let text = talos::clipboard::paste(self.clipboard.as_mut());
         match (paste_route(self.clipboard.is_some(), text.is_some()), text) {
             (PasteRoute::Hint, _) => {
-                self.toast(thurbox::clipboard::PASTE_UNAVAILABLE_HINT);
+                self.toast(talos::clipboard::PASTE_UNAVAILABLE_HINT);
                 true
             }
             (PasteRoute::Send, Some(text)) => {
@@ -962,16 +962,16 @@ impl App {
     /// already named its destination, so putting it there is not a leak past
     /// the overlay but the thing that was asked for. What an overlay prevents
     /// is the *question* — see [`Self::paste_into_focused`].
-    fn deliver_probed_paste(&mut self, verdict: thurbox::clipboard::Verdict, surface: &str) {
-        use thurbox::clipboard::Verdict;
+    fn deliver_probed_paste(&mut self, verdict: talos::clipboard::Verdict, surface: &str) {
+        use talos::clipboard::Verdict;
         if verdict == Verdict::NotImage {
             // The same decision the unprobed press makes, read from the same
             // function: what Windows answered says only whether this press is
-            // thurbox's to handle, never what handling it looks like.
-            let text = thurbox::clipboard::paste(self.clipboard.as_mut());
+            // talos's to handle, never what handling it looks like.
+            let text = talos::clipboard::paste(self.clipboard.as_mut());
             match (paste_route(self.clipboard.is_some(), text.is_some()), text) {
                 (PasteRoute::Hint, _) => {
-                    self.toast(thurbox::clipboard::PASTE_UNAVAILABLE_HINT);
+                    self.toast(talos::clipboard::PASTE_UNAVAILABLE_HINT);
                     return;
                 }
                 (PasteRoute::Send, Some(text)) => {
@@ -1005,11 +1005,11 @@ impl App {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PasteRoute {
     /// No local clipboard at all: the SSH case, where the terminal's own paste
-    /// is the way through and neither thurbox nor the agent can read anything.
+    /// is the way through and neither talos nor the agent can read anything.
     Hint,
-    /// Text thurbox can carry itself.
+    /// Text talos can carry itself.
     Send,
-    /// Something thurbox cannot carry — a picture, or a clipboard it cannot
+    /// Something talos cannot carry — a picture, or a clipboard it cannot
     /// read. The chord is worth more to the agent, which fetches it itself.
     GiveToAgent,
 }
@@ -1089,7 +1089,7 @@ const MAX_WAITING_PASTES: usize = 8;
 /// `windows` is a parameter rather than a `cfg!` inside so the rule is
 /// testable on any platform, as [`super::paste::PasteBurst`] does for the same
 /// reason. Elsewhere AltGr is a level-3 shift the terminal composes before
-/// thurbox ever sees it, and `Ctrl+Alt+<punctuation>` is a chord someone may
+/// talos ever sees it, and `Ctrl+Alt+<punctuation>` is a chord someone may
 /// have rebound onto.
 fn resolve_altgr(key: KeyEvent, windows: bool) -> KeyEvent {
     if !windows {
@@ -1179,7 +1179,7 @@ mod tests {
             // And the pty encoding is the character itself, not an ESC-wrapped
             // one — which is what a focused agent actually receives.
             assert_eq!(
-                thurbox::agent::input::key_to_bytes(resolved.code, resolved.modifiers),
+                talos::agent::input::key_to_bytes(resolved.code, resolved.modifiers),
                 Some(ch.to_string().into_bytes()),
             );
         }

@@ -11,13 +11,13 @@
 //! key second — and assert on the two things that outlive the frame: the shared
 //! selection, and the commands it emits.
 
-use thurbox::kernel::command::Command;
-use thurbox::kernel::host::{Epoch, KeyPress, LuaHost, Published, RenderContext};
-use thurbox::kernel::registry::Registry;
-use thurbox::kernel::search::{Answer, Hit, Request, MAX_HITS};
-use thurbox::kernel::snapshot::{SessionRow, Snapshot};
-use thurbox::kernel::theme::Themes;
-use thurbox::session::SessionState;
+use talos::kernel::command::Command;
+use talos::kernel::host::{Epoch, KeyPress, LuaHost, Published, RenderContext};
+use talos::kernel::registry::Registry;
+use talos::kernel::search::{Answer, Hit, Request, MAX_HITS};
+use talos::kernel::snapshot::{SessionRow, Snapshot};
+use talos::kernel::theme::Themes;
+use talos::session::SessionState;
 
 const PLUGIN: &str = "search";
 const SESSIONS: &str = "sessions";
@@ -35,9 +35,9 @@ fn row(id: &str, name: &str, agent: &str, branch: &str) -> SessionRow {
         name: name.into(),
         agent: agent.into(),
         status: SessionState::Idle,
-        cwd: Some(std::path::PathBuf::from("/src/thurbox")),
-        repo: Some("thurbox".into()),
-        repos: vec!["thurbox".into()],
+        cwd: Some(std::path::PathBuf::from("/src/talos")),
+        repo: Some("talos".into()),
+        repos: vec!["talos".into()],
         branch: Some(branch.into()),
         base_branch: None,
         backend: "local-tmux".into(),
@@ -94,16 +94,16 @@ fn publish_hovered(
     host: &LuaHost,
     snap: &Snapshot,
     search: Option<&Answer>,
-    hovered: Option<&thurbox::kernel::node::Identity>,
+    hovered: Option<&talos::kernel::node::Identity>,
 ) {
     let themes = Themes::load(None);
     let mut registry = Registry::default();
     let (bindings, settings) = host.declarations();
     registry.declare(bindings, settings);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     host.publish(&Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot: snap,
         attach_errors: &Default::default(),
         inflight: &[],
@@ -771,7 +771,7 @@ fn closing_the_strip_stops_the_terminals_being_read() {
 fn every_match_still_paints_when_the_results_fill_the_strip() {
     use ratatui::backend::TestBackend;
     use ratatui::Terminal;
-    use thurbox::kernel::paint::{render as paint_render, PlaceholderSurfaces};
+    use talos::kernel::paint::{render as paint_render, PlaceholderSurfaces};
 
     const WIDTH: u16 = 60;
     const HEIGHT: u16 = 12;
@@ -787,14 +787,14 @@ fn every_match_still_paints_when_the_results_fill_the_strip() {
         let mut registry = Registry::default();
         let (bindings, settings) = host.declarations();
         registry.declare(bindings, settings);
-        let diffs = thurbox::kernel::diff::DiffStore::new();
-        let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+        let diffs = talos::kernel::diff::DiffStore::new();
+        let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
         let snap = Snapshot {
             sessions,
             ..Snapshot::default()
         };
         host.publish(&Published {
-            epoch: thurbox::kernel::host::Epoch::always_fresh(),
+            epoch: talos::kernel::host::Epoch::always_fresh(),
             snapshot: &snap,
             attach_errors: &Default::default(),
             inflight: &[],
@@ -874,8 +874,8 @@ fn a_match_keeps_its_colour_under_the_selection_bar() {
     use ratatui::backend::TestBackend;
     use ratatui::style::Color;
     use ratatui::Terminal;
-    use thurbox::kernel::node::parse_color;
-    use thurbox::kernel::paint::{render as paint_render, PlaceholderSurfaces};
+    use talos::kernel::node::parse_color;
+    use talos::kernel::paint::{render as paint_render, PlaceholderSurfaces};
 
     const WIDTH: u16 = 40;
     const HEIGHT: u16 = 10;
@@ -967,7 +967,7 @@ fn a_match_keeps_its_colour_under_the_selection_bar() {
 fn painted_strip(host: &LuaHost, width: u16, height: u16, search: Option<&Answer>) -> String {
     use ratatui::backend::TestBackend;
     use ratatui::Terminal;
-    use thurbox::kernel::paint::{render as paint_render, PlaceholderSurfaces};
+    use talos::kernel::paint::{render as paint_render, PlaceholderSurfaces};
 
     render_answered(host, search);
     publish_with(host, search);
@@ -1191,9 +1191,9 @@ fn many_row(n: usize) -> SessionRow {
         name: format!("worker-{n}-feature-branch"),
         agent: "claude".into(),
         status: SessionState::Idle,
-        cwd: Some(std::path::PathBuf::from("/src/thurbox")),
-        repo: Some("thurbox".into()),
-        repos: vec!["thurbox".into()],
+        cwd: Some(std::path::PathBuf::from("/src/talos")),
+        repo: Some("talos".into()),
+        repos: vec!["talos".into()],
         branch: Some(format!("feat/thing-{n}")),
         base_branch: None,
         backend: "local-tmux".into(),
@@ -1247,8 +1247,8 @@ fn publish_at(host: &LuaHost, epoch: Epoch, snapshot: &Snapshot, search: &Answer
     let mut registry = Registry::default();
     let (bindings, settings) = host.declarations();
     registry.declare(bindings, settings);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
     host.publish(&Published {
         epoch,
         snapshot,
@@ -1423,8 +1423,8 @@ fn settled_strip_keeps_the_list_cached() {
 fn a_hovered_result_is_banded_and_the_others_are_not() {
     use ratatui::backend::TestBackend;
     use ratatui::Terminal;
-    use thurbox::kernel::node::Identity;
-    use thurbox::kernel::paint::{render as paint_render, PlaceholderSurfaces};
+    use talos::kernel::node::Identity;
+    use talos::kernel::paint::{render as paint_render, PlaceholderSurfaces};
 
     let host = host();
     open(&host);

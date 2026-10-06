@@ -62,7 +62,7 @@ pub struct DeletedSessionInfo {
     ///
     /// **Not** what a teardown targets: tmux reissues pane ids when its server
     /// restarts, so this can name a live namesake's pane. The reap resolves the
-    /// window's own `@thurbox_session` stamp instead (ADR-25). Empty for rows
+    /// window's own `@talos_session` stamp instead (ADR-25). Empty for rows
     /// persisted before local spawns recorded an id.
     pub backend_id: String,
     /// The companion shell's pane id (`%N`), when the interface ever opened
@@ -82,7 +82,7 @@ pub struct DeletedSessionInfo {
     /// force-deleted session is shown in the restore list and normally cannot be
     /// restored — its worktrees, and any uncommitted work in them, are gone. See
     /// schema v37. The exception is a session whose worktrees were all *opened*
-    /// rather than created (`created_by_thurbox`, schema v42): the teardown
+    /// rather than created (`created_by_talos`, schema v42): the teardown
     /// skipped every one, so nothing was lost and the restore is not refused.
     pub force_deleted: bool,
     /// Whether this row's teardown never reached the host it was owed on
@@ -117,9 +117,9 @@ impl Database {
 
     /// [`upsert_session`](Self::upsert_session), saying why a *new* row appeared.
     ///
-    /// The row is identical either way; only the `created` event `thurbox-cli
+    /// The row is identical either way; only the `created` event `talos-cli
     /// watch` streams differs, and the difference matters to whoever reads it —
-    /// a session thurbox launched is not one that was already running and got
+    /// a session talos launched is not one that was already running and got
     /// adopted (`session register`, a mirror pass taking on a shared host's
     /// row). `created_as` is ignored when the row already existed.
     pub fn upsert_session_as(
@@ -461,7 +461,7 @@ impl Database {
             "SELECT s.id, s.name, s.agent, s.backend_id, s.backend_type, \
              s.agent_session_id, s.cwd, s.additional_dirs, s.shell_backend_id, \
              s.parent_session_id, s.display_order, \
-             w.repo_path, w.worktree_path, w.branch, w.created_by_thurbox \
+             w.repo_path, w.worktree_path, w.branch, w.created_by_talos \
              FROM sessions s \
              LEFT JOIN worktrees w ON s.id = w.session_id AND w.deleted_at IS NULL \
              WHERE {condition} \
@@ -601,7 +601,7 @@ impl Database {
     /// Record which agent a session's pane actually runs, or clear the record
     /// with `None`.
     ///
-    /// The row's own `agent` says what thurbox launched; for a `--command`
+    /// The row's own `agent` says what talos launched; for a `--command`
     /// session that is a shell, a REPL or a build watcher, and a driver that
     /// then starts a coding agent inside it is the only party that knows. Hook
     /// coverage is read against this when it is set — see
@@ -742,7 +742,7 @@ impl Database {
     }
 
     /// Every session row's identifying facts, keyed by id — deleted rows
-    /// included. One lean scan with no worktree join: `thurbox-cli watch` reads
+    /// included. One lean scan with no worktree join: `talos-cli watch` reads
     /// it once per wake to name the sessions its events are about.
     pub fn load_session_facts(&self) -> rusqlite::Result<HashMap<SessionId, SessionFacts>> {
         let mut stmt = self.conn.prepare_cached(
@@ -896,7 +896,7 @@ impl Database {
             "SELECT s.id, s.name, s.agent, s.agent_session_id, \
              s.cwd, s.parent_session_id, s.deleted_at, s.backend_type, \
              s.force_deleted, s.backend_id, s.shell_backend_id, \
-             w.repo_path, w.worktree_path, w.branch, w.created_by_thurbox, \
+             w.repo_path, w.worktree_path, w.branch, w.created_by_talos, \
              s.host_updated_at, s.teardown_owed \
              FROM sessions s \
              LEFT JOIN worktrees w ON s.id = w.session_id \
@@ -968,8 +968,8 @@ impl Database {
     }
 
     /// Get a single active (non-deleted) session by its agent conversation id
-    /// (`agent_session_id`, the value injected as `THURBOX_SESSION_ID`). Used by
-    /// `session signal` as an identity fallback when `$THURBOX_SESSION` is not
+    /// (`agent_session_id`, the value injected as `TALOS_SESSION_ID`). Used by
+    /// `session signal` as an identity fallback when `$TALOS_SESSION` is not
     /// available to the hook process (e.g. an agent that sanitizes its env).
     pub fn get_session_by_agent_session_id(
         &self,
@@ -984,7 +984,7 @@ impl Database {
 
     /// Record an agent-reported lifecycle state (`working`/`blocked`/`done`) for
     /// a session, stamping `hook_state_at` to now. Written by
-    /// `thurbox-cli session signal` (and at spawn, defaulting to `working`).
+    /// `talos-cli session signal` (and at spawn, defaulting to `working`).
     /// Returns whether a row took it.
     ///
     /// Deliberately a targeted UPDATE that touches only the hook columns —
@@ -1176,8 +1176,8 @@ impl Database {
     /// and answers with each row's new position. Holding the read and the write
     /// together is what makes concurrent moves safe: two of them cannot read
     /// the same order, swap the same pair and land as one. A process-local
-    /// mutex used to buy that, and only within one process — a second thurbox
-    /// or a `thurbox-cli` write interleaved regardless.
+    /// mutex used to buy that, and only within one process — a second talos
+    /// or a `talos-cli` write interleaved regardless.
     ///
     /// A plan that refuses rolls the transaction back, so a refusal leaves the
     /// order exactly as it was.
@@ -1479,22 +1479,22 @@ fn additional_dirs_from_db(raw: &str) -> Vec<PathBuf> {
 /// Build an optional [`SharedWorktree`] from the nullable worktree columns of a
 /// joined row. Returns `None` unless the three identifying columns are present.
 ///
-/// `created_by_thurbox` is not one of them: it is `NOT NULL DEFAULT 1` in the
+/// `created_by_talos` is not one of them: it is `NOT NULL DEFAULT 1` in the
 /// schema, so a `None` here means the LEFT JOIN found no row at all, and the
-/// safe reading for a row that somehow lacks it is "thurbox made it" — the
+/// safe reading for a row that somehow lacks it is "talos made it" — the
 /// behavior every worktree had before the column existed.
 fn worktree_from_cols(
     repo: Option<String>,
     path: Option<String>,
     branch: Option<String>,
-    created_by_thurbox: Option<bool>,
+    created_by_talos: Option<bool>,
 ) -> Option<SharedWorktree> {
     match (repo, path, branch) {
         (Some(repo), Some(path), Some(branch)) => Some(SharedWorktree {
             repo_path: PathBuf::from(repo),
             worktree_path: PathBuf::from(path),
             branch,
-            created_by_thurbox: created_by_thurbox.unwrap_or(true),
+            created_by_talos: created_by_talos.unwrap_or(true),
         }),
         _ => None,
     }
@@ -1550,7 +1550,7 @@ mod tests {
             id: SessionId::default(),
             name: name.to_string(),
             agent: "claude".to_string(),
-            backend_id: "thurbox:@0".to_string(),
+            backend_id: "talos:@0".to_string(),
             backend_type: "tmux".to_string(),
             agent_session_id: None,
             cwd: None,
@@ -1771,13 +1771,13 @@ mod tests {
         assert!(db.list_active_sessions().unwrap().is_empty());
 
         // Respawn: same id, fresh backend_id (as the new tmux pane would have).
-        session.backend_id = "thurbox:@9".to_string();
+        session.backend_id = "talos:@9".to_string();
         db.upsert_session(&session).unwrap();
 
         let active = db.list_active_sessions().unwrap();
         assert_eq!(active.len(), 1, "exactly one active row");
         assert_eq!(active[0].id, sid, "id is stable across the respawn");
-        assert_eq!(active[0].backend_id, "thurbox:@9");
+        assert_eq!(active[0].backend_id, "talos:@9");
     }
 
     #[test]
@@ -1802,7 +1802,7 @@ mod tests {
             repo_path: PathBuf::from("/repo"),
             worktree_path: PathBuf::from("/repo/.git/wt/feat"),
             branch: "feat".to_string(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         }];
 
         db.upsert_session(&session).unwrap();
@@ -1821,13 +1821,13 @@ mod tests {
                 repo_path: PathBuf::from("/repo1"),
                 worktree_path: PathBuf::from("/repo1/.git/wt/feat"),
                 branch: "feat".to_string(),
-                created_by_thurbox: true,
+                created_by_talos: true,
             },
             SharedWorktree {
                 repo_path: PathBuf::from("/repo2"),
                 worktree_path: PathBuf::from("/repo2/.git/wt/feat"),
                 branch: "feat".to_string(),
-                created_by_thurbox: true,
+                created_by_talos: true,
             },
         ];
 
@@ -2216,7 +2216,7 @@ mod tests {
             repo_path: PathBuf::from("/repo"),
             worktree_path: PathBuf::from("/repo/.worktrees/feat"),
             branch: "feat".to_string(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         }];
         db.upsert_session(&session).unwrap();
 
@@ -2272,7 +2272,7 @@ mod tests {
             repo_path: PathBuf::from("/repo"),
             worktree_path: PathBuf::from("/repo/.worktrees/feat"),
             branch: "feat".to_string(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         }];
         db.upsert_session(&session).unwrap();
         assert_eq!(
@@ -2305,7 +2305,7 @@ mod tests {
             repo_path: PathBuf::from("/repo"),
             worktree_path: PathBuf::from("/repo/.git/wt/feat"),
             branch: "feat".to_string(),
-            created_by_thurbox: true,
+            created_by_talos: true,
         }];
         let sid = session.id;
         db.upsert_session(&session).unwrap();

@@ -82,7 +82,7 @@ pub enum Command {
     },
     /// Bring a new session into existence.
     ///
-    /// The slowest thing thurbox does — a fetch, a worktree checkout, possibly
+    /// The slowest thing talos does — a fetch, a worktree checkout, possibly
     /// an ssh connect and a process launch — which is exactly why it is a
     /// command and why its phases are published.
     Create {
@@ -95,7 +95,7 @@ pub enum Command {
         /// Set together with `branch` (the branch checked out there) and
         /// without `base`: there is nothing to branch off. The path is git's
         /// own, so a checkout anywhere — `.worktrees/`, a sibling directory —
-        /// is openable, not just one at thurbox's derived location.
+        /// is openable, not just one at talos's derived location.
         worktree_path: Option<String>,
         agent: Option<String>,
         host: Option<String>,
@@ -301,7 +301,7 @@ pub enum Command {
     /// Write the user's settings back to `settings.toml`.
     ///
     /// Not parseable from a plugin, and deliberately: a pane may *read* what the
-    /// user configured (`thurbox.settings`) but writing their file is the
+    /// user configured (`talos.settings`) but writing their file is the
     /// settings modal's business, which is kernel-owned chrome. So this variant
     /// has no arm in [`Command::parse`] — there is no spelling of it a plugin
     /// could produce.
@@ -538,7 +538,7 @@ impl Command {
     /// waiting on.
     ///
     /// The bus keeps no in-flight record of one, so it appears nowhere the
-    /// interface reads: no published `thurbox.commands` row, no message-band
+    /// interface reads: no published `talos.commands` row, no message-band
     /// caption, and nothing for the redraw loop to call activity. The reap
     /// sweep recurs even while nobody acts, and a status reset follows input
     /// that already made the frame dirty. A failure is reported through
@@ -578,7 +578,7 @@ impl Command {
             // Bare, because that is how a session's machine is published and
             // the two are compared. A create carries whichever spelling its
             // caller had — the interface's host picker passes the prefixed
-            // backend name (`ssh:devbox`), `thurbox-cli --host` the bare one —
+            // backend name (`ssh:devbox`), `talos-cli --host` the bare one —
             // and `resolve_host` takes either, so only this side needs to
             // settle on one. Left prefixed, the session list drew a creation
             // under a machine named `ssh:devbox` beside the real `devbox`.
@@ -983,7 +983,7 @@ pub struct Args {
 
 #[cfg(test)]
 mod tests {
-    /// The host picker passes the backend name, `thurbox-cli --host` the bare
+    /// The host picker passes the backend name, `talos-cli --host` the bare
     /// one, and `resolve_host` takes either — so the only place the two have to
     /// become one spelling is here, where the interface reads it back and
     /// compares it against a session's own (bare) machine.
@@ -1976,7 +1976,7 @@ mod tests {
 
     #[test]
     fn housekeeping_is_never_reported_in_flight() {
-        // The reap sweep is dispatched every few seconds for as long as thurbox
+        // The reap sweep is dispatched every few seconds for as long as talos
         // runs. Recorded like a command someone pressed, it reserves the message
         // band and gives it back on that cadence — the whole frame reflowing
         // twice every five seconds, captioned "reap".
@@ -2030,7 +2030,7 @@ mod tests {
                 repo_path: std::path::PathBuf::from("/srv/repo"),
                 worktree_path: std::path::PathBuf::from("/srv/worktree"),
                 branch: "feat/x".into(),
-                created_by_thurbox: true,
+                created_by_talos: true,
             }],
             shell_backend_id: None,
             parent_session_id: None,

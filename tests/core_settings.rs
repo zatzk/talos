@@ -1,7 +1,7 @@
 //! What `settings.toml` controls in v2.
 //!
 //! The bug this file exists to prevent is not a wrong value — it is a setting
-//! that is *read nowhere*. `thurbox2` used to never call `settings::init`, so
+//! that is *read nowhere*. `talos2` used to never call `settings::init`, so
 //! `settings::global()` handed out defaults and the entire file was ignored
 //! however carefully it had been written. Nothing about that failure was visible:
 //! every switch looked honoured because every default matched.
@@ -10,9 +10,9 @@
 //! file is what is in force, that a change to it lands where it has to, and that a
 //! plugin can see it.
 
-use thurbox::kernel::config::{Config, Reloaded};
-use thurbox::session::settings::Settings;
-use thurbox::session::SessionState;
+use talos::kernel::config::{Config, Reloaded};
+use talos::session::settings::Settings;
+use talos::session::SessionState;
 
 /// Isolate config and data into a tempdir, process-wide so a worker sees it too.
 fn isolate() -> tempfile::TempDir {
@@ -21,14 +21,14 @@ fn isolate() -> tempfile::TempDir {
     let data = home.path().join("data");
     std::fs::create_dir_all(&config).expect("mkdir");
     std::fs::create_dir_all(&data).expect("mkdir");
-    std::env::set_var("THURBOX_CONFIG_DIR", &config);
-    std::env::set_var("THURBOX_DATA_DIR", &data);
-    thurbox::paths::set_test_dir(&data);
+    std::env::set_var("TALOS_CONFIG_DIR", &config);
+    std::env::set_var("TALOS_DATA_DIR", &data);
+    talos::paths::set_test_dir(&data);
     home
 }
 
 fn write_settings(body: &str) {
-    let path = thurbox::agent::settings_config::settings_config_path().expect("settings path");
+    let path = talos::agent::settings_config::settings_config_path().expect("settings path");
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).expect("mkdir");
     }
@@ -36,7 +36,7 @@ fn write_settings(body: &str) {
 }
 
 fn read_settings() -> String {
-    let path = thurbox::agent::settings_config::settings_config_path().expect("settings path");
+    let path = talos::agent::settings_config::settings_config_path().expect("settings path");
     std::fs::read_to_string(path).expect("read settings.toml")
 }
 
@@ -76,7 +76,7 @@ fn loading_publishes_the_settings_process_wide() {
     let (config, _) = Config::load();
     assert_eq!(config.in_force().audit_retention_days, 7);
     assert_eq!(
-        thurbox::session::settings::global().audit_retention_days,
+        talos::session::settings::global().audit_retention_days,
         7,
         "a restart-only value has to be readable through the global, or the \
          callers that read it there are still on defaults"
@@ -91,9 +91,9 @@ fn audit_history_is_pruned_to_the_configured_retention() {
     write_settings("audit_retention_days = 1\n");
     let (_config, _) = Config::load();
 
-    let path = thurbox::paths::database_file().expect("db path");
-    let db = thurbox::storage::Database::open(&path).expect("open");
-    let old = thurbox::sync::current_time_millis() - 5 * 24 * 60 * 60 * 1000;
+    let path = talos::paths::database_file().expect("db path");
+    let db = talos::storage::Database::open(&path).expect("open");
+    let old = talos::sync::current_time_millis() - 5 * 24 * 60 * 60 * 1000;
     db.conn_ref()
         .execute(
             "INSERT INTO audit_log (timestamp, entity_type, entity_id, action) \
@@ -117,7 +117,7 @@ fn a_live_change_on_disk_applies_without_a_restart() {
     write_settings("[features]\nsoft_delete = false\n");
     // The poll is throttled and mtime-based; a fresh read is what the loop would
     // eventually do, so drive `adopt` with what the file now says.
-    let (fresh, _) = thurbox::agent::settings_config::load_or_seed_with_warnings();
+    let (fresh, _) = talos::agent::settings_config::load_or_seed_with_warnings();
     assert_eq!(config.adopt(fresh), Reloaded::Live);
     assert!(!config.features().soft_delete);
 }
@@ -129,7 +129,7 @@ fn a_restart_only_change_is_reported_rather_than_implied() {
     let (mut config, _) = Config::load();
 
     write_settings("scrollback_lines = 50000\n");
-    let (fresh, _) = thurbox::agent::settings_config::load_or_seed_with_warnings();
+    let (fresh, _) = talos::agent::settings_config::load_or_seed_with_warnings();
     assert_eq!(config.adopt(fresh), Reloaded::NeedsRestart);
     assert_eq!(
         config.in_force().scrollback_lines,
@@ -166,7 +166,7 @@ fn our_own_write_is_not_reported_as_an_outside_edit() {
 
     let mut edited = Settings::default();
     edited.features.soft_delete = false;
-    thurbox::agent::settings_config::save_settings(&edited).expect("save");
+    talos::agent::settings_config::save_settings(&edited).expect("save");
     config.mark_saved();
 
     assert_eq!(
@@ -194,7 +194,7 @@ fn a_saved_restart_only_change_is_not_reverted_by_the_next_save() {
     let mut draft = config.on_disk().clone();
     draft.features.mouse = false;
     assert_eq!(config.adopt(draft.clone()), Reloaded::NeedsRestart);
-    thurbox::agent::settings_config::save_settings(&draft).expect("save");
+    talos::agent::settings_config::save_settings(&draft).expect("save");
 
     // The next visit, with the modal (and its draft) long since dropped: change
     // something else entirely.
@@ -203,9 +203,9 @@ fn a_saved_restart_only_change_is_not_reverted_by_the_next_save() {
     // Still `NeedsRestart`: the earlier change is pending until the next launch,
     // and saying otherwise would report it as applied.
     assert_eq!(config.adopt(draft.clone()), Reloaded::NeedsRestart);
-    thurbox::agent::settings_config::save_settings(&draft).expect("save");
+    talos::agent::settings_config::save_settings(&draft).expect("save");
 
-    let (next_launch, _) = thurbox::agent::settings_config::load_or_seed_with_warnings();
+    let (next_launch, _) = talos::agent::settings_config::load_or_seed_with_warnings();
     assert!(
         !next_launch.features.mouse,
         "the restart-only change was reverted by an unrelated later save"
@@ -242,7 +242,7 @@ fn saving_preserves_the_files_comments() {
     );
     let mut edited = Settings::default();
     edited.features.soft_delete = false;
-    thurbox::agent::settings_config::save_settings(&edited).expect("save");
+    talos::agent::settings_config::save_settings(&edited).expect("save");
 
     let written = read_settings();
     assert!(
@@ -254,23 +254,23 @@ fn saving_preserves_the_files_comments() {
 // ── What the switches do to the interface ──────────────────────────────────
 
 /// The bundled interface, loaded from the repo's own `ui/`.
-fn host() -> thurbox::kernel::host::LuaHost {
+fn host() -> talos::kernel::host::LuaHost {
     let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui");
-    let host = thurbox::kernel::host::LuaHost::new(dir);
+    let host = talos::kernel::host::LuaHost::new(dir);
     assert!(host.error.is_none(), "{:?}", host.error);
     host
 }
 
 /// One session with work at risk, so a confirmation has something to itemise.
-fn session_row() -> thurbox::kernel::snapshot::SessionRow {
-    thurbox::kernel::snapshot::SessionRow {
+fn session_row() -> talos::kernel::snapshot::SessionRow {
+    talos::kernel::snapshot::SessionRow {
         id: "11111111-1111-1111-1111-111111111111".into(),
         name: "fix-osc52".into(),
         agent: "claude".into(),
         status: SessionState::Idle,
-        cwd: Some(std::path::PathBuf::from("/src/thurbox")),
-        repo: Some("thurbox".into()),
-        repos: vec!["thurbox".into()],
+        cwd: Some(std::path::PathBuf::from("/src/talos")),
+        repo: Some("talos".into()),
+        repos: vec!["talos".into()],
         branch: Some("fix/osc52".into()),
         base_branch: None,
         backend: "local-tmux".into(),
@@ -280,7 +280,7 @@ fn session_row() -> thurbox::kernel::snapshot::SessionRow {
         parent_id: None,
         display_order: None,
         worktree_count: 1,
-        git: Some(thurbox::kernel::snapshot::GitState {
+        git: Some(talos::kernel::snapshot::GitState {
             files_changed: 3,
             insertions: 10,
             deletions: 2,
@@ -299,19 +299,19 @@ fn session_row() -> thurbox::kernel::snapshot::SessionRow {
     }
 }
 
-fn publish_with(host: &thurbox::kernel::host::LuaHost, settings: &Settings) {
-    let themes = thurbox::kernel::theme::Themes::load(None);
-    let mut registry = thurbox::kernel::registry::Registry::default();
+fn publish_with(host: &talos::kernel::host::LuaHost, settings: &Settings) {
+    let themes = talos::kernel::theme::Themes::load(None);
+    let mut registry = talos::kernel::registry::Registry::default();
     let (bindings, declared) = host.declarations();
     registry.declare(bindings, declared);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
-    let snapshot = thurbox::kernel::snapshot::Snapshot {
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
+    let snapshot = talos::kernel::snapshot::Snapshot {
         sessions: vec![session_row()],
         ..Default::default()
     };
-    host.publish(&thurbox::kernel::host::Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+    host.publish(&talos::kernel::host::Published {
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot: &snapshot,
         attach_errors: &Default::default(),
         inflight: &[],
@@ -338,18 +338,18 @@ fn publish_with(host: &thurbox::kernel::host::LuaHost, settings: &Settings) {
 }
 
 /// Send a chord to a plugin the way the loop does.
-fn press(host: &thurbox::kernel::host::LuaHost, plugin: &str, chord: &str) {
+fn press(host: &talos::kernel::host::LuaHost, plugin: &str, chord: &str) {
     let index = host
         .index_of(plugin)
         .unwrap_or_else(|| panic!("no {plugin}"));
-    let mut key = thurbox::kernel::host::KeyPress {
+    let mut key = talos::kernel::host::KeyPress {
         name: chord.to_string(),
         ..Default::default()
     };
     if chord.chars().count() == 1 {
         key.ch = chord.chars().next();
     }
-    let mut registry = thurbox::kernel::registry::Registry::default();
+    let mut registry = talos::kernel::registry::Registry::default();
     let (bindings, declared) = host.declarations();
     registry.declare(bindings, declared);
     if let Some(binding) = registry.resolve(&key, Some(plugin)) {
@@ -362,13 +362,13 @@ fn press(host: &thurbox::kernel::host::LuaHost, plugin: &str, chord: &str) {
 }
 
 /// Whether the confirmation is up, and what it says.
-fn confirmation(host: &thurbox::kernel::host::LuaHost, settings: &Settings) -> Option<String> {
+fn confirmation(host: &talos::kernel::host::LuaHost, settings: &Settings) -> Option<String> {
     publish_with(host, settings);
     let index = host.index_of("confirm").expect("no confirm plugin");
     let rendered = host
         .render(
             index,
-            thurbox::kernel::host::RenderContext {
+            talos::kernel::host::RenderContext {
                 width: 120,
                 height: 40,
                 focused: true,
@@ -384,12 +384,12 @@ fn confirmation(host: &thurbox::kernel::host::LuaHost, settings: &Settings) -> O
         ratatui::Terminal::new(ratatui::backend::TestBackend::new(width, rows)).expect("terminal");
     terminal
         .draw(|frame| {
-            thurbox::kernel::paint::render_recording(
+            talos::kernel::paint::render_recording(
                 frame,
                 ratatui::layout::Rect::new(0, 0, width, rows),
                 &rendered.node,
-                &thurbox::kernel::terminal::Terminals::with_registry(std::sync::Arc::new(
-                    thurbox::backend::wiring::configured().0,
+                &talos::kernel::terminal::Terminals::with_registry(std::sync::Arc::new(
+                    talos::backend::wiring::configured().0,
                 )),
                 &mut Vec::new(),
             );
@@ -426,7 +426,7 @@ fn deleting_with_soft_delete_on_asks_and_remains_reversible() {
     press(&host, "confirm", "y");
     assert_eq!(
         host.drain_commands(),
-        vec![thurbox::kernel::command::Command::Delete {
+        vec![talos::kernel::command::Command::Delete {
             session: "11111111-1111-1111-1111-111111111111".into(),
             force: false,
         }],
@@ -460,7 +460,7 @@ fn deleting_with_soft_delete_off_confirms_and_itemises_the_loss() {
     press(&host, "confirm", "y");
     assert_eq!(
         host.drain_commands(),
-        vec![thurbox::kernel::command::Command::Delete {
+        vec![talos::kernel::command::Command::Delete {
             session: "11111111-1111-1111-1111-111111111111".into(),
             force: true,
         }]
@@ -498,7 +498,7 @@ fn with_both_update_switches_off_nothing_is_fetched_or_replaced() {
     assert!(!config.features().auto_update);
 
     let started = std::time::Instant::now();
-    let mut updates = thurbox::kernel::updates::Updates::start(config.features());
+    let mut updates = talos::kernel::updates::Updates::start(config.features());
     assert!(
         started.elapsed() < std::time::Duration::from_millis(200),
         "starting must not wait on anything"
@@ -535,7 +535,7 @@ fn a_raised_column_threshold_leaves_only_the_central_pane() {
         ..Settings::default()
     };
     publish_with(&host, &settings);
-    let placed: Vec<String> = thurbox::kernel::layout::resolve(
+    let placed: Vec<String> = talos::kernel::layout::resolve(
         &host.arrangement(150, 40).expect("arrangement"),
         ratatui::layout::Rect::new(0, 0, 150, 40),
     )
@@ -550,7 +550,7 @@ fn a_raised_column_threshold_leaves_only_the_central_pane() {
 
     // And the same width shows both columns at the default threshold.
     publish_with(&host, &Settings::default());
-    let placed: Vec<String> = thurbox::kernel::layout::resolve(
+    let placed: Vec<String> = talos::kernel::layout::resolve(
         &host.arrangement(150, 40).expect("arrangement"),
         ratatui::layout::Rect::new(0, 0, 150, 40),
     )

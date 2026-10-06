@@ -19,13 +19,13 @@ use ratatui::backend::TestBackend;
 use ratatui::layout::Rect;
 use ratatui::Terminal;
 
-use thurbox::kernel::host::{KeyPress, LuaHost, RenderContext};
-use thurbox::kernel::layout::{divide_slot, resolve, SlotMode};
-use thurbox::kernel::node::{Axis, Node, KINDS};
-use thurbox::kernel::paint::{render, PlaceholderSurfaces};
-use thurbox::kernel::registry::Registry;
-use thurbox::kernel::snapshot::{SessionRow, Snapshot};
-use thurbox::kernel::theme::Themes;
+use talos::kernel::host::{KeyPress, LuaHost, RenderContext};
+use talos::kernel::layout::{divide_slot, resolve, SlotMode};
+use talos::kernel::node::{Axis, Node, KINDS};
+use talos::kernel::paint::{render, PlaceholderSurfaces};
+use talos::kernel::registry::Registry;
+use talos::kernel::snapshot::{SessionRow, Snapshot};
+use talos::kernel::theme::Themes;
 
 /// The theme every test publishes with: whatever the environment resolves,
 /// which keeps these tests independent of the user's active choice.
@@ -51,7 +51,7 @@ fn publish_with(
     host: &LuaHost,
     snapshot: &Snapshot,
     attach_errors: &std::collections::HashMap<String, String>,
-    inflight: &[thurbox::kernel::command::InFlight],
+    inflight: &[talos::kernel::command::InFlight],
 ) {
     publish_full(host, snapshot, attach_errors, inflight, &Default::default());
 }
@@ -60,15 +60,15 @@ fn publish_full(
     host: &LuaHost,
     snapshot: &Snapshot,
     attach_errors: &std::collections::HashMap<String, String>,
-    inflight: &[thurbox::kernel::command::InFlight],
+    inflight: &[talos::kernel::command::InFlight],
     printing: &std::collections::HashSet<String>,
 ) {
     let themes = themes();
     let registry = registry(host);
-    let diffs = thurbox::kernel::diff::DiffStore::new();
-    let repos = thurbox::kernel::repos::RepoStore::with_hosts(Default::default());
-    host.publish(&thurbox::kernel::host::Published {
-        epoch: thurbox::kernel::host::Epoch::always_fresh(),
+    let diffs = talos::kernel::diff::DiffStore::new();
+    let repos = talos::kernel::repos::RepoStore::with_hosts(Default::default());
+    host.publish(&talos::kernel::host::Published {
+        epoch: talos::kernel::host::Epoch::always_fresh(),
         snapshot,
         attach_errors,
         inflight,
@@ -120,7 +120,7 @@ fn host() -> LuaHost {
 fn shipped_operator_actions_have_catalog_descriptors_and_handlers() {
     let host = host();
     let mut registry = Registry::default();
-    thurbox::kernel::declare_interface(&mut registry, &host);
+    talos::kernel::declare_interface(&mut registry, &host);
     let catalog = registry.action_catalog();
     let by_name = |name: &str| catalog.iter().find(|entry| entry.name == name);
     for binding in registry.bindings() {
@@ -144,7 +144,7 @@ fn shipped_operator_actions_have_catalog_descriptors_and_handlers() {
             pill.action
         );
     }
-    for (_, name, _) in thurbox::kernel::registry::RESERVED_ACTIONS {
+    for (_, name, _) in talos::kernel::registry::RESERVED_ACTIONS {
         assert!(by_name(name).is_some(), "missing reserved action {name}");
     }
     for descriptor in &catalog {
@@ -205,9 +205,9 @@ fn snapshot(rows: Vec<SessionRow>) -> Snapshot {
 
 fn sample() -> Snapshot {
     snapshot(vec![
-        row("fix-osc52", "thurbox", "working"),
-        row("add-wsl-tests", "thurbox", "blocked"),
-        row("perf-cache", "thurbox", "done"),
+        row("fix-osc52", "talos", "working"),
+        row("add-wsl-tests", "talos", "blocked"),
+        row("perf-cache", "talos", "done"),
         row("update-deps", "website", "idle"),
     ])
 }
@@ -380,7 +380,7 @@ fn the_session_list_renders_real_snapshot_rows() {
     assert!(screen.contains("fix-osc52"), "{screen}");
     assert!(screen.contains("add-wsl-tests"), "{screen}");
     // Grouped by repo, as v1 groups them.
-    assert!(screen.contains("thurbox"), "{screen}");
+    assert!(screen.contains("talos"), "{screen}");
     assert!(screen.contains("website"), "{screen}");
     // v1's title is the bare word, with one status dot per session packed into
     // the RIGHT side of the top border — it never spells out a count.
@@ -398,16 +398,16 @@ fn a_session_with_no_reported_status_never_draws_the_idle_dot() {
     let host = host();
     // What a foreign driver leaves behind: a row created as a bare shell, an
     // agent running in its pane, and nothing wired to report a turn.
-    let mut driven = row("fm-worker", "thurbox", "idle");
+    let mut driven = row("fm-worker", "talos", "idle");
     driven.agent = "zsh".to_string();
     driven.status = SessionState::Running;
     driven.detected_agent = Some("claude".to_string());
     // Wired to report nothing, and it has said nothing.
-    let mut uncovered = row("bare-shell", "thurbox", "idle");
+    let mut uncovered = row("bare-shell", "talos", "idle");
     uncovered.agent = "zsh".to_string();
     uncovered.status = SessionState::Uncovered;
     // Can report, and has not yet.
-    let mut unreported = row("just-spawned", "thurbox", "idle");
+    let mut unreported = row("just-spawned", "talos", "idle");
     unreported.status = SessionState::Unreported;
 
     publish(&host, &snapshot(vec![driven, uncovered, unreported]));
@@ -440,7 +440,7 @@ fn a_session_with_no_reported_status_never_draws_the_idle_dot() {
 #[test]
 fn a_running_session_animates_only_while_its_pane_prints() {
     let host = host();
-    let mut driven = row("fm-worker", "thurbox", "idle");
+    let mut driven = row("fm-worker", "talos", "idle");
     driven.agent = "zsh".to_string();
     driven.status = SessionState::Running;
     let id = driven.id.clone();
@@ -477,12 +477,12 @@ fn a_running_session_animates_only_while_its_pane_prints() {
 #[test]
 fn output_animates_running_and_nothing_else() {
     let host = host();
-    let mut uncovered = row("bare-shell", "thurbox", "idle");
+    let mut uncovered = row("bare-shell", "talos", "idle");
     uncovered.agent = "zsh".to_string();
     uncovered.status = SessionState::Uncovered;
-    let mut unreported = row("just-spawned", "thurbox", "idle");
+    let mut unreported = row("just-spawned", "talos", "idle");
     unreported.status = SessionState::Unreported;
-    let mut resting = row("finished", "thurbox", "idle");
+    let mut resting = row("finished", "talos", "idle");
     resting.status = SessionState::Idle;
     let ids: Vec<String> = [&uncovered, &unreported, &resting]
         .iter()
@@ -508,7 +508,7 @@ fn output_animates_running_and_nothing_else() {
 #[test]
 fn a_working_session_animates_without_needing_the_pane() {
     let host = host();
-    let working = row("mid-turn", "thurbox", "working");
+    let working = row("mid-turn", "talos", "working");
     let rows = snapshot(vec![working]);
 
     publish_printing(&host, &rows, &[]);
@@ -532,7 +532,7 @@ fn is_spinner_frame(c: char) -> bool {
 #[test]
 fn a_running_session_with_no_determined_agent_says_so_without_a_name() {
     let host = host();
-    let mut ambiguous = row("fm-worker", "thurbox", "idle");
+    let mut ambiguous = row("fm-worker", "talos", "idle");
     ambiguous.agent = "zsh".to_string();
     ambiguous.status = SessionState::Running;
     ambiguous.detected_agent = None;
@@ -564,7 +564,7 @@ fn each_status_paints_its_own_glyph() {
 #[test]
 fn the_working_spinner_advances_with_elapsed_time() {
     let host = host();
-    publish(&host, &snapshot(vec![row("busy", "thurbox", "working")]));
+    publish(&host, &snapshot(vec![row("busy", "talos", "working")]));
     let index = index_of(&host, "sessions");
 
     let mut seen = std::collections::HashSet::new();
@@ -593,7 +593,7 @@ fn a_plugin_is_told_its_own_rect_not_the_screens() {
         &host,
         &snapshot(vec![row(
             "a-very-long-session-name-that-will-not-fit",
-            "thurbox",
+            "talos",
             "idle",
         )]),
     );
@@ -621,7 +621,7 @@ fn a_long_list_windows_against_the_resolved_height() {
     // derived from the height the plugin was handed.
     let host = host();
     let rows: Vec<SessionRow> = (0..40)
-        .map(|n| row(&format!("session-{n:02}"), "thurbox", "idle"))
+        .map(|n| row(&format!("session-{n:02}"), "talos", "idle"))
         .collect();
     publish(&host, &snapshot(rows));
 
@@ -1075,8 +1075,8 @@ fn a_session_backed_surface_falls_back_when_nothing_is_attached() {
 
 // --- command bus -----------------------------------------------------------
 
-use thurbox::kernel::command::{Command, InFlight, Phase};
-use thurbox::session::SessionState;
+use talos::kernel::command::{Command, InFlight, Phase};
+use talos::session::SessionState;
 
 /// Press a key and route it exactly as the binary does: registry first
 /// (declared actions), then raw `on_key`. Returns whatever commands it issued.
@@ -1186,13 +1186,13 @@ fn a_group_cannot_be_moved_onto_another_machine() {
     // reshaped to avoid, and here it cannot even be argued for: a session's
     // machine is what it runs on, and grouping is only a view.
     let host = host();
-    let mut remote = row("remote-build", "thurbox", "idle");
+    let mut remote = row("remote-build", "talos", "idle");
     remote.backend = "ssh:buildbox".to_string();
     remote.remote_host = Some("buildbox".to_string());
     publish(
         &host,
         &snapshot(vec![
-            row("fix-osc52", "thurbox", "working"),
+            row("fix-osc52", "talos", "working"),
             row("update-deps", "website", "idle"),
             remote,
         ]),
@@ -1411,7 +1411,7 @@ fn the_theme_reaches_plugins_as_roles() {
                -- contract, and a role that came back nil would print "nil".
                return {
                  type = "text",
-                 text = thurbox.theme.name .. " " .. tostring(thurbox.theme.roles.accent),
+                 text = talos.theme.name .. " " .. tostring(talos.theme.roles.accent),
                }
              end,
            }"#,
@@ -1616,7 +1616,7 @@ fn the_granted_capability_set_matches_a_declared_list() {
     // ahead of one. This is the tripwire — a new global in the plugin
     // environment has to be added here deliberately.
     const GRANTED: [&str; 7] = [
-        "require", "state", "store", "command", "thurbox",
+        "require", "state", "store", "command", "talos",
         // Two rooted reads — directory entries and a file's text — confined to
         // a session's working directory. NOT a filesystem: there is no open,
         // no write, no path outside the root. Granted with its consumer (the
@@ -1651,7 +1651,7 @@ fn the_granted_capability_set_matches_a_declared_list() {
     publish(&host, &snapshot(Vec::new()));
     let globals = paint(&host, index_of(&host, "probe"), 400, 1).join(" ");
 
-    // Everything thurbox added must be on the list. Lua's own value types
+    // Everything talos added must be on the list. Lua's own value types
     // (string, table, math…) are the stdlib we deliberately opened.
     const STDLIB: [&str; 12] = [
         "_G",
@@ -1669,7 +1669,7 @@ fn the_granted_capability_set_matches_a_declared_list() {
     ];
     for name in globals.split_whitespace() {
         // No blanket excuse for a leading underscore. `_G`/`_VERSION` are named in
-        // STDLIB above; anything else spelled `__like_this` is thurbox's own, and
+        // STDLIB above; anything else spelled `__like_this` is talos's own, and
         // a plugin's `_ENV` *is* this table — which is how `__run_impl` sat here
         // handing every untrusted plugin the run capability under a second name.
         let known = GRANTED.contains(&name)
@@ -1710,7 +1710,7 @@ fn every_session_field_reaches_lua() {
         return {
           name = "fields", slot = "a",
           render = function()
-            local row = (thurbox and thurbox.sessions or {})[1]
+            local row = (talos and talos.sessions or {})[1]
             if not row then return { text = "none" } end
             local names = {}
             for key in pairs(row) do names[#names + 1] = key end
@@ -1756,7 +1756,7 @@ fn every_session_field_reaches_lua() {
 
 #[test]
 fn a_create_command_carries_what_the_flow_chose() {
-    use thurbox::kernel::command::{Args, Command};
+    use talos::kernel::command::{Args, Command};
     let parsed = Command::parse(
         "create",
         Args {
@@ -1784,7 +1784,7 @@ fn a_create_command_carries_what_the_flow_chose() {
 
 #[test]
 fn a_bookmark_command_needs_a_path_and_an_explicit_verb() {
-    use thurbox::kernel::command::{Args, BookmarkEdit, Command};
+    use talos::kernel::command::{Args, BookmarkEdit, Command};
     // Forgetting is destructive, so the verb is never inferred.
     let error = Command::parse(
         "bookmark",
@@ -1840,7 +1840,7 @@ fn a_bookmark_command_needs_a_path_and_an_explicit_verb() {
 fn a_bookmark_write_is_published_with_the_path_it_writes() {
     // The creation flow ties a failed write to the one it issued by this, since
     // writes run independently and another one may fail meanwhile.
-    use thurbox::kernel::command::{Args, Command};
+    use talos::kernel::command::{Args, Command};
     let command = Command::parse(
         "bookmark",
         Args {
@@ -1855,7 +1855,7 @@ fn a_bookmark_write_is_published_with_the_path_it_writes() {
 
 #[test]
 fn a_bookmark_clone_needs_a_url_that_cannot_pass_for_an_option() {
-    use thurbox::kernel::command::{Args, BookmarkEdit, Command};
+    use talos::kernel::command::{Args, BookmarkEdit, Command};
     let clone = |url: Option<&str>| {
         Command::parse(
             "bookmark",
@@ -1889,11 +1889,11 @@ fn a_bookmark_clone_needs_a_url_that_cannot_pass_for_an_option() {
 
 #[test]
 fn a_create_carries_every_member_with_the_mode_it_was_given() {
-    use thurbox::kernel::command::{Args, Command, ExtraMember};
+    use talos::kernel::command::{Args, Command, ExtraMember};
     let parsed = Command::parse(
         "create",
         Args {
-            repo: Some("/src/thurbox".into()),
+            repo: Some("/src/talos".into()),
             branch: Some("feat/x".into()),
             base: Some("origin/main".into()),
             host: Some("ssh:devbox".into()),
@@ -1927,14 +1927,14 @@ fn a_create_carries_every_member_with_the_mode_it_was_given() {
 
 #[test]
 fn creating_without_a_repo_is_refused() {
-    use thurbox::kernel::command::{Args, Command};
+    use talos::kernel::command::{Args, Command};
     let error = Command::parse("create", Args::default()).unwrap_err();
     assert!(error.contains("needs a repo"), "{error}");
 }
 
 #[test]
 fn fork_and_sync_name_their_session() {
-    use thurbox::kernel::command::{Args, Command};
+    use talos::kernel::command::{Args, Command};
     let fork = Command::parse(
         "fork",
         Args {
@@ -1966,7 +1966,7 @@ fn a_pending_creation_draws_in_the_repo_it_will_land_in() {
         id: 1,
         kind: "create",
         session: String::new(),
-        subject: Some("thurbox".to_string()),
+        subject: Some("talos".to_string()),
         host: None,
         phase: Phase::Running,
         error: None,
@@ -1980,7 +1980,7 @@ fn a_pending_creation_draws_in_the_repo_it_will_land_in() {
     let lines: Vec<&str> = screen.lines().collect();
     let header = lines
         .iter()
-        .position(|l| l.contains("thurbox"))
+        .position(|l| l.contains("talos"))
         .expect("header");
     let pending = lines
         .iter()
@@ -2006,7 +2006,7 @@ fn a_pending_creation_draws_on_the_machine_it_was_asked_for() {
     let mut remote = row("remote-docs", "website", "idle");
     remote.backend = "ssh:buildbox".to_string();
     remote.remote_host = Some("buildbox".to_string());
-    let world = snapshot(vec![row("fix-osc52", "thurbox", "working"), remote]);
+    let world = snapshot(vec![row("fix-osc52", "talos", "working"), remote]);
 
     // Built the way the bus builds it, from a real command: `Command::host()`
     // is where the picker's spelling is settled, so an `InFlight` filled in by
@@ -2014,7 +2014,7 @@ fn a_pending_creation_draws_on_the_machine_it_was_asked_for() {
     let create = |subject: &str, on: Option<&str>| {
         let command = Command::parse(
             "create",
-            thurbox::kernel::command::Args {
+            talos::kernel::command::Args {
                 repo: Some(format!("/src/{subject}")),
                 host: on.map(str::to_string),
                 ..Default::default()
@@ -2081,8 +2081,8 @@ fn creating_the_first_session_on_a_host_names_the_machine_straight_away() {
     let host = host();
     let command = Command::parse(
         "create",
-        thurbox::kernel::command::Args {
-            repo: Some("/src/thurbox".into()),
+        talos::kernel::command::Args {
+            repo: Some("/src/talos".into()),
             host: Some("ssh:buildbox".into()),
             ..Default::default()
         },
@@ -2099,7 +2099,7 @@ fn creating_the_first_session_on_a_host_names_the_machine_straight_away() {
     }];
     publish_with(
         &host,
-        &snapshot(vec![row("fix-osc52", "thurbox", "working")]),
+        &snapshot(vec![row("fix-osc52", "talos", "working")]),
         &Default::default(),
         &inflight,
     );
@@ -2183,7 +2183,7 @@ fn a_creation_into_a_fresh_repo_brings_its_own_header() {
 
 #[test]
 fn a_force_deleted_restore_is_refused_without_best_effort() {
-    use thurbox::kernel::command::{Args, Command};
+    use talos::kernel::command::{Args, Command};
     let plain = Command::parse(
         "restore",
         Args {
@@ -2216,12 +2216,12 @@ fn a_force_deleted_restore_is_refused_without_best_effort() {
 ///
 /// By environment variable, not `paths::set_test_dir`: the bus dispatches each
 /// command on its own worker thread, and that override is thread-local, so a
-/// worker would resolve the developer's real `THURBOX_DATA_DIR` and open (or
-/// create) a database there. `THURBOX_CONFIG_DIR`/`THURBOX_DATA_DIR` are
+/// worker would resolve the developer's real `TALOS_DATA_DIR` and open (or
+/// create) a database there. `TALOS_CONFIG_DIR`/`TALOS_DATA_DIR` are
 /// process-wide and are what the worker thread reads; nextest runs one process
 /// per test, so setting them here is safe.
 ///
-/// Materialises the schema up front, as a real thurbox process does at boot
+/// Materialises the schema up front, as a real talos process does at boot
 /// before it dispatches anything: the command worker opens the database it is
 /// *given* (`open_existing`) rather than re-running `schema::initialize` on
 /// every command, so a test that skips this step hits a database file that was
@@ -2232,21 +2232,21 @@ fn isolate() -> tempfile::TempDir {
     let data = home.path().join("data");
     std::fs::create_dir_all(&config).expect("mkdir");
     std::fs::create_dir_all(&data).expect("mkdir");
-    std::env::set_var("THURBOX_CONFIG_DIR", &config);
-    std::env::set_var("THURBOX_DATA_DIR", &data);
-    thurbox::paths::set_test_dir(&data);
-    let path = thurbox::paths::database_file().expect("database path");
-    thurbox::storage::Database::open(&path).expect("open database");
+    std::env::set_var("TALOS_CONFIG_DIR", &config);
+    std::env::set_var("TALOS_DATA_DIR", &data);
+    talos::paths::set_test_dir(&data);
+    let path = talos::paths::database_file().expect("database path");
+    talos::storage::Database::open(&path).expect("open database");
     home
 }
 
 #[test]
 fn a_creation_that_cannot_start_reports_why_and_leaves_nothing() {
-    use thurbox::kernel::command::{Args, Command, CommandBus, Phase as CmdPhase};
+    use talos::kernel::command::{Args, Command, CommandBus, Phase as CmdPhase};
 
     let _home = isolate();
     let mut bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     bus.dispatch(
         Command::parse(
@@ -2289,18 +2289,18 @@ fn a_creation_that_cannot_start_reports_why_and_leaves_nothing() {
 
 #[test]
 fn opening_a_worktree_that_is_not_there_reports_why_before_spawning() {
-    use thurbox::kernel::command::{Args, Command, CommandBus, Phase as CmdPhase};
+    use talos::kernel::command::{Args, Command, CommandBus, Phase as CmdPhase};
 
     // `repo` is validated up front so a bad path fails here rather than minutes
     // later inside git. A `worktree_path` deserves the same: the picker only
     // ever offers paths git itself reported, but `create` is reachable from
-    // `thurbox-cli` and any plugin, where a stale or mistyped path would
+    // `talos-cli` and any plugin, where a stale or mistyped path would
     // otherwise become the cwd of a pane that cannot start in it.
     let repo = tempfile::TempDir::new().expect("tempdir");
 
     let _home = isolate();
     let mut bus = CommandBus::new(std::sync::Arc::new(
-        thurbox::backend::wiring::configured().0,
+        talos::backend::wiring::configured().0,
     ));
     bus.dispatch(
         Command::parse(
@@ -2340,7 +2340,7 @@ fn opening_a_worktree_that_is_not_there_reports_why_before_spawning() {
 
 #[test]
 fn task_and_automation_commands_validate_their_arguments() {
-    use thurbox::kernel::command::{Args, Command};
+    use talos::kernel::command::{Args, Command};
 
     assert!(Command::parse("task", Args::default()).is_err());
     assert!(Command::parse(
@@ -2472,7 +2472,7 @@ fn only_the_focused_field_owns_the_caret() {
         identity: Default::default(),
         size: Default::default(),
         frame: None,
-        axis: thurbox::kernel::node::Axis::Vertical,
+        axis: talos::kernel::node::Axis::Vertical,
         gap: 0,
         children: vec![field("typed here", 4, true), field("stale", 5, false)],
     };
@@ -2482,7 +2482,7 @@ fn only_the_focused_field_owns_the_caret() {
         identity: Default::default(),
         size: Default::default(),
         frame: None,
-        axis: thurbox::kernel::node::Axis::Vertical,
+        axis: talos::kernel::node::Axis::Vertical,
         gap: 0,
         children: vec![field("typed", 3, false)],
     };
@@ -2501,14 +2501,14 @@ fn link_detection_has_one_definition() {
     // (its only consumer since v1 was retired). Duplicating the scan per
     // reader would have meant two.
     let rows = vec!["see https://example.com/x for more".to_string()];
-    let found = thurbox::kernel::terminal::links::detect_urls(&rows);
+    let found = talos::kernel::terminal::links::detect_urls(&rows);
     assert_eq!(found.len(), 1);
     assert_eq!(found[0].url, "https://example.com/x");
 }
 
 #[test]
 fn opening_a_link_and_copying_are_commands() {
-    use thurbox::kernel::command::{Args, Command};
+    use talos::kernel::command::{Args, Command};
 
     let open = Command::parse(
         "open",
@@ -2600,11 +2600,11 @@ fn the_spawn_pipeline_reports_the_stage_it_reached() {
     // because a command that fails quickly overwrites its stage with `failed`
     // before a poll can see it — a race in the observer, not in the report.
     use std::sync::{Arc, Mutex};
-    use thurbox::session_ops::spawn::{
+    use talos::session_ops::spawn::{
         spawn_session_headless_with_progress, SpawnPhase, SpawnRequest,
     };
 
-    let db = thurbox::storage::Database::open_in_memory().expect("db");
+    let db = talos::storage::Database::open_in_memory().expect("db");
     let repo = tempfile::tempdir().expect("tempdir");
     let seen: Arc<Mutex<Vec<&'static str>>> = Arc::new(Mutex::new(Vec::new()));
 
@@ -2618,7 +2618,7 @@ fn the_spawn_pipeline_reports_the_stage_it_reached() {
     // Fails partway — the point is what it reported before it did.
     let _ = spawn_session_headless_with_progress(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         SpawnRequest {
             name: "probe".into(),
             repo_path: repo.path().to_path_buf(),
@@ -2670,9 +2670,9 @@ fn a_stage_name_reaches_the_pending_row() {
         id: 1,
         kind: "create",
         session: String::new(),
-        subject: Some("thurbox".to_string()),
+        subject: Some("talos".to_string()),
         host: None,
-        phase: thurbox::kernel::command::Phase::Stage("worktrees".to_string()),
+        phase: talos::kernel::command::Phase::Stage("worktrees".to_string()),
         error: None,
     }];
     publish_with(&host, &sample(), &Default::default(), &inflight);
@@ -2690,7 +2690,7 @@ fn a_stage_name_reaches_the_pending_row() {
 fn selection_logic_has_one_implementation() {
     // One implementation, in `kernel::selection` — every consumer is
     // kernel/main side since v1 was retired. Same reasoning as link detection.
-    use thurbox::kernel::selection::{PaneBounds, Selection, TermPos};
+    use talos::kernel::selection::{PaneBounds, Selection, TermPos};
 
     let pane = PaneBounds::from_rect(Rect {
         x: 2,
@@ -2709,7 +2709,7 @@ fn selection_logic_has_one_implementation() {
 fn a_selection_is_clamped_to_its_pane() {
     // A drag that leaves the terminal must not select the session list beside
     // it.
-    use thurbox::kernel::selection::PaneBounds;
+    use talos::kernel::selection::PaneBounds;
     let pane = PaneBounds::from_rect(Rect {
         x: 10,
         y: 5,
@@ -2747,7 +2747,7 @@ fn a_plugin_earns_a_band_entry_by_declaring_one() {
 
     let mut registry = Registry::default();
     registry.declare_all(bindings, settings, pills);
-    let entries = thurbox::kernel::bands::entries(registry.pills(), &registry);
+    let entries = talos::kernel::bands::entries(registry.pills(), &registry);
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].display(), "Mine · F7");
 }
@@ -2779,7 +2779,7 @@ fn a_plugin_that_becomes_unloadable_leaves_the_last_good_set_in_force() {
         let (bindings, settings, pills) = host.all_declarations();
         let mut registry = Registry::default();
         registry.declare_all(bindings, settings, pills);
-        thurbox::kernel::bands::entries(registry.pills(), &registry)
+        talos::kernel::bands::entries(registry.pills(), &registry)
             .iter()
             .map(|entry| entry.label.clone())
             .collect::<Vec<_>>()
@@ -2808,7 +2808,7 @@ fn a_band_is_never_a_focus_stop() {
         .iter()
         .map(|index| host.plugins[*index].name.as_str())
         .collect();
-    for band in thurbox::kernel::bands::Band::DROP_ORDER {
+    for band in talos::kernel::bands::Band::DROP_ORDER {
         assert!(
             !focusable.contains(&band.slot()),
             "{} is a band, not a focus stop: {focusable:?}",
@@ -2830,7 +2830,7 @@ fn a_press_on_a_pane_border_arms_no_selection() {
     // drift painted a band clear across the interface. v1 confines it to the
     // pane's content area and clears the selection when the press is outside
     // one.
-    use thurbox::kernel::selection::PaneBounds;
+    use talos::kernel::selection::PaneBounds;
     let pane = Rect {
         x: 10,
         y: 4,
@@ -2900,7 +2900,7 @@ fn a_selection_is_painted_in_the_themes_own_colours() {
     // And it is the palette's pair, not an invented colour.
     let roles = themes.roles();
     let expect = |role: &str| {
-        thurbox::kernel::node::parse_color(roles.get(role).expect("role")).expect("a colour")
+        talos::kernel::node::parse_color(roles.get(role).expect("role")).expect("a colour")
     };
     assert_eq!(style.bg, Some(expect("selection_bg")));
     assert_eq!(style.fg, Some(expect("selection_fg")));
@@ -2908,7 +2908,7 @@ fn a_selection_is_painted_in_the_themes_own_colours() {
 
 #[test]
 fn copy_and_paste_are_reachable_from_a_plugin() {
-    use thurbox::kernel::command::{Args, Command};
+    use talos::kernel::command::{Args, Command};
     let copy = Command::parse(
         "copy",
         Args {

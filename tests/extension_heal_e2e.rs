@@ -14,12 +14,12 @@
 use std::path::Path;
 use std::process::Command;
 
-use thurbox::session::{ExtensionDef, ExtensionSession};
-use thurbox::storage::Database;
+use talos::session::{ExtensionDef, ExtensionSession};
+use talos::storage::Database;
 
 /// The backend a declared session lands on: this machine's own multiplexer.
 fn local_backend() -> String {
-    thurbox::session::Route::local(Some(thurbox::session::Multiplexer::platform_default())).format()
+    talos::session::Route::local(Some(talos::session::Multiplexer::platform_default())).format()
 }
 
 /// The guard every tmux server in this file is reaped by — see its own doc.
@@ -29,7 +29,7 @@ mod tmux_server;
 use tmux_server::TmuxServer;
 
 /// A throwaway tmux socket, so this never touches the real one.
-const SOCKET: &str = "thurbox-heal-e2e";
+const SOCKET: &str = "talos-heal-e2e";
 
 /// The declared session every test here heals.
 const DECLARED: &str = "mission-control";
@@ -72,7 +72,7 @@ fn repo() -> tempfile::TempDir {
     let dir = tempfile::tempdir().expect("tempdir");
     git(dir.path(), &["init", "-q", "-b", "main"]);
     git(dir.path(), &["config", "user.email", "t@example.com"]);
-    git(dir.path(), &["config", "user.name", "thurbox-test"]);
+    git(dir.path(), &["config", "user.name", "talos-test"]);
     git(dir.path(), &["config", "commit.gpgsign", "false"]);
     std::fs::write(dir.path().join("README.md"), "# probe\n").expect("write");
     git(dir.path(), &["add", "."]);
@@ -84,8 +84,8 @@ fn repo() -> tempfile::TempDir {
 /// test, and launching a coding agent would want credentials and a network.
 /// Thread-local, so every thread a test fans out to calls this itself.
 fn isolate_paths(home: &Path) {
-    thurbox::paths::set_test_dir(home);
-    let config = thurbox::paths::config_file()
+    talos::paths::set_test_dir(home);
+    let config = talos::paths::config_file()
         .expect("config path")
         .parent()
         .expect("config dir")
@@ -105,7 +105,7 @@ fn probe_def(repo: &Path) -> ExtensionDef {
         description: None,
         config_version: Some(1),
         version: None,
-        min_thurbox_version: None,
+        min_talos_version: None,
         installed_with: None,
         source: None,
         home: None,
@@ -128,14 +128,14 @@ fn probe_def(repo: &Path) -> ExtensionDef {
 /// one an extension declares" can find out. `activate_extension` records the
 /// active set; it does not write the file.
 fn publish_manifest(def: &ExtensionDef) {
-    let path = thurbox::agent::extension_config::manifest_path(&def.name).expect("manifest path");
+    let path = talos::agent::extension_config::manifest_path(&def.name).expect("manifest path");
     std::fs::create_dir_all(path.parent().expect("extensions dir")).expect("mkdir");
     std::fs::write(&path, toml::to_string(def).expect("serialize")).expect("write manifest");
 }
 
 /// The active rows carrying the declared name on the local backend — the
 /// population the whole issue is about.
-fn local_namesakes(db: &Database) -> Vec<thurbox::sync::SharedSession> {
+fn local_namesakes(db: &Database) -> Vec<talos::sync::SharedSession> {
     db.find_sessions_by_name(DECLARED)
         .expect("find_sessions_by_name")
         .into_iter()
@@ -144,8 +144,8 @@ fn local_namesakes(db: &Database) -> Vec<thurbox::sync::SharedSession> {
 }
 
 /// Heal once, skipping the test when the environment cannot spawn at all.
-fn heal(db: &Database, def: &ExtensionDef) -> Option<thurbox::session_ops::EnsureReport> {
-    match thurbox::session_ops::ensure_extension(db, &thurbox::backend::wiring::configured().0, def)
+fn heal(db: &Database, def: &ExtensionDef) -> Option<talos::session_ops::EnsureReport> {
+    match talos::session_ops::ensure_extension(db, &talos::backend::wiring::configured().0, def)
     {
         Ok(report) => Some(report),
         Err(e) => {
@@ -182,9 +182,9 @@ fn a_heal_inside_the_undo_window_leaves_one_session_of_the_name() {
     let original = local_namesakes(&db)[0].id;
 
     // The operator deletes it. Softly: the undo is still on offer.
-    thurbox::session_ops::delete_session_headless(
+    talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         original,
         false,
     )
@@ -196,9 +196,9 @@ fn a_heal_inside_the_undo_window_leaves_one_session_of_the_name() {
     };
 
     // The undo.
-    let restored = thurbox::session_ops::restore_session_headless(
+    let restored = talos::session_ops::restore_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         original,
         true,
     );
@@ -248,18 +248,18 @@ fn a_restore_does_not_un_delete_a_name_something_else_now_answers_to() {
     let original = local_namesakes(&db)[0].id;
     // Force-deleted so the name is free at once: this test is about the restore,
     // not about waiting out the undo window.
-    thurbox::session_ops::delete_session_headless(
+    talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         original,
         true,
     )
     .expect("delete");
     let Some(_) = heal(&db, &def) else { return };
 
-    let restored = thurbox::session_ops::restore_session_headless(
+    let restored = talos::session_ops::restore_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         original,
         true,
     );
@@ -305,9 +305,9 @@ fn two_heals_racing_leave_one_session_of_the_name() {
             let db = Database::open(&db_path).expect("db");
             let def = probe_def(&repo);
             barrier.wait();
-            thurbox::session_ops::ensure_extension(
+            talos::session_ops::ensure_extension(
                 &db,
-                &thurbox::backend::wiring::configured().0,
+                &talos::backend::wiring::configured().0,
                 &def,
             )
         }));
@@ -366,8 +366,8 @@ fn a_namesake_on_another_backend_does_not_answer_for_the_local_session() {
     let db = Database::open_in_memory().expect("db");
 
     // A mirrored row from another machine, carrying the declared name.
-    db.upsert_session(&thurbox::sync::SharedSession {
-        id: thurbox::session::SessionId::default(),
+    db.upsert_session(&talos::sync::SharedSession {
+        id: talos::session::SessionId::default(),
         name: DECLARED.into(),
         agent: "shell".into(),
         backend_id: String::new(),
@@ -417,9 +417,9 @@ fn heal_still_recreates_a_force_deleted_session() {
 
     let Some(_) = heal(&db, &def) else { return };
     let original = local_namesakes(&db)[0].id;
-    thurbox::session_ops::delete_session_headless(
+    talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         original,
         true,
     )
@@ -463,9 +463,9 @@ fn a_restore_is_refused_by_a_namesake_it_only_shares_a_window_name_with() {
         .expect("find")
         .remove(0)
         .id;
-    thurbox::session_ops::delete_session_headless(
+    talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         dotted,
         true,
     )
@@ -475,9 +475,9 @@ fn a_restore_is_refused_by_a_namesake_it_only_shares_a_window_name_with() {
     def.sessions[0].name = "deploy prod".into();
     let Some(_) = heal(&db, &def) else { return };
 
-    let err = thurbox::session_ops::restore_session_headless(
+    let err = talos::session_ops::restore_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         dotted,
         true,
     )
@@ -504,9 +504,9 @@ fn a_refused_restore_names_the_extension_when_self_heal_owns_the_name() {
     let def = probe_def(repo.path());
     publish_manifest(&def);
 
-    let report = match thurbox::session_ops::activate_extension(
+    let report = match talos::session_ops::activate_extension(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         &def,
     ) {
         Ok(report) => report,
@@ -518,18 +518,18 @@ fn a_refused_restore_names_the_extension_when_self_heal_owns_the_name() {
     };
     assert_eq!(report.sessions_created, [DECLARED]);
     let original = local_namesakes(&db)[0].id;
-    thurbox::session_ops::delete_session_headless(
+    talos::session_ops::delete_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         original,
         true,
     )
     .expect("delete");
     let Some(_) = heal(&db, &def) else { return };
 
-    let err = thurbox::session_ops::restore_session_headless(
+    let err = talos::session_ops::restore_session_headless(
         &db,
-        &thurbox::backend::wiring::configured().0,
+        &talos::backend::wiring::configured().0,
         original,
         true,
     )

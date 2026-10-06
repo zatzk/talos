@@ -6,7 +6,7 @@
 //! render path.
 //!
 //! The kernel's events are **derived by diffing published state**, never raised
-//! by the code that mutates it. A session created by `thurbox-cli`, a cron tick
+//! by the code that mutates it. A session created by `talos-cli`, a cron tick
 //! or a second interface looks exactly like one the creation flow made, and no
 //! mutation site anywhere can forget to fire — the failure mode of the other
 //! design, which is also the one that would have put a kernel concern inside
@@ -14,7 +14,7 @@
 //!
 //! The set is a closed enumeration ([`KERNEL_EVENTS`]) with one reader for each
 //! of its three uses: the loader validates a subscription against it, the help
-//! modal renders it, and `thurbox-cli plugin events` prints it. One list, so a
+//! modal renders it, and `talos-cli plugin events` prints it. One list, so a
 //! name a plugin can subscribe to is always one the kernel can emit.
 
 use std::collections::BTreeSet;
@@ -467,9 +467,9 @@ mod tests {
             name: format!("name-{id}"),
             agent: "claude".into(),
             status,
-            cwd: Some(PathBuf::from("/src/thurbox")),
-            repo: Some("thurbox".into()),
-            repos: vec!["thurbox".into()],
+            cwd: Some(PathBuf::from("/src/talos")),
+            repo: Some("talos".into()),
+            repos: vec!["talos".into()],
             branch: Some(format!("feat/{id}")),
             base_branch: None,
             backend: "local-tmux".into(),
@@ -542,7 +542,7 @@ mod tests {
         );
         assert_eq!(events[0].text("session"), Some("b"));
         assert_eq!(events[1].text("session"), Some("c"));
-        assert_eq!(events[1].text("repo"), Some("thurbox"));
+        assert_eq!(events[1].text("repo"), Some("talos"));
         assert_eq!(events[2].text("from"), Some("idle"));
         assert_eq!(events[2].text("to"), Some("blocked"));
         assert_eq!(
