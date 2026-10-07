@@ -52,7 +52,7 @@ is a dispatch, not a conversation:
   supervision signal, not a completion signal — poll it and you will wait
   forever on a worker that finished an hour ago.
 - **Worktree per worker.** Workers are spawned with `--worktree-branch` and
-  `--parent "$THURBOX_SESSION"` so the tree is recorded, not remembered:
+  `--parent "$TALOS_SESSION"` so the tree is recorded, not remembered:
   `talos-cli session list --parent <uuid> --json` finds the workers of a run,
   including the ones that never reported.
 - **Fast-forward the base before spawning.** A worktree inherits the *local*

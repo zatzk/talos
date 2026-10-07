@@ -311,12 +311,131 @@ pub fn initialize(conn: &Connection) -> rusqlite::Result<()> {
             deleted_at      INTEGER,
             description     TEXT,
             action_extra_repos TEXT,
-            action_command  TEXT
+            action_command  TEXT,
+            canonical_id    TEXT,
+            workspace_id    TEXT,
+            rfc_id          TEXT,
+            prd_id          TEXT,
+            qa_attempts     INTEGER NOT NULL DEFAULT 0,
+            qa_score        REAL
         );
         CREATE INDEX IF NOT EXISTS idx_tasks_status
             ON tasks(status) WHERE deleted_at IS NULL;
         CREATE INDEX IF NOT EXISTS idx_tasks_external
             ON tasks(source, external_id) WHERE deleted_at IS NULL;
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_canonical
+            ON tasks(workspace_id, canonical_id) WHERE canonical_id IS NOT NULL AND deleted_at IS NULL;
+        CREATE INDEX IF NOT EXISTS idx_tasks_workspace_status
+            ON tasks(workspace_id, status) WHERE deleted_at IS NULL;
+
+        CREATE TABLE IF NOT EXISTS workspaces (
+            id                 TEXT PRIMARY KEY,
+            name               TEXT NOT NULL,
+            project_id         TEXT NOT NULL,
+            control_plane_path TEXT NOT NULL,
+            active_thread_id   TEXT,
+            created_at         INTEGER NOT NULL,
+            updated_at         INTEGER NOT NULL,
+            deleted_at         INTEGER
+        );
+
+        CREATE TABLE IF NOT EXISTS workspace_repos (
+            workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+            repo_name    TEXT NOT NULL,
+            repo_path    TEXT NOT NULL,
+            is_primary   INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (workspace_id, repo_name)
+        );
+
+        CREATE TABLE IF NOT EXISTS threads (
+            id           TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+            title        TEXT NOT NULL,
+            target_kind  TEXT NOT NULL DEFAULT 'auto',
+            target_agent TEXT,
+            target_model TEXT,
+            created_at   INTEGER NOT NULL,
+            updated_at   INTEGER NOT NULL,
+            deleted_at   INTEGER
+        );
+
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id           TEXT PRIMARY KEY,
+            thread_id    TEXT NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
+            workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+            role         TEXT NOT NULL CHECK (role IN ('user', 'agent', 'system')),
+            agent        TEXT,
+            backend      TEXT,
+            model        TEXT,
+            content      TEXT NOT NULL,
+            redacted     INTEGER NOT NULL DEFAULT 0,
+            created_at   INTEGER NOT NULL
+        );
+
+        CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(
+            content,
+            content='chat_messages',
+            content_rowid='rowid'
+        );
+
+        CREATE TRIGGER IF NOT EXISTS trg_chat_ai AFTER INSERT ON chat_messages BEGIN
+            INSERT INTO memory_fts(rowid, content) VALUES (new.rowid, new.content);
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS trg_chat_ad AFTER DELETE ON chat_messages BEGIN
+            INSERT INTO memory_fts(memory_fts, rowid, content) VALUES('delete', old.rowid, old.content);
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS trg_chat_au AFTER UPDATE ON chat_messages BEGIN
+            INSERT INTO memory_fts(memory_fts, rowid, content) VALUES('delete', old.rowid, old.content);
+            INSERT INTO memory_fts(rowid, content) VALUES (new.rowid, new.content);
+        END;
+
+        CREATE TABLE IF NOT EXISTS memory_embedding (
+            message_id TEXT NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
+            model      TEXT NOT NULL,
+            dim        INTEGER NOT NULL,
+            vector     BLOB NOT NULL,
+            PRIMARY KEY (message_id, model)
+        );
+
+        CREATE TABLE IF NOT EXISTS memory_fact (
+            id                TEXT PRIMARY KEY,
+            workspace_id      TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+            subject           TEXT NOT NULL,
+            predicate         TEXT NOT NULL,
+            object            TEXT NOT NULL,
+            confidence        REAL NOT NULL,
+            source_message_id TEXT,
+            superseded_by     TEXT,
+            created_at        INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS memory_preference (
+            workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+            key          TEXT NOT NULL,
+            value        TEXT NOT NULL,
+            source       TEXT,
+            updated_at   INTEGER NOT NULL,
+            PRIMARY KEY (workspace_id, key)
+        );
+
+        CREATE TABLE IF NOT EXISTS memory_entity (
+            id           TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+            kind         TEXT NOT NULL,
+            name         TEXT NOT NULL,
+            ref          TEXT,
+            updated_at   INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS memory_edge (
+            from_id      TEXT NOT NULL REFERENCES memory_entity(id) ON DELETE CASCADE,
+            relation     TEXT NOT NULL,
+            to_id        TEXT NOT NULL REFERENCES memory_entity(id) ON DELETE CASCADE,
+            created_at   INTEGER NOT NULL,
+            PRIMARY KEY (from_id, relation, to_id)
+        );
 
         CREATE TABLE IF NOT EXISTS session_messages (
             id              INTEGER PRIMARY KEY AUTOINCREMENT,

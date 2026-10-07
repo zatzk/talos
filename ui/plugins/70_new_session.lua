@@ -1394,7 +1394,14 @@ return {
     {
       key = "ctrl+n",
       action = "new_session.open",
-      desc = "new session",
+      desc = "new thread / session",
+      scope = "global",
+      group = "Sessions",
+    },
+    {
+      key = "ctrl+t",
+      action = "new_session.open",
+      desc = "new thread / session",
       scope = "global",
       group = "Sessions",
     },

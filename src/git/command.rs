@@ -82,7 +82,7 @@ pub(super) fn non_interactive(cmd: &mut Command) {
 }
 
 /// Run a git command that produces no output worth keeping, or fail with stderr.
-pub(super) fn run_git(mut cmd: Command, what: &str) -> Result<()> {
+pub(crate) fn run_git(mut cmd: Command, what: &str) -> Result<()> {
     let output = cmd
         .output()
         .with_context(|| format!("failed to run {what}"))?;

@@ -1,15 +1,13 @@
 # Talos 🛰️
 
-> **Agentic Engineering TUI — agent-agnostic, with a woven decision engine and a spec-driven control plane.**
+> **Chat-Led Multi-Agent Orchestration Cockpit — conversational routing, unified memory, and automated spec-driven execution.**
 >
-> A fork of [thurbox](https://github.com/Thurbeen/thurbox): the same persistent
-> tmux sessions, worktrees, diff reviewer and Lua interface, plus three things
-> thurbox deliberately leaves to the operator — a built-in decision engine
-> (**Jev**), the octomux workflow panes, and a control plane.
+> Built on the foundations of [thurbox](https://github.com/Thurbeen/thurbox), octomux and autonomous-cockpit: unified workspaces, persistent
+> tmux panels, worktrees, universal runner (API & CLI), built-in decision engine (**Jev**), and git submodule control plane.
 
 ```
-talos              the TUI — sessions, the board (F6), attention (F7), fleet (F8)
-talos-cli          headless driver + the Jev decision engine
+talos              the TUI — Chat (F1), Workspace Board (F2), Fleet (F3), Selector (F4/Ctrl+O)
+talos-cli          headless driver + the Jev decision engine + universal runner
 ```
 
 ## Install
@@ -17,56 +15,50 @@ talos-cli          headless driver + the Jev decision engine
 ```bash
 git clone git@github.com:zatzk/talos.git ~/Code/talos
 cd ~/Code/talos
-./install.sh          # builds talos + talos-cli, seeds a control plane, makes the lead session
+./install.sh          # builds talos + talos-cli, syncs submodules, ensures control plane
 ```
 
-Requires `tmux >= 3.2`, Rust, and at least one agent CLI. On Arch, build the
-`talos-bin`/`talos` AUR package instead (see `packaging/aur/`).
+Requires `tmux >= 3.2`, Rust, and at least one agent CLI.
 
-## What talos adds to thurbox
+## Key Navigation & Shortcuts (Talos v3)
 
-### 1. Jev — the decision engine, woven into the agent lifecycle
+| Shortcut | Alternative | Action | Description |
+|---|---|---|---|
+| `F1` | `Alt+1` | **Chat / Threads** | Primary conversational interface with intent routing |
+| `F2` | `Alt+2` | **Workspace Board** | Kanban view of atomic tasks for active workspace |
+| `F3` | `Alt+3` | **Fleet / Terminals** | Workers and tmux terminals for human inspection |
+| `F4` | `Ctrl+O` | **Model/Agent Selector** | Fast modal to select between Auto (Jev), API Models, and CLI Agents |
+| `Ctrl+A` | — | **Approve Spec & Commit** | Ingest canonical tasks into Board and commit to `code-documentation` |
+| `Ctrl+N` | `Ctrl+T` | **New Thread** | Open a new conversational thread in the workspace |
+| `Ctrl+W` | — | **Switch Workspace** | Switch between workspaces and repositories |
+| `Ctrl+P` | — | **Command Palette** | Quick action palette |
+| `Ctrl+Q` | — | **Quit Talos** | Exit TUI preserving background workers |
+| `Esc` | — | **Cancel / Abort** | Dismiss modal or cancel running execution stream |
 
-Not a tool you remember to call: decisions happen at the points where a
-judgement is needed. Every case answers JSON and falls back to a deterministic
-classifier when the API is unreachable, so the TUI never blocks.
+## Architecture & Features
 
-| Lifecycle point | Case | What it decides |
-|---|---|---|
-| Task created | **sizing** | size (S/M/L/EPIC), pipeline, model tier, target agent |
-| Before dispatch | **atomicity** | one commit/PR, or needs decomposition |
-| Shell command | **guardrail** | SAFE / RISKY / BLOCKED (static rules first, then model) |
-| Tests fail | **triage** | root cause + healing strategy for the self-healing retry |
-| Spec generated | **audit-spec** | APPROVED / NEEDS_REVISION / REJECTED for a PRD or RFC |
-| Chat message | **intent** | which persona, what the cockpit should do next |
+### 1. Jev — Woven Decision Engine (1200ms Timeout)
 
-Callable directly for hooks and scripts:
+Decisions occur natively at critical pipeline stages with deterministic heuristic fallbacks:
 
-```bash
-talos-cli jev sizing --title "add rate limiting" | jq
-talos-cli jev guardrail --command "git push --force"     # BLOCKED
-talos-cli jev triage --command "npm test" --exit-code 1 --test-output "$(npm test 2>&1)"
-```
+| Lifecycle Point | What Jev Decides |
+|---|---|
+| Chat Message | **Intent Routing** (Persona, Model Tier, Execution Backend: API vs CLI) |
+| Task Created | **Sizing** (S/M/L/EPIC, pipeline, model tier, target agent) |
+| Before Dispatch | **Atomicity** (one commit/PR or needs decomposition) |
+| Shell Command | **Guardrail** (SAFE / RISKY / BLOCKED static rules + model) |
+| Tests Fail | **Triage** (root cause + healing strategy for retry) |
+| Spec Generated | **Audit-Spec** (APPROVED / NEEDS_REVISION / REJECTED) |
 
-Set `OPENROUTER_API_KEY` to use the model path; see `.env.example`. Without it,
-the heuristics answer (`provider: heuristic-fallback`).
+### 2. Universal Runner & Unified Memory
 
-### 2. Octomux panes — natively in the TUI
+- **API Direct Runner:** Low latency SSE streaming via OpenRouter/9Router.
+- **Headless CLI Runner:** Executes local CLI agents (`claude -p`, `codex exec`, `agy --headless`).
+- **Unified 4-Layer Memory:** Episodic, Semantic (Embeddings), Procedural (Facts/Preferences), Entity Graph with **Reciprocal Rank Fusion (RRF)** combining FTS5 BM25 and cosine similarity.
 
-- **F6 — board**: the six-column workflow (`backlog → planned → in_progress →
-  human_review → pr → done`). Columns are *derived* from session facts, so the
-  board cannot drift from reality.
-- **F7 — attention**: the needs-you inbox — blocked sessions and finished work
-  with unreviewed diffs, in one list.
-- **F8 — fleet**: the lead/worker tree with status, branch and diff shape.
+### 3. Control Plane Submodule (`code-documentation`)
 
-### 3. The control plane
-
-`install.sh` seeds a **control plane** (default `~/Code/code-documentation`): a
-repo holding the plan and the log — `registry/` (the map), `orchestration/`
-(playbooks, run logs, session profiles) — and creates the self-contained lead
-session **📡 Talos Mission Control** over it. Workers are dispatched per task,
-each in its own worktree, reporting back through the mailbox.
+The control plane is embedded via git submodule (`code-documentation`), preserving shared PRDs, RFCs, and task breakdowns across projects. Approving a spec (`Ctrl+A`) writes tasks, updates the SQLite Kanban board, and performs an automated git commit.
 
 ## Agent-agnostic
 

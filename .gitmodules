@@ -1,3 +1,6 @@
 [submodule "spec-harness-kit"]
 	path = spec-harness-kit
 	url = https://github.com/zatzk/spec-harness-kit.git
+[submodule "code-documentation"]
+	path = code-documentation
+	url = https://github.com/zatzk/code-documentation.git

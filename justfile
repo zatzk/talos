@@ -13,6 +13,10 @@ default:
 check:
     cargo check --all
 
+# Update git submodules (code-documentation, spec-harness-kit).
+submodules:
+    git submodule update --init --recursive
+
 # Build the dev binaries (TUI + CLI).
 build:
     cargo build --bin talos --bin talos-cli

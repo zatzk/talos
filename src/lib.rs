@@ -11,6 +11,7 @@ pub mod kernel;
 pub mod notifications;
 pub mod orchestrator;
 pub mod paths;
+pub mod runner;
 pub mod session;
 pub mod session_ops;
 pub mod shell;

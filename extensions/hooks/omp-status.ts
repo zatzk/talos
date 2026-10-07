@@ -1,7 +1,7 @@
 // Managed by talos `extension install` (the built-in "hooks" extension).
 // Reinstalling or updating overwrites this file — do not edit; uninstalling
 // removes it. Reports Oh My Pi's lifecycle state to talos. Identity comes
-// from the inherited $THURBOX_SESSION env var; every call is best-effort so it
+// from the inherited $TALOS_SESSION env var; every call is best-effort so it
 // can never break a session running outside talos.
 //
 // This is an OMP (Oh My Pi, https://github.com/can1357/oh-my-pi) extension
@@ -27,7 +27,7 @@ const BLOCKING_TOOLS = new Set(["ask", "ask_user_question"]);
 const SIGNAL = "talos-cli session signal --state ";
 
 // Fire-and-forget; the callback swallows errors so a hook never surfaces into
-// the agent. exec inherits the OMP process env, so $THURBOX_SESSION travels.
+// the agent. exec inherits the OMP process env, so $TALOS_SESSION travels.
 const report = (state: string): void => {
   exec(SIGNAL + state, () => {});
 };

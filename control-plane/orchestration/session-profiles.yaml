@@ -10,7 +10,7 @@
 
 # The default worker: full hook coverage (talos's built-in hooks extension
 # wires status reporting through the agent's own settings), no model pin —
-# the agent's own default. `env` entries become THURBOX_* environment facts
+# the agent's own default. `env` entries become TALOS_* environment facts
 # the worker's scripts can read.
 profiles:
   worker:

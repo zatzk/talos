@@ -141,11 +141,17 @@ local function card_of(card, is_cursor)
     or column_style(card.column, false)
   local spans
   if card.task then
+    local prefix = ""
+    if card.task.canonical_id and card.task.canonical_id ~= "" then
+      prefix = "[" .. card.task.canonical_id .. "] "
+    end
     spans = {
       { text = GLYPH.backlog .. " ", style = style },
-      { text = card.task.title or "(untitled)", style = style },
+      { text = prefix .. (card.task.title or "(untitled)"), style = style },
     }
-    if card.task.source and card.task.source ~= "local" then
+    if card.task.rfc_id and card.task.rfc_id ~= "" then
+      spans[#spans + 1] = { text = " " .. card.task.rfc_id, style = { fg = theme.accent } }
+    elseif card.task.source and card.task.source ~= "local" then
       spans[#spans + 1] = { text = " " .. card.task.source, style = { fg = theme.muted } }
     end
   else
@@ -196,10 +202,9 @@ return {
   },
 
   keys = {
-    -- alt+1, not an F-key: f6 is settings, f8 is the shell, and f2/f3/f5/f7 are
-    -- held for panes that have not returned. A free, non-deferred chord is the
-    -- only kind a global binding may take here (see tests/keymap.rs).
-    { key = "alt+1", action = "kanban.open", desc = "board", scope = "global", group = "Talos" },
+    -- F2 primary and Alt+2 alternate for Workspace Board per RFC v2.0
+    { key = "f2", action = "kanban.open", desc = "workspace board", scope = "global", group = "Talos" },
+    { key = "alt+2", action = "kanban.open", desc = "workspace board", scope = "global", group = "Talos" },
     { key = "j", action = "kanban.down", desc = "next card", group = "Talos" },
     { key = "k", action = "kanban.up", desc = "previous card", group = "Talos" },
     { key = "h", action = "kanban.left", desc = "column left", group = "Talos" },
@@ -303,7 +308,11 @@ return {
       -- the tasks pane's `enter` does. A session card is work: open it where
       -- it lives — the prompt it is blocked on is answered in its pane.
       if card.task then
-        command("dispatch", { number = card.task.id })
+        local branch = nil
+        if card.task.canonical_id and card.task.canonical_id ~= "" then
+          branch = "feat/" .. card.task.canonical_id:lower()
+        end
+        command("dispatch", { number = card.task.id, branch = branch })
       else
         command("action", { text = "sessions.open", session = card.session.id })
       end

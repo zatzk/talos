@@ -217,6 +217,129 @@ impl Database {
         }
         Ok(updated > 0)
     }
+
+    /// Upsert a task from canonical specs (RFC/PRD decomposition).
+    pub fn upsert_canonical_task(&self, task: &CanonicalTask) -> rusqlite::Result<()> {
+        let now = current_time_millis() as i64;
+        self.conn.execute(
+            "INSERT INTO tasks
+                (title, status, source, external_id, created_at, updated_at, description,
+                 canonical_id, workspace_id, rfc_id, prd_id, agent, worktree_branch, base_branch,
+                 qa_attempts, qa_score)
+             VALUES (?1, ?2, 'canonical', ?3, ?4, ?4, ?5, ?3, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+             ON CONFLICT(workspace_id, canonical_id) WHERE canonical_id IS NOT NULL AND deleted_at IS NULL DO UPDATE SET
+                 title = excluded.title,
+                 description = excluded.description,
+                 rfc_id = excluded.rfc_id,
+                 prd_id = excluded.prd_id,
+                 updated_at = excluded.updated_at",
+            params![
+                task.title,
+                task.status.as_str(),
+                task.canonical_id,
+                now,
+                task.description,
+                task.workspace_id,
+                task.rfc_id,
+                task.prd_id,
+                task.assigned_agent,
+                task.worktree_branch,
+                task.base_branch,
+                task.qa_attempts as i64,
+                task.qa_score,
+            ],
+        )?;
+        Ok(())
+    }
+
+    /// Get a single canonical task by workspace and canonical ID.
+    pub fn get_canonical_task(
+        &self,
+        workspace_id: &str,
+        canonical_id: &str,
+    ) -> rusqlite::Result<Option<CanonicalTask>> {
+        self.conn
+            .query_row(
+                "SELECT canonical_id, workspace_id, rfc_id, prd_id, title, description, status,
+                        agent, NULL, worktree_branch, base_branch, qa_attempts, qa_score,
+                        created_at, updated_at
+                 FROM tasks
+                 WHERE workspace_id = ?1 AND canonical_id = ?2 AND deleted_at IS NULL",
+                params![workspace_id, canonical_id],
+                map_canonical_task,
+            )
+            .optional()
+    }
+
+    /// List all canonical tasks in a workspace (for the workspace board).
+    pub fn list_canonical_tasks(&self, workspace_id: &str) -> rusqlite::Result<Vec<CanonicalTask>> {
+        let mut stmt = self.conn.prepare_cached(
+            "SELECT canonical_id, workspace_id, rfc_id, prd_id, title, description, status,
+                    agent, NULL, worktree_branch, base_branch, qa_attempts, qa_score,
+                    created_at, updated_at
+             FROM tasks
+             WHERE workspace_id = ?1 AND canonical_id IS NOT NULL AND deleted_at IS NULL
+             ORDER BY id ASC",
+        )?;
+        let rows = stmt.query_map(params![workspace_id], map_canonical_task)?;
+        rows.collect()
+    }
+
+    /// Update only a canonical task's status on the board.
+    pub fn set_canonical_task_status(
+        &self,
+        workspace_id: &str,
+        canonical_id: &str,
+        status: TaskStatus,
+    ) -> rusqlite::Result<bool> {
+        let now = current_time_millis() as i64;
+        let updated = self.conn.execute(
+            "UPDATE tasks SET status = ?3, updated_at = ?4
+             WHERE workspace_id = ?1 AND canonical_id = ?2 AND deleted_at IS NULL",
+            params![workspace_id, canonical_id, status.as_str(), now],
+        )?;
+        Ok(updated > 0)
+    }
+}
+
+/// A task with canonical identity (`TASK-{rfc}-{seq}`).
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CanonicalTask {
+    pub canonical_id: String,
+    pub workspace_id: String,
+    pub rfc_id: String,
+    pub prd_id: Option<String>,
+    pub title: String,
+    pub description: Option<String>,
+    pub status: TaskStatus,
+    pub assigned_agent: Option<String>,
+    pub assigned_model: Option<String>,
+    pub worktree_branch: Option<String>,
+    pub base_branch: Option<String>,
+    pub qa_attempts: u32,
+    pub qa_score: Option<f64>,
+    pub created_at: u64,
+    pub updated_at: u64,
+}
+
+fn map_canonical_task(row: &rusqlite::Row) -> rusqlite::Result<CanonicalTask> {
+    Ok(CanonicalTask {
+        canonical_id: row.get(0)?,
+        workspace_id: row.get(1)?,
+        rfc_id: row.get(2)?,
+        prd_id: row.get(3)?,
+        title: row.get(4)?,
+        description: row.get(5)?,
+        status: TaskStatus::from_db(&row.get::<_, String>(6)?),
+        assigned_agent: row.get(7)?,
+        assigned_model: row.get(8)?,
+        worktree_branch: row.get(9)?,
+        base_branch: row.get(10)?,
+        qa_attempts: row.get::<_, i64>(11)? as u32,
+        qa_score: row.get(12)?,
+        created_at: row.get::<_, i64>(13)? as u64,
+        updated_at: row.get::<_, i64>(14)? as u64,
+    })
 }
 
 /// Column list for task SELECTs (keep in sync with [`map_task`]).
@@ -501,5 +624,53 @@ mod tests {
             .unwrap();
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].action, "created");
+    }
+
+    #[test]
+    fn canonical_task_upsert_and_board_lifecycle() {
+        let db = Database::open_in_memory().unwrap();
+        db.create_workspace("ws-tasks", "Task Board WS", "proj", "/tmp")
+            .unwrap();
+
+        let task1 = CanonicalTask {
+            canonical_id: "TASK-042-01".into(),
+            workspace_id: "ws-tasks".into(),
+            rfc_id: "RFC-042".into(),
+            prd_id: Some("PRD-042".into()),
+            title: "Implement Token Generator".into(),
+            description: Some("Must generate JWT tokens with expiry".into()),
+            status: TaskStatus::Todo,
+            assigned_agent: Some("dev".into()),
+            assigned_model: None,
+            worktree_branch: Some("feat/task-042-01".into()),
+            base_branch: Some("main".into()),
+            qa_attempts: 0,
+            qa_score: None,
+            created_at: 1000,
+            updated_at: 1000,
+        };
+
+        db.upsert_canonical_task(&task1).unwrap();
+
+        let fetched = db
+            .get_canonical_task("ws-tasks", "TASK-042-01")
+            .unwrap()
+            .unwrap();
+        assert_eq!(fetched.title, "Implement Token Generator");
+        assert_eq!(fetched.status, TaskStatus::Todo);
+        assert_eq!(fetched.rfc_id, "RFC-042");
+
+        // Advance status to InProgress
+        assert!(db.set_canonical_task_status("ws-tasks", "TASK-042-01", TaskStatus::InProgress).unwrap());
+        let in_prog = db
+            .get_canonical_task("ws-tasks", "TASK-042-01")
+            .unwrap()
+            .unwrap();
+        assert_eq!(in_prog.status, TaskStatus::InProgress);
+
+        // List tasks for board
+        let board_tasks = db.list_canonical_tasks("ws-tasks").unwrap();
+        assert_eq!(board_tasks.len(), 1);
+        assert_eq!(board_tasks[0].canonical_id, "TASK-042-01");
     }
 }

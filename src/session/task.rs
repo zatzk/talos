@@ -21,7 +21,7 @@ use super::AutomationAction;
 pub const SOURCE_LOCAL: &str = "local";
 
 /// Lifecycle state of a task.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub enum TaskStatus {
     #[default]
     Todo,

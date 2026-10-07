@@ -1,7 +1,7 @@
 // Managed by talos `extension install` (the built-in "hooks" extension).
 // Reinstalling or updating overwrites this file — do not edit; uninstalling
 // removes it. Reports pi's lifecycle state to talos. Identity comes from the
-// inherited $THURBOX_SESSION env var; every call is best-effort so it can never
+// inherited $TALOS_SESSION env var; every call is best-effort so it can never
 // break a session running outside talos.
 //
 // This is a pi extension (TypeScript), auto-discovered from
@@ -19,7 +19,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 const SIGNAL = "talos-cli session signal --state ";
 
 // Fire-and-forget; the callback swallows errors so a hook never surfaces into
-// the agent. exec inherits the pi process env, so $THURBOX_SESSION travels.
+// the agent. exec inherits the pi process env, so $TALOS_SESSION travels.
 const report = (state: string): void => {
   exec(SIGNAL + state, () => {});
 };

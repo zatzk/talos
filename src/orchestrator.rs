@@ -27,6 +27,10 @@ fn default_control_plane() -> Option<PathBuf> {
     if let Ok(dir) = std::env::var("TALOS_CONTROL_PLANE") {
         return Some(PathBuf::from(dir));
     }
+    let submodule = Path::new(env!("CARGO_MANIFEST_DIR")).join("code-documentation");
+    if submodule.is_dir() {
+        return Some(submodule);
+    }
     crate::paths::home_dir().map(|h| h.join("Code/code-documentation"))
 }
 
@@ -223,6 +227,75 @@ pub fn status(db: &Database) -> serde_json::Value {
     })
 }
 
+/// Result of approving a spec and committing changes.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SpecApprovalResult {
+    pub rfc_id: String,
+    pub prd_id: Option<String>,
+    pub committed_files: Vec<String>,
+    pub created_tasks_count: usize,
+    pub commit_hash: Option<String>,
+}
+
+/// Approve an RFC/PRD spec, break down canonical tasks, ingest them into the board,
+/// and automatically git commit in the `code-documentation` repository (Ctrl+A).
+pub fn approve_spec_and_commit(
+    db: &Database,
+    _workspace_id: &str,
+    rfc_id: &str,
+    prd_id: Option<&str>,
+    tasks: &[crate::storage::tasks::CanonicalTask],
+) -> anyhow::Result<SpecApprovalResult> {
+    let cp = default_control_plane().ok_or_else(|| anyhow::anyhow!("No control-plane directory configured"))?;
+    if !cp.is_dir() {
+        anyhow::bail!("Control plane directory {} does not exist", cp.display());
+    }
+
+    // 1. Ingest tasks into the workspace board
+    let mut created_count = 0;
+    for task in tasks {
+        db.upsert_canonical_task(task)?;
+        created_count += 1;
+    }
+
+    // 2. Stage files in code-documentation submodule
+    let mut add_cmd = crate::git::git_program();
+    add_cmd.current_dir(&cp);
+    add_cmd.args(&["add", "."]);
+    crate::git::run_git(add_cmd, "git add code-documentation")?;
+
+    // 3. Commit with structured message
+    let commit_msg = format!(
+        "feat(spec): approve and break down {} [skip ci]\n\nAutomated spec approval and task breakdown via Talos v3.",
+        rfc_id
+    );
+    let mut commit_cmd = crate::git::git_program();
+    commit_cmd.current_dir(&cp);
+    commit_cmd.args(&["commit", "-m", &commit_msg]);
+    // git commit may return error if working tree is clean; ignore exit code 1 if no changes to commit
+    let _ = crate::git::run_git(commit_cmd, "git commit code-documentation");
+
+    // 4. Capture latest commit hash
+    let mut rev_cmd = crate::git::git_program();
+    rev_cmd.current_dir(&cp);
+    rev_cmd.args(&["rev-parse", "--short", "HEAD"]);
+    let commit_hash = rev_cmd.output().ok().and_then(|out| {
+        if out.status.success() {
+            Some(String::from_utf8_lossy(&out.stdout).trim().to_string())
+        } else {
+            None
+        }
+    });
+
+    Ok(SpecApprovalResult {
+        rfc_id: rfc_id.to_string(),
+        prd_id: prd_id.map(|s| s.to_string()),
+        committed_files: vec![format!("rfcs/{rfc_id}.md")],
+        created_tasks_count: created_count,
+        commit_hash,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -258,5 +331,18 @@ mod tests {
 
         let _ = std::fs::remove_dir_all(&template);
         let _ = std::fs::remove_dir_all(&dest);
+    }
+
+    #[test]
+    fn default_control_plane_resolves_submodule_or_env() {
+        std::env::set_var("TALOS_CONTROL_PLANE", "/tmp/custom-control-plane");
+        assert_eq!(
+            default_control_plane(),
+            Some(PathBuf::from("/tmp/custom-control-plane"))
+        );
+        std::env::remove_var("TALOS_CONTROL_PLANE");
+
+        let cp = default_control_plane().expect("should resolve a default control plane");
+        assert!(cp.ends_with("code-documentation"));
     }
 }

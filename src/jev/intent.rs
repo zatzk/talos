@@ -53,12 +53,28 @@ pub fn run(input: &super::IntentInput) -> Result<Value, Box<dyn std::error::Erro
                 "execute_task": "Criar ou disparar uma tarefa de execução técnica"
             }),
         )),
+        ("execution_backend", client::q_choice(
+            "Qual o backend de execução ideal para atender a requisição?",
+            json!({
+                "api": "Resposta rápida streaming via API direta (OpenRouter/9Router) para chat, refinamento e perguntas conceituais",
+                "cli": "Execução via CLI local (claude/codex/agy) com acesso ao filesystem e ferramentas para execução técnica e testes"
+            }),
+        )),
+        ("model_tier", client::q_choice(
+            "Qual o tier de modelo requerido para esta mensagem?",
+            json!({
+                "flagship": "Raciocínio complexo, síntese de specs, arquitetura profunda e escrita de código crítico",
+                "fast": "Roteamento rápido, respostas diretas a dúvidas simples, triagem e edições pequenas"
+            }),
+        )),
     ];
 
     if let Some((answers, latency)) = jev.decide(state, questions) {
         return Ok(json!({
             "intent": client::choice(&answers, "intent").unwrap_or_else(|| "discovery".into()),
             "target_agent": client::choice(&answers, "target_agent").unwrap_or_else(|| "fast-router".into()),
+            "execution_backend": client::choice(&answers, "execution_backend").unwrap_or_else(|| "api".into()),
+            "model_tier": client::choice(&answers, "model_tier").unwrap_or_else(|| "flagship".into()),
             "has_new_spec_context": client::noul(&answers, "has_new_spec_context").map(|p| p > 0.45).unwrap_or(false),
             "suggested_action": client::choice(&answers, "suggested_action").unwrap_or_else(|| "respond_chat".into()),
             "confidence": client::confidence(&answers, "target_agent").unwrap_or(0.9),
@@ -84,9 +100,17 @@ fn fallback(input: &super::IntentInput) -> Value {
         ("fast-router", "discovery")
     };
 
+    let (execution_backend, model_tier) = match intent {
+        "implementation" => ("cli", "flagship"),
+        "architecture" | "discovery" => ("api", "flagship"),
+        _ => ("api", "fast"),
+    };
+
     json!({
         "intent": intent,
         "target_agent": agent,
+        "execution_backend": execution_backend,
+        "model_tier": model_tier,
         "has_new_spec_context": input.user_message.len() > 30,
         "suggested_action": "respond_chat",
         "confidence": 0.75,

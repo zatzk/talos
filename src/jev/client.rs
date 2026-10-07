@@ -69,7 +69,7 @@ impl Jev {
         let timeout = std::env::var("JEV_TIMEOUT_MS")
             .ok()
             .and_then(|v| v.parse().ok())
-            .unwrap_or(6000);
+            .unwrap_or(1200);
         Jev {
             endpoint,
             api_key,
