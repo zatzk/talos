@@ -1,6 +1,7 @@
 pub mod agent_config;
 pub mod extension_config;
 pub mod generic;
+pub mod headless;
 pub mod hooks_config;
 pub mod host_config;
 pub mod host_path;

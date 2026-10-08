@@ -15,8 +15,193 @@
 
 local theme = require("lib.theme")
 local widgets = require("lib.widgets")
+local hover = require("lib.hover")
+local panels = require("lib.panels")
 
 local chrome = {}
+
+local COLLAPSE_CHEVRON_CELLS = 3
+local COLLAPSE_TOGGLE_MIN_WIDTH = 5
+local COLLAPSE_HINT_MIN_WIDTH = 40
+
+local function compact_chord(chord)
+  local modifiers, key = "", chord
+  while true do
+    local prefix, rest = string.match(key, "^(%a+)%+(.*)$")
+    if not prefix then break end
+    local symbol = ({ ctrl = "^", shift = "⇧", alt = "⌥", cmd = "⌘" })[prefix]
+    if not symbol then break end
+    modifiers = modifiers .. symbol
+    key = rest
+  end
+  if widgets.chars(key) == 1 then
+    key = string.upper(key)
+  elseif widgets.chars(key) > 1 then
+    key = string.upper(string.sub(key, 1, 1)) .. string.sub(key, 2)
+  end
+  return modifiers .. key
+end
+
+local shortcut_cache = { src = nil, by_action = {} }
+
+local function shortcut_for(action)
+  local registry = talos and talos.registry
+  local keys = (registry and registry.keys) or {}
+  if not rawequal(registry, shortcut_cache.src) then
+    shortcut_cache.src = registry
+    shortcut_cache.by_action = {}
+  end
+  local cached = shortcut_cache.by_action[action]
+  if cached ~= nil then
+    return cached or nil
+  end
+  local first, found
+  for _, binding in ipairs(keys) do
+    if binding.action == action and binding.key then
+      if string.match(binding.key, "^f%d+$") then
+        found = compact_chord(binding.key)
+        break
+      end
+      first = first or binding.key
+    end
+  end
+  found = found or (first and compact_chord(first))
+  shortcut_cache.by_action[action] = found or false
+  return found
+end
+
+local function chip_style(primary)
+  if primary then
+    return { fg = theme.role("selection_fg"), bg = theme.role("selection_bg"), bold = true }
+  end
+  return { fg = theme.role("text_muted") }
+end
+
+local function chip_hover_style()
+  return { fg = theme.role("inverted_fg"), bg = theme.role("accent_bright"), bold = true }
+end
+
+local function collapse_label(width)
+  if width < COLLAPSE_TOGGLE_MIN_WIDTH then
+    return nil
+  end
+  local chevron = panels.shown("sessions") and "◀" or "▶"
+  local hint = width >= COLLAPSE_HINT_MIN_WIDTH and shortcut_for("sessions.toggle_panel") or nil
+  if hint then
+    return " " .. chevron .. " " .. hint .. " "
+  end
+  return " " .. chevron .. " "
+end
+
+local function tab_label(spec)
+  if spec.shortcut then
+    return spec.name .. " · " .. spec.shortcut
+  end
+  return spec.name
+end
+
+local function tabs_block_width(specs)
+  if #specs == 0 then return 0 end
+  local total = 0
+  for _, spec in ipairs(specs) do
+    total = total + widgets.len(tab_label(spec)) + 2
+  end
+  return total + #specs - 1
+end
+
+local function trim_tabs(specs, usable)
+  while #specs > 1 and tabs_block_width(specs) > usable do
+    local stripped = false
+    for _, spec in ipairs(specs) do
+      if spec.shortcut then
+        spec.shortcut = nil
+        stripped = true
+      end
+    end
+    if not stripped then
+      break
+    end
+  end
+  return specs
+end
+
+function chrome.central_tab_specs(active)
+  return {
+    {
+      name = "Chat",
+      active = active == "chat",
+      shortcut = shortcut_for("chat.open"),
+      role = "action:chat.open",
+    },
+    {
+      name = "Shell",
+      active = active == "shell",
+      shortcut = shortcut_for("shell.open") or "F8",
+      role = "action:shell.open",
+    },
+    {
+      name = "Board",
+      active = active == "board",
+      shortcut = shortcut_for("kanban.open") or "F2",
+      role = "action:kanban.open",
+    },
+  }
+end
+
+function chrome.central_tab_strip(width, border_style, active, rule)
+  local runs, cursor = {}, 1
+  local function put(at, text, style, role)
+    if at > cursor then
+      runs[#runs + 1] = { text = string.rep(rule, at - cursor), style = border_style }
+    end
+    runs[#runs + 1] = { text = text, style = style, role = role }
+    cursor = at + widgets.len(text)
+  end
+
+  local label = collapse_label(width)
+  if label then
+    local toggle = "action:sessions.toggle_panel"
+    local lit = hover.role(toggle)
+    local band = lit and theme.role("selection_bg") or nil
+    put(1, widgets.keep_left(label, COLLAPSE_CHEVRON_CELLS), { fg = theme.accent, bg = band }, toggle)
+    local hint = widgets.keep_right(label, widgets.len(label) - COLLAPSE_CHEVRON_CELLS)
+    if hint ~= "" then
+      put(cursor, hint, { fg = theme.muted, bg = band }, toggle)
+    end
+  end
+
+  local start = label and (cursor + 1) or 1
+  local specs = trim_tabs(chrome.central_tab_specs(active), math.max(0, (width - 1) - start))
+  local limit = width - 1
+  local x = start
+  for index, spec in ipairs(specs) do
+    local gap = (index > 1) and 1 or 0
+    local chip = widgets.len(tab_label(spec)) + 2
+    if x + gap + chip > limit then
+      break
+    end
+    x = x + gap
+    put(
+      x,
+      " " .. tab_label(spec) .. " ",
+      hover.style(spec.role, chip_hover_style(), chip_style(spec.active)),
+      spec.role
+    )
+    x = x + chip
+  end
+
+  return runs, cursor
+end
+
+function chrome.central_border_frame(title, level, border, strip, bar)
+  return {
+    title = { { text = title, style = chrome.title_style(level) } },
+    title_align = "right",
+    border_type = chrome.border_type(level),
+    border_style = border,
+    overlay = { top_left = strip, right_column = bar },
+  }
+end
 
 -- ── Span measurement ────────────────────────────────────────────────────────
 

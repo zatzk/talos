@@ -114,6 +114,15 @@ impl Database {
         Ok(count > 0)
     }
 
+    pub fn update_thread_title(&self, id: &str, title: &str) -> rusqlite::Result<bool> {
+        let now = current_time_millis() as i64;
+        let count = self.conn.execute(
+            "UPDATE threads SET title = ?2, updated_at = ?3 WHERE id = ?1 AND deleted_at IS NULL",
+            params![id, title, now],
+        )?;
+        Ok(count > 0)
+    }
+
     pub fn insert_chat_message(&self, msg: &ChatMessage) -> rusqlite::Result<()> {
         let now = msg.created_at as i64;
         self.conn.execute(
@@ -198,5 +207,13 @@ mod tests {
         let messages = db.list_chat_messages("th-1").unwrap();
         assert_eq!(messages.len(), 1);
         assert_eq!(messages[0].content, "Please review the RFC");
+
+        let updated = db.update_thread_title("th-1", "Updated Title").unwrap();
+        assert!(updated);
+        let thread = db.get_thread("th-1").unwrap().unwrap();
+        assert_eq!(thread.title, "Updated Title");
+        let threads = db.list_threads_by_workspace("ws-1").unwrap();
+        assert_eq!(threads[0].title, "Updated Title");
     }
 }
+

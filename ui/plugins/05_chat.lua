@@ -1,11 +1,11 @@
 -- Talos Chat — The native conversational orchestrator interface (F1).
 --
 -- The primary operator view of Talos v3:
--- 1. Conversation threads per workspace.
+-- 1. Conversation threads per workspace / session.
 -- 2. Message stream history with multi-calling & Jev Intent badges.
--- 3. Jev Intent routing (Auto persona, tier, backend: API vs CLI).
+-- 3. Jev Intent routing (Auto persona, tier, backend: API vs Headless CLI).
 -- 4. Multi-agent mentions (@architect, @dev, @qa, @spec-master, @sec).
--- 5. Model/Agent selector modal (F4 / Ctrl+O).
+-- 5. Model/Agent selector modal (F4 / Ctrl+O) supporting Headless OAuth CLIs.
 -- 6. Quick action to approve specs and commit to code-documentation (Ctrl+A).
 
 local chrome = require("lib.chrome")
@@ -16,13 +16,16 @@ local textinput = require("lib.textinput")
 local NAME = "chat"
 
 local SELECTOR_OPTIONS = {
-  { label = "⚡ Auto (Jev Intent Router)", desc = "Auto-routing: persona, tier e backend (API/CLI)", kind = "auto", agent = nil, model = nil },
-  { label = "🏛️ Architect (@architect)", desc = "API: claude-3.7-sonnet — Design de RFC e Especificação", kind = "api", agent = "architect", model = "claude-3.7-sonnet" },
-  { label = "🛠️ Dev Worker (@dev)", desc = "API: claude-3.7-sonnet — Implementação de código autônoma", kind = "api", agent = "dev", model = "claude-3.7-sonnet" },
-  { label = "🤖 Dev Agent CLI (@dev)", desc = "CLI: agy headless — Sessão interativa em tmux", kind = "cli", agent = "dev", model = "agy" },
-  { label = "🛡️ QA Engineer (@qa)", desc = "API: claude-3.7-sonnet — Testes e auto-healing QA", kind = "api", agent = "qa", model = "claude-3.7-sonnet" },
-  { label = "📋 Spec Master (@spec-master)", desc = "API: claude-3.7-sonnet — Pipeline de PRDs e governança", kind = "api", agent = "spec-master", model = "claude-3.7-sonnet" },
-  { label = "🔒 Security Reviewer (@sec)", desc = "API: claude-3.7-sonnet — Auditoria OWASP e segredos", kind = "api", agent = "sec", model = "claude-3.7-sonnet" },
+  { label = "⚡ Auto: Jev Router (Inteligente)", desc = "Auto-routing: avalia intenção, persona e melhor modelo/CLI", kind = "auto", agent = nil, model = nil },
+  { label = "🤖 Headless Claude Code", desc = "CLI: claude -p — OAuth / Subscrição Claude Pro/Max local", kind = "cli", agent = "claude", model = "claude-3.7-sonnet" },
+  { label = "✨ Headless Antigravity (agy)", desc = "CLI: agy -p — Google OAuth / Gemini Pro & Flash", kind = "cli", agent = "antigravity", model = "gemini-2.5-pro" },
+  { label = "⚡ Headless Codex CLI", desc = "CLI: codex exec — OpenAI OAuth / o3-mini & gpt-4o", kind = "cli", agent = "codex", model = "o3-mini" },
+  { label = "🏛️ Architect API", desc = "API: claude-3.7-sonnet — RFC e Design de Arquitetura", kind = "api", agent = "architect", model = "claude-3.7-sonnet" },
+  { label = "🛠️ Dev Worker API", desc = "API: claude-3.7-sonnet — Implementação de código autônoma", kind = "api", agent = "dev", model = "claude-3.7-sonnet" },
+  { label = "🛡️ QA Engineer API", desc = "API: claude-3.7-sonnet — Testes e auto-healing QA", kind = "api", agent = "qa", model = "claude-3.7-sonnet" },
+  { label = "📋 Spec Master API", desc = "API: claude-3.7-sonnet — Pipeline de PRD e Governança", kind = "api", agent = "spec-master", model = "claude-3.7-sonnet" },
+  { label = "🌐 9Router (GLM-4 / Kimi)", desc = "API Router: Modelos GLM e Kimi de alto raciocínio", kind = "api", agent = "router", model = "glm-4-plus" },
+  { label = "🌐 OpenRouter (Qwen / DeepSeek)", desc = "API Router: Qwen 2.5 72B & DeepSeek V3", kind = "api", agent = "openrouter", model = "qwen-2.5-72b" },
 }
 
 local local_state = nil
@@ -32,6 +35,7 @@ local function get_state()
     local_state = {
       active_workspace = state.active_workspace or "default",
       active_thread = state.active_thread or "th-main",
+      thread_title = state.thread_title or "Chat 1",
       input_field = {
         value = state.input_value or "",
         cursor = state.input_cursor or 0,
@@ -42,13 +46,13 @@ local function get_state()
           sender = "⚡ Jev Engine",
           badge = "Talos v3 Control Plane",
           time = "Agora",
-          content = "Talos v3 pronto. Workspace ativo: principal.\nAtalhos: [F1] Chat, [F2] Board Kanban, [F3] Fleet, [F4/Ctrl+O] Seletor de Modelo, [Ctrl+A] Aprovar Spec.",
+          content = "Talos v3 pronto. Selecione uma sessão à esquerda ou digite seu comando aqui.\nAtalhos: [F1] Chat, [F8] Shell, [F2] Board Kanban, [F4/Ctrl+O] Seletor de Modelo/CLI, [Ctrl+A] Aprovar Spec.",
         },
       },
       scroll_offset = state.scroll_offset or 0,
       streaming = false,
       has_spec_context = state.has_spec_context == true,
-      selected_target = state.selected_target or "Auto (Jev)",
+      selected_target = state.selected_target or "Auto (Jev Router)",
       target_kind = state.target_kind or "auto",
       target_agent = state.target_agent,
       target_model = state.target_model,
@@ -63,6 +67,7 @@ local function save_state(s)
   local_state = s
   state.active_workspace = s.active_workspace
   state.active_thread = s.active_thread
+  state.thread_title = s.thread_title
   state.input_value = s.input_field.value
   state.input_cursor = s.input_field.cursor
   state.scroll_offset = s.scroll_offset
@@ -73,6 +78,30 @@ local function save_state(s)
   state.target_model = s.target_model
   state.selector_open = s.selector_open
   state.selector_index = s.selector_index
+end
+
+local function active_session_name()
+  local id = store.selected
+  if not id then return "principal" end
+  for _, sess in ipairs(talos and talos.sessions or {}) do
+    if sess.id == id then
+      return sess.name or id
+    end
+  end
+  return id
+end
+
+local function active_thread_title(s)
+  if s.thread_title and s.thread_title ~= "" then
+    return s.thread_title
+  end
+  local active_th = s.active_thread
+  for _, th in ipairs(talos and talos.threads or {}) do
+    if th.id == active_th then
+      return th.title or th.id
+    end
+  end
+  return "Chat 1"
 end
 
 local function get_sender_style(role, sender)
@@ -197,13 +226,14 @@ return {
     local s = get_state()
     local width, height = ctx.width or 80, ctx.height or 24
     local level = chrome.level(ctx.focused)
+    local border = chrome.border_style(level)
 
     -- If selector is open, render model/agent selector modal overlay
     if s.selector_open then
       local rows = {}
       rows[#rows + 1] = {
         spans = {
-          { text = " Escolha o Alvo / Persona / Modelo para o Chat:", style = { fg = theme.accent, bold = true } },
+          { text = " Escolha o Alvo / Modelo / Agente CLI Headless (OAuth):", style = { fg = theme.accent, bold = true } },
         },
       }
       rows[#rows + 1] = { spans = { { text = "", style = {} } } }
@@ -239,7 +269,7 @@ return {
 
       return {
         type = "box",
-        frame = chrome.frame("Talos — Seletor de Modelo / Agente (F4)", level),
+        frame = chrome.frame("Talos — Seletor de Modelo / Agente CLI (F4)", level),
         children = {
           selector_widget,
           widgets.divider(width - 2),
@@ -258,10 +288,9 @@ return {
     end
 
     local list_height = math.max(1, height - 7)
-    local sel_pos = math.max(1, #message_rows - (s.scroll_offset or 0))
     local messages_widget = widgets.list({
       rows = message_rows,
-      selected = sel_pos,
+      selected = #message_rows > 0 and #message_rows or 1,
       height = list_height,
       fill = 1,
     })
@@ -282,7 +311,7 @@ return {
           fill = 1,
           value = s.input_field.value or "",
           cursor = s.input_field.cursor or 0,
-          placeholder = "Mensagem para o Jev / Talos (ex: @architect @qa analise a RFC-001)...",
+          placeholder = "Mensagem para o Jev / Talos (ex: @spec-master gere o PRD, @dev implemente)...",
           focused = ctx.focused == true,
           style = { fg = theme.text },
         },
@@ -291,25 +320,30 @@ return {
 
     local footer_hints = {
       { "enter", "send" },
+      { "f4", "model selector" },
+      { "ctrl+t", "new chat" },
+      { "ctrl+r", "rename chat" },
       { "ctrl+a", "approve spec" },
-      { "f4", "selector" },
-      { "ctrl+t", "new thread" },
       { "f2", "board" },
-      { "f3", "fleet" },
+      { "f8", "shell" },
     }
 
-    local active_ws = s.active_workspace or (talos and talos.active_workspace) or "default"
+    local active_ws = store.selected or s.active_workspace or (talos and talos.active_workspace) or "default"
     local active_th = s.active_thread or (talos and talos.active_thread) or "th-main"
+    local s_name = active_session_name()
+    local th_title = active_thread_title(s)
     local has_spec = s.has_spec_context or (talos and talos.has_spec_context)
 
-    local header_info = "Thread: " .. active_th .. " │ Target: " .. s.selected_target
+    local strip, _ = chrome.central_tab_strip(width, border, "chat", chrome.rule(level))
+    local right_title = string.format(" %s › %s (%s) ", s_name, th_title, s.selected_target)
     if has_spec then
-      header_info = header_info .. " │ [Ctrl+A] Spec pronta para aprovação!"
+      right_title = right_title .. "[Ctrl+A Spec Pronta] "
     end
+    local frame = chrome.central_border_frame(right_title, level, border, strip)
 
     return {
       type = "box",
-      frame = chrome.frame("Talos Chat — " .. header_info, level),
+      frame = frame,
       children = {
         messages_widget,
         widgets.divider(width - 2),
@@ -360,7 +394,7 @@ return {
 
       local val = s.input_field.value or ""
       if val:match("%S") then
-        local active_ws = s.active_workspace or (talos and talos.active_workspace) or "default"
+        local active_ws = store.selected or s.active_workspace or (talos and talos.active_workspace) or "default"
         local active_th = s.active_thread or (talos and talos.active_thread) or "th-main"
 
         command("chat_send", {
@@ -391,32 +425,13 @@ return {
       return true
     end
 
-    if action == "chat.new_thread" then
-      local new_id = "th-" .. tostring(os.time())
-      s.active_thread = new_id
-      s.messages = {
-        {
-          role = "system",
-          sender = "⚡ Jev Engine",
-          badge = "Nova Thread",
-          time = os.date("%H:%M"),
-          content = "Nova conversa iniciada: " .. new_id .. ". Digite seu objetivo.",
-        },
-      }
-      s.has_spec_context = false
-      s.scroll_offset = 0
-      save_state(s)
-      command("message", { text = "Nova conversa iniciada: " .. new_id, level = "info" })
-      return true
-    end
-
     if action == "chat.approve_spec" then
       -- If there is no pending spec, fall through to textinput so Ctrl+A functions as move cursor to beginning of line
       if not s.has_spec_context and not (talos and talos.has_spec_context) then
         return false
       end
 
-      local active_ws = s.active_workspace or (talos and talos.active_workspace) or "default"
+      local active_ws = store.selected or s.active_workspace or (talos and talos.active_workspace) or "default"
       local active_th = s.active_thread or (talos and talos.active_thread) or "th-main"
 
       command("chat_approve_spec", {
@@ -471,30 +486,52 @@ return {
       return true
     end
 
-    -- Model selector toggle (Ctrl+O)
-    if key.ctrl and (name == "o" or key.char == "o") then
+    -- Model selector toggle (Ctrl+O or F4)
+    if (key.ctrl and (name == "o" or key.char == "o")) or name == "f4" then
       s.selector_open = not s.selector_open
       save_state(s)
       return true
     end
 
-    -- New thread (Ctrl+T or Ctrl+N inside Chat)
+    -- New chat in active session (Ctrl+T or Ctrl+N inside Chat)
     if key.ctrl and (name == "t" or key.char == "t" or name == "n" or key.char == "n") then
+      local active_ws = store.selected or s.active_workspace or "default"
+      local s_name = active_session_name()
+      local count = 1
+      for _, th in ipairs(talos and talos.threads or {}) do
+        if th.workspace_id == active_ws then
+          count = count + 1
+        end
+      end
       local new_id = "th-" .. tostring(os.time())
       s.active_thread = new_id
+      s.thread_title = "Chat " .. tostring(count)
       s.messages = {
         {
           role = "system",
           sender = "⚡ Jev Engine",
-          badge = "Nova Thread",
+          badge = "Nova Conversa",
           time = os.date("%H:%M"),
-          content = "Nova conversa iniciada: " .. new_id .. ". Digite seu objetivo.",
+          content = "Novo chat iniciado (" .. s.thread_title .. ") na sessão " .. s_name .. ". Digite seu objetivo.",
         },
       }
       s.has_spec_context = false
       s.scroll_offset = 0
       save_state(s)
-      command("message", { text = "Nova conversa iniciada: " .. new_id, level = "info" })
+      command("message", { text = "Novo chat: " .. s.thread_title .. " em " .. s_name, level = "info" })
+      return true
+    end
+
+    -- Rename active chat (Ctrl+R inside Chat)
+    if key.ctrl and (name == "r" or key.char == "r") then
+      local current = active_thread_title(s)
+      local val = s.input_field.value or ""
+      local new_title = (val:match("%S") and val) or (current .. " (ativo)")
+      s.thread_title = new_title
+      textinput.clear(s.input_field)
+      save_state(s)
+      command("chat_rename_thread", { thread = s.active_thread, text = new_title })
+      command("message", { text = "Chat renomeado para: " .. new_title, level = "info" })
       return true
     end
 

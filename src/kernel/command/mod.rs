@@ -387,6 +387,10 @@ pub enum Command {
         workspace_id: String,
         thread_id: String,
     },
+    ChatRenameThread {
+        thread_id: String,
+        title: String,
+    },
 }
 
 /// A further repository a new session spans.
@@ -469,6 +473,7 @@ impl Command {
             Command::Message { .. } => "message",
             Command::ChatSend { .. } => "chat_send",
             Command::ChatApproveSpec { .. } => "chat_approve_spec",
+            Command::ChatRenameThread { .. } => "chat_rename_thread",
         }
     }
 
@@ -517,6 +522,7 @@ impl Command {
             | Command::Message { .. }
             | Command::ChatSend { .. }
             | Command::ChatApproveSpec { .. }
+            | Command::ChatRenameThread { .. }
             | Command::Focus { .. } => "",
         }
     }
@@ -650,7 +656,7 @@ impl Command {
                 Some(name) if !name.is_empty() => Ok(Command::Theme { name }),
                 _ => Err("command \"theme\" needs a name".to_string()),
             },
-            "chat_send" => {
+            "chat_send" | "chat.send" => {
                 let prompt = args.text.filter(|t| !t.trim().is_empty()).ok_or("command \"chat_send\" needs text".to_string())?;
                 let workspace_id = args.workspace.or(args.repo).unwrap_or_else(|| "default".to_string());
                 let thread_id = args.thread.or(args.target).unwrap_or_else(|| "th-main".to_string());
@@ -666,13 +672,18 @@ impl Command {
                     target_model,
                 })
             }
-            "chat_approve_spec" => {
+            "chat_approve_spec" | "chat.approve_spec" => {
                 let workspace_id = args.workspace.or(args.repo).unwrap_or_else(|| "default".to_string());
                 let thread_id = args.thread.or(args.target).unwrap_or_else(|| "th-main".to_string());
                 Ok(Command::ChatApproveSpec {
                     workspace_id,
                     thread_id,
                 })
+            }
+            "chat_rename_thread" | "chat.rename_thread" => {
+                let thread_id = args.thread.or(args.target).ok_or("command \"chat_rename_thread\" needs thread".to_string())?;
+                let title = args.text.ok_or("command \"chat_rename_thread\" needs text".to_string())?;
+                Ok(Command::ChatRenameThread { thread_id, title })
             }
             // An explicit order names every session at once rather than one.
             "order" => {
@@ -2250,4 +2261,27 @@ mod tests {
             assert!(refused.is_err(), "{bad:?} should be refused");
         }
     }
+
+    #[test]
+    fn parse_chat_rename_thread() {
+        let cmd = Command::parse(
+            "chat.rename_thread",
+            Args {
+                thread: Some("th-123".into()),
+                text: Some("My Renamed Chat".into()),
+                ..Args::default()
+            },
+        )
+        .expect("should parse chat.rename_thread");
+
+        match cmd {
+            Command::ChatRenameThread { thread_id, title } => {
+                assert_eq!(thread_id, "th-123");
+                assert_eq!(title, "My Renamed Chat");
+            }
+            other => panic!("expected ChatRenameThread, got {other:?}"),
+        }
+    }
 }
+
+

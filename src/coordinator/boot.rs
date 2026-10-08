@@ -192,7 +192,9 @@ pub(crate) async fn run() -> Result<(), Box<dyn Error>> {
     // notice, never a reason not to start.
     let phase = Instant::now();
     if let Some(db) = snapshots_db() {
-        startup_notices.extend(talos::orchestrator::ensure_lead_on_startup(&db, &backends));
+        if std::env::var("TALOS_LEAD_SESSION").map(|v| v == "1" || v == "true").unwrap_or(false) {
+            startup_notices.extend(talos::orchestrator::ensure_lead_on_startup(&db, &backends));
+        }
         let _ = ensure_default_workspace_on_startup(&db);
     }
     startup.lead_ensure_ms = phase.elapsed().as_millis() as u64;

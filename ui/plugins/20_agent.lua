@@ -616,21 +616,7 @@ end
 --- exist would light up and then do nothing, which is worse than not offering
 --- it. Re-adding the pane means re-adding its chip.
 local function tab_specs(active)
-  local specs = {
-    { name = "Agent", active = active == AGENT_TAB, role = "action:" .. SELECT_AGENT },
-  }
-  -- `[features] shell_pane` off means there is no second view, so there is no
-  -- chip for one either: an affordance for a disabled feature is the clutter the
-  -- switch was flipped to avoid.
-  if shell_enabled() then
-    specs[#specs + 1] = {
-      name = "Shell",
-      active = active == SHELL_TAB,
-      shortcut = shortcut_for("shell.open"),
-      role = "action:" .. SELECT_SHELL,
-    }
-  end
-  return specs
+  return chrome.central_tab_specs(active == SHELL_TAB and "shell" or "chat")
 end
 
 --- `Name` alone, or `Name · <shortcut>` while the suffix is still shown.
@@ -972,7 +958,7 @@ return {
     -- It carries the active tab, so it is the SAME strip on every tab; that is
     -- the whole reason the views share one plugin.
     local tab = tab_of(session.id)
-    local strip, reserved_left = border_strip(width, border, tab, chrome.rule(level))
+    local strip, reserved_left = chrome.central_tab_strip(width, border, tab == SHELL_TAB and "shell" or "chat", chrome.rule(level))
     -- Both views are live terminals with a scrollback each, so the offset is
     -- the one this SURFACE is holding — which is also the one the kernel will
     -- set on the parser it draws.
@@ -1097,12 +1083,10 @@ return {
       command("focus", { text = NAME })
       return true
     end
-    if action == "shell.open" then
-      -- v1 `toggle_shell_view`: the chord flips between the two views, where
-      -- the chips select outright. Swallowed without a session, because there
-      -- is no terminal for anything else to do it to either.
+    if action == "shell.open" or action == SELECT_SHELL then
+      command("focus", { text = NAME })
       if id and shell_enabled() then
-        show_tab(id, tab_of(id) == SHELL_TAB and AGENT_TAB or SHELL_TAB)
+        show_tab(id, SHELL_TAB)
       end
       return true
     end
@@ -1110,15 +1094,10 @@ return {
       return false
     end
     if action == SELECT_AGENT then
+      command("focus", { text = NAME })
       show_tab(id, AGENT_TAB)
-    elseif action == SELECT_SHELL then
-      if not shell_enabled() then
-        return true
-      end
-      show_tab(id, SHELL_TAB)
-    else
-      return false
+      return true
     end
-    return true
+    return false
   end,
 }

@@ -29,6 +29,7 @@
 
 local theme = require("lib.theme")
 local widgets = require("lib.widgets")
+local chrome = require("lib.chrome")
 
 local ORDER = { "backlog", "planned", "in_progress", "human_review", "pr", "done" }
 
@@ -272,9 +273,15 @@ return {
       }),
     }
 
+    local level = chrome.level(ctx.focused)
+    local border = chrome.border_style(level)
+    local width = ctx.width or 80
+    local strip, _ = chrome.central_tab_strip(width, border, "board", chrome.rule(level))
+    local frame = chrome.central_border_frame(" Workspace Board ", level, border, strip)
+
     return {
       type = "box",
-      frame = widgets.panel("Talos board", ctx.focused),
+      frame = frame,
       children = children,
     }
   end,

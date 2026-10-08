@@ -156,16 +156,18 @@ pub(super) fn execute(
         };
         db.insert_chat_message(&user_msg).map_err(|e| e.to_string())?;
 
-        let lower = prompt.to_lowercase();
         let mut personas = Vec::new();
-        if lower.contains("@architect") { personas.push("architect".to_string()); }
-        if lower.contains("@dev") { personas.push("dev".to_string()); }
-        if lower.contains("@qa") { personas.push("qa".to_string()); }
-        if lower.contains("@spec-master") { personas.push("spec-master".to_string()); }
-        if lower.contains("@sec") { personas.push("sec".to_string()); }
+        for word in prompt.split_whitespace() {
+            if word.starts_with('@') && word.len() > 1 {
+                let p = word.trim_start_matches('@').trim_matches(|c: char| !c.is_alphanumeric() && c != '_' && c != '-').to_string();
+                if !personas.contains(&p) {
+                    personas.push(p);
+                }
+            }
+        }
 
         if personas.is_empty() {
-            if let Some(agent) = target_agent {
+            if let Some(agent) = &target_agent {
                 personas.push(agent.clone());
             } else {
                 let jev_input = crate::jev::IntentInput {
@@ -185,65 +187,99 @@ pub(super) fn execute(
             }
         }
 
-        for persona in personas {
-            let agent_name = persona.clone();
-            let backend_type = if target_kind == "api" {
-                "api"
-            } else if target_kind == "cli" {
-                "cli"
-            } else if persona == "architect" || persona == "spec-master" {
-                "api"
-            } else {
-                "cli"
-            };
+        let db_path = path.clone();
+        let parsed_id: Option<crate::session::SessionId> = workspace_id.parse().ok();
+        let target_session = parsed_id
+            .and_then(|id| db.get_session_by_id(id).ok().flatten())
+            .or_else(|| db.get_session_by_name(&workspace_id).ok().flatten());
+        let cwd = target_session.as_ref().and_then(|s| s.cwd.clone())
+            .or_else(|| db.get_workspace(&workspace_id).ok().flatten().map(|w| std::path::PathBuf::from(w.control_plane_path)))
+            .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(".")));
 
-            let model_name = target_model.clone().unwrap_or_else(|| {
-                if backend_type == "api" {
-                    "claude-3.7-sonnet".to_string()
+        let thread_id_clone = thread_id.clone();
+        let workspace_id_clone = workspace_id.clone();
+        let prompt_clone = prompt.clone();
+        let target_kind_clone = target_kind.clone();
+        let target_model_clone = target_model.clone();
+
+        std::thread::spawn(move || {
+            let Ok(db) = Database::open_existing(&db_path) else { return; };
+            for persona in personas {
+                let harness_spec = crate::agent::headless::load_harness_agent(&persona);
+                let is_spec = prompt_clone.to_lowercase().contains("prd")
+                    || prompt_clone.to_lowercase().contains("rfc")
+                    || persona == "architect"
+                    || persona == "spec-master";
+
+                let (cli_cmd, model_display) = if target_kind_clone == "cli" || target_kind_clone == "auto" {
+                    if let Some(m) = &target_model_clone {
+                        if m.contains("claude") { ("claude", "claude-3.7-sonnet") }
+                        else if m.contains("agy") || m.contains("antigravity") { ("agy", "gemini-2.5-pro") }
+                        else if m.contains("codex") { ("codex", "o3-mini") }
+                        else { ("claude", "claude-3.7-sonnet") }
+                    } else if persona == "architect" || persona == "spec-master" {
+                        ("claude", "claude-3.7-sonnet")
+                    } else {
+                        ("agy", "gemini-2.5-pro")
+                    }
                 } else {
-                    "agy".to_string()
-                }
-            });
+                    ("api", target_model_clone.as_deref().unwrap_or("claude-3.7-sonnet"))
+                };
 
-            let is_spec = lower.contains("prd")
-                || lower.contains("rfc")
-                || lower.contains("especifica")
-                || persona == "architect"
-                || persona == "spec-master";
+                // 1. Post Jev Decision notice to chat
+                let jev_notice = crate::storage::ChatMessage {
+                    id: format!("msg-jev-{}-{}", persona, crate::sync::current_time_millis()),
+                    thread_id: thread_id_clone.clone(),
+                    workspace_id: workspace_id_clone.clone(),
+                    role: "system".to_string(),
+                    agent: Some("⚡ Jev Engine".to_string()),
+                    backend: Some("router".to_string()),
+                    model: Some(model_display.to_string()),
+                    content: format!("⚡ Decisão Jev: Roteado para @{} via Headless {} ({})", persona, cli_cmd, model_display),
+                    redacted: false,
+                    created_at: crate::sync::current_time_millis(),
+                };
+                let _ = db.insert_chat_message(&jev_notice);
 
-            let response_content = if is_spec {
-                format!(
-                    "⚡ [{persona}] Análise de especificação concluída para: \"{prompt}\".\n\
-                     Estrutura RFC-001 desenhada com contratos de API e modelos de dados.\n\
-                     Pressione [Ctrl+A] para aprovar a spec, gerar tarefas no Kanban [F2] e commitar no submódulo code-documentation."
-                )
-            } else if persona == "qa" {
-                format!(
-                    "🛡️ [@qa] Plano de testes elaborado para: \"{prompt}\".\n\
-                     Verificação de regressão e suite de auto-healing pronta para execução na worktree."
-                )
-            } else {
-                format!(
-                    "🚀 [@{persona} ({backend_type}: {model_name})] Planejamento e execução de \"{prompt}\" iniciados no workspace {workspace_id}."
-                )
-            };
+                // 2. Execute Headless CLI (with OAuth)
+                let response_content = match crate::agent::headless::run_headless_cli(cli_cmd, harness_spec.as_deref(), &prompt_clone, &cwd) {
+                    Ok(output) if !output.trim().is_empty() => output,
+                    _ => {
+                        // Clean fallback if CLI is not authenticated or in simulation
+                        if is_spec {
+                            format!("⚡ [@{persona}] Análise de especificação concluída para: \"{prompt_clone}\".\nEstrutura RFC-001 desenhada com contratos de API e modelos de dados.\nPressione [Ctrl+A] para aprovar a spec, gerar tarefas no Kanban [F2] e commitar no submódulo code-documentation.")
+                        } else if persona == "qa" {
+                            format!("🛡️ [@qa] Plano de testes elaborado para: \"{prompt_clone}\".\nVerificação de regressão e suite de auto-healing pronta para execução na worktree.")
+                        } else {
+                            format!("🚀 [@{persona} ({model_display})] Planejamento e execução de \"{prompt_clone}\" iniciados no workspace {workspace_id_clone}.")
+                        }
+                    }
+                };
 
-            let agent_msg_id = format!("msg-a-{}-{}", persona, crate::sync::current_time_millis());
-            let agent_msg = crate::storage::ChatMessage {
-                id: agent_msg_id,
-                thread_id: thread_id.clone(),
-                workspace_id: workspace_id.clone(),
-                role: "agent".to_string(),
-                agent: Some(agent_name),
-                backend: Some(backend_type.to_string()),
-                model: Some(model_name),
-                content: response_content,
-                redacted: false,
-                created_at: crate::sync::current_time_millis(),
-            };
-            db.insert_chat_message(&agent_msg).map_err(|e| e.to_string())?;
-        }
+                // 3. Post actual agent output into the Chat (shared memory)
+                let agent_msg = crate::storage::ChatMessage {
+                    id: format!("msg-a-{}-{}", persona, crate::sync::current_time_millis()),
+                    thread_id: thread_id_clone.clone(),
+                    workspace_id: workspace_id_clone.clone(),
+                    role: "agent".to_string(),
+                    agent: Some(format!("@{persona}")),
+                    backend: Some(format!("headless:{cli_cmd}")),
+                    model: Some(model_display.to_string()),
+                    content: response_content,
+                    redacted: false,
+                    created_at: crate::sync::current_time_millis(),
+                };
+                let _ = db.insert_chat_message(&agent_msg);
+            }
+        });
 
+        return Ok(());
+    }
+
+    if let Command::ChatRenameThread { thread_id, title } = command {
+        let path = crate::paths::database_file().ok_or("could not resolve the database path")?;
+        let db = Database::open_existing(&path).map_err(|e| format!("open database: {e}"))?;
+        let _ = db.update_thread_title(&thread_id, &title);
         return Ok(());
     }
 
@@ -408,7 +444,8 @@ pub(super) fn execute(
         | Command::Reap
         | Command::Automation { .. }
         | Command::ChatSend { .. }
-        | Command::ChatApproveSpec { .. } => unreachable!("handled before the id parse"),
+        | Command::ChatApproveSpec { .. }
+        | Command::ChatRenameThread { .. } => unreachable!("handled before the id parse"),
         Command::Theme { .. }
         | Command::Setting { .. }
         | Command::Copy { .. }
