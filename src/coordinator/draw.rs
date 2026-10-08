@@ -880,6 +880,8 @@ impl App {
             session: session.as_deref(),
             session_count: snapshot.sessions.len(),
             automation_count: snapshot.automations.len(),
+            workspace: snapshot.active_workspace.as_deref(),
+            target_mode: snapshot.active_target.as_deref(),
             focus_label: &focus_label,
             message,
             progress: progress.as_deref(),

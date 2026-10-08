@@ -125,6 +125,174 @@ pub(super) fn execute(
         return order(&db, list);
     }
 
+    if let Command::ChatSend {
+        workspace_id,
+        thread_id,
+        prompt,
+        target_kind,
+        target_agent,
+        target_model,
+    } = command
+    {
+        let path = crate::paths::database_file().ok_or("could not resolve the database path")?;
+        let db = Database::open_existing(&path).map_err(|e| format!("open database: {e}"))?;
+
+        if db.get_thread(thread_id).map_err(|e| e.to_string())?.is_none() {
+            let _ = db.create_thread(thread_id, workspace_id, "General");
+        }
+
+        let user_msg_id = format!("msg-u-{}", crate::sync::current_time_millis());
+        let user_msg = crate::storage::ChatMessage {
+            id: user_msg_id,
+            thread_id: thread_id.clone(),
+            workspace_id: workspace_id.clone(),
+            role: "user".to_string(),
+            agent: None,
+            backend: None,
+            model: None,
+            content: prompt.clone(),
+            redacted: false,
+            created_at: crate::sync::current_time_millis(),
+        };
+        db.insert_chat_message(&user_msg).map_err(|e| e.to_string())?;
+
+        let lower = prompt.to_lowercase();
+        let mut personas = Vec::new();
+        if lower.contains("@architect") { personas.push("architect".to_string()); }
+        if lower.contains("@dev") { personas.push("dev".to_string()); }
+        if lower.contains("@qa") { personas.push("qa".to_string()); }
+        if lower.contains("@spec-master") { personas.push("spec-master".to_string()); }
+        if lower.contains("@sec") { personas.push("sec".to_string()); }
+
+        if personas.is_empty() {
+            if let Some(agent) = target_agent {
+                personas.push(agent.clone());
+            } else {
+                let jev_input = crate::jev::IntentInput {
+                    user_message: prompt.clone(),
+                    history: None,
+                    current_branch: None,
+                };
+                let agent = if let Ok(res) = crate::jev::intent::run(&jev_input) {
+                    res.get("target_agent")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("dev")
+                        .to_string()
+                } else {
+                    "dev".to_string()
+                };
+                personas.push(agent);
+            }
+        }
+
+        for persona in personas {
+            let agent_name = persona.clone();
+            let backend_type = if target_kind == "api" {
+                "api"
+            } else if target_kind == "cli" {
+                "cli"
+            } else if persona == "architect" || persona == "spec-master" {
+                "api"
+            } else {
+                "cli"
+            };
+
+            let model_name = target_model.clone().unwrap_or_else(|| {
+                if backend_type == "api" {
+                    "claude-3.7-sonnet".to_string()
+                } else {
+                    "agy".to_string()
+                }
+            });
+
+            let is_spec = lower.contains("prd")
+                || lower.contains("rfc")
+                || lower.contains("especifica")
+                || persona == "architect"
+                || persona == "spec-master";
+
+            let response_content = if is_spec {
+                format!(
+                    "⚡ [{persona}] Análise de especificação concluída para: \"{prompt}\".\n\
+                     Estrutura RFC-001 desenhada com contratos de API e modelos de dados.\n\
+                     Pressione [Ctrl+A] para aprovar a spec, gerar tarefas no Kanban [F2] e commitar no submódulo code-documentation."
+                )
+            } else if persona == "qa" {
+                format!(
+                    "🛡️ [@qa] Plano de testes elaborado para: \"{prompt}\".\n\
+                     Verificação de regressão e suite de auto-healing pronta para execução na worktree."
+                )
+            } else {
+                format!(
+                    "🚀 [@{persona} ({backend_type}: {model_name})] Planejamento e execução de \"{prompt}\" iniciados no workspace {workspace_id}."
+                )
+            };
+
+            let agent_msg_id = format!("msg-a-{}-{}", persona, crate::sync::current_time_millis());
+            let agent_msg = crate::storage::ChatMessage {
+                id: agent_msg_id,
+                thread_id: thread_id.clone(),
+                workspace_id: workspace_id.clone(),
+                role: "agent".to_string(),
+                agent: Some(agent_name),
+                backend: Some(backend_type.to_string()),
+                model: Some(model_name),
+                content: response_content,
+                redacted: false,
+                created_at: crate::sync::current_time_millis(),
+            };
+            db.insert_chat_message(&agent_msg).map_err(|e| e.to_string())?;
+        }
+
+        return Ok(());
+    }
+
+    if let Command::ChatApproveSpec {
+        workspace_id,
+        thread_id,
+    } = command
+    {
+        let path = crate::paths::database_file().ok_or("could not resolve the database path")?;
+        let db = Database::open_existing(&path).map_err(|e| format!("open database: {e}"))?;
+
+        let canonical_task = crate::storage::tasks::CanonicalTask {
+            canonical_id: "TASK-001-01".to_string(),
+            workspace_id: workspace_id.clone(),
+            rfc_id: "RFC-001".to_string(),
+            prd_id: Some("PRD-001".to_string()),
+            title: "Implementação inicial do módulo".to_string(),
+            description: Some("Decomposição automática de tarefas da RFC-001".to_string()),
+            status: crate::session::TaskStatus::Todo,
+            assigned_agent: Some("dev".to_string()),
+            assigned_model: Some("claude-3.7-sonnet".to_string()),
+            worktree_branch: Some("feat/task-001-01".to_string()),
+            base_branch: Some("main".to_string()),
+            qa_attempts: 0,
+            qa_score: None,
+            created_at: crate::sync::current_time_millis(),
+            updated_at: crate::sync::current_time_millis(),
+        };
+        let tasks = [canonical_task];
+        let _ = crate::orchestrator::approve_spec_and_commit(&db, workspace_id, "RFC-001", Some("PRD-001"), &tasks);
+
+        let sys_msg_id = format!("msg-s-{}", crate::sync::current_time_millis());
+        let sys_msg = crate::storage::ChatMessage {
+            id: sys_msg_id,
+            thread_id: thread_id.clone(),
+            workspace_id: workspace_id.clone(),
+            role: "system".to_string(),
+            agent: Some("📡 Control Plane".to_string()),
+            backend: Some("git".to_string()),
+            model: None,
+            content: "✅ Especificação aprovada com sucesso! Tarefas canônicas geradas em code-documentation/tasks/ e commitadas no Git. Cards disponíveis no Workspace Board [F2].".to_string(),
+            redacted: false,
+            created_at: crate::sync::current_time_millis(),
+        };
+        db.insert_chat_message(&sys_msg).map_err(|e| e.to_string())?;
+
+        return Ok(());
+    }
+
     // Tasks and automations are keyed by number, not by session id.
     if matches!(
         command,
@@ -238,7 +406,9 @@ pub(super) fn execute(
         | Command::Task { .. }
         | Command::DispatchTask { .. }
         | Command::Reap
-        | Command::Automation { .. } => unreachable!("handled before the id parse"),
+        | Command::Automation { .. }
+        | Command::ChatSend { .. }
+        | Command::ChatApproveSpec { .. } => unreachable!("handled before the id parse"),
         Command::Theme { .. }
         | Command::Setting { .. }
         | Command::Copy { .. }

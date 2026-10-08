@@ -120,6 +120,10 @@ pub struct BandState<'a> {
     pub session: Option<&'a str>,
     pub session_count: usize,
     pub automation_count: usize,
+    /// Active workspace identifier.
+    pub workspace: Option<&'a str>,
+    /// Active orchestration target mode (e.g. auto (Jev) or agent name).
+    pub target_mode: Option<&'a str>,
     /// The focused surface's name, for the action band's left cluster.
     pub focus_label: &'a str,
     /// What just happened, and how severe. `None` leaves the message band with
@@ -584,15 +588,18 @@ fn prepare_action(registry: &Registry, width: u16) -> Vec<PreparedEntry> {
 /// v1 `ui::status_bar::render_header`: brand, tagline, version, then the
 /// optional update notice; the session and theme right-aligned over the top.
 fn render_identity(frame: &mut Frame, area: Rect, state: &BandState<'_>) {
+    let ws = state.workspace.unwrap_or("default");
+    let mode = state.target_mode.unwrap_or("auto (Jev)");
     let mut spans = vec![
         Span::styled(
-            " talos",
+            " 📡 talos v3",
             state.style("accent").add_modifier(Modifier::BOLD),
         ),
-        Span::styled(
-            "  Multi-Session Agent Orchestrator",
-            state.style("text_secondary"),
-        ),
+        Span::styled(" │ Workspace: [", state.style("text_muted")),
+        Span::styled(ws, state.style("text_primary").add_modifier(Modifier::BOLD)),
+        Span::styled("] │ Modo: [", state.style("text_muted")),
+        Span::styled(mode, state.style("accent")),
+        Span::styled("]", state.style("text_muted")),
         Span::styled(format!("  v{}", state.version), state.style("text_muted")),
     ];
     if let Some(latest) = state.update_available {
@@ -983,6 +990,8 @@ mod tests {
             session: None,
             session_count: 0,
             automation_count: 0,
+            workspace: None,
+            target_mode: None,
             focus_label: "Terminal",
             message: None,
             progress: None,

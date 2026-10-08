@@ -168,11 +168,9 @@ pub enum Decision {
 ///
 /// Two conditions, and the second is what keeps a fresh install quiet: there is
 /// no v1 to warn somebody about who has never run talos before.
-pub fn required(db: &Database) -> bool {
-    if db.v2_acknowledged().unwrap_or(false) {
-        return false;
-    }
-    db.has_session_history().unwrap_or(false)
+pub fn required(_db: &Database) -> bool {
+    // Talos v3 is Clean Slate: no legacy v1/v2 warning or gate prompt
+    false
 }
 
 /// The notice, built rather than printed so it can be asserted on.

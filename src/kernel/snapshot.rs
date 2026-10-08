@@ -290,6 +290,39 @@ pub struct HostRow {
     pub available_multiplexers: Vec<String>,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct WorkspaceRow {
+    pub id: String,
+    pub name: String,
+    pub project_id: String,
+    pub control_plane_path: String,
+    pub active_thread_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ThreadRow {
+    pub id: String,
+    pub workspace_id: String,
+    pub title: String,
+    pub target_kind: String,
+    pub target_agent: Option<String>,
+    pub target_model: Option<String>,
+    pub updated_at: u64,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ChatMessageRow {
+    pub id: String,
+    pub thread_id: String,
+    pub workspace_id: String,
+    pub role: String,
+    pub agent: Option<String>,
+    pub backend: Option<String>,
+    pub model: Option<String>,
+    pub content: String,
+    pub created_at: u64,
+}
+
 /// An immutable picture of the engine at one instant.
 #[derive(Debug, Clone, Default)]
 pub struct Snapshot {
@@ -310,6 +343,14 @@ pub struct Snapshot {
     pub mux: MuxRow,
     pub tasks: Vec<TaskRow>,
     pub automations: Vec<AutomationRow>,
+    /// Talos v3 Workspaces and Chat
+    pub workspaces: Vec<WorkspaceRow>,
+    pub active_workspace: Option<String>,
+    pub threads: Vec<ThreadRow>,
+    pub active_thread: Option<String>,
+    pub chat_messages: Vec<ChatMessageRow>,
+    pub active_target: Option<String>,
+    pub has_spec_context: bool,
     /// Epoch milliseconds this snapshot represents. Readable by plugins so
     /// they can render staleness.
     pub taken_at_ms: i64,
@@ -1651,6 +1692,76 @@ impl SnapshotStore {
             })
             .unwrap_or_default();
 
+        let workspaces_raw = database.list_workspaces().unwrap_or_default();
+        let active_ws_id = workspaces_raw
+            .first()
+            .map(|w| w.id.clone())
+            .unwrap_or_else(|| "default".to_string());
+        let active_ws_row = workspaces_raw.iter().find(|w| w.id == active_ws_id).cloned();
+
+        let workspaces: Vec<WorkspaceRow> = workspaces_raw
+            .into_iter()
+            .map(|w| WorkspaceRow {
+                id: w.id,
+                name: w.name,
+                project_id: w.project_id,
+                control_plane_path: w.control_plane_path,
+                active_thread_id: w.active_thread_id,
+            })
+            .collect();
+
+        let threads_raw = database.list_threads_by_workspace(&active_ws_id).unwrap_or_default();
+        let active_thread_id = active_ws_row
+            .as_ref()
+            .and_then(|w| w.active_thread_id.clone())
+            .or_else(|| threads_raw.first().map(|t| t.id.clone()));
+
+        let active_th_row = threads_raw.iter().find(|t| Some(&t.id) == active_thread_id.as_ref()).cloned();
+        let active_target = active_th_row.as_ref().map(|t| match t.target_kind.as_str() {
+            "api" => format!("API: {}", t.target_model.as_deref().unwrap_or("claude-3.7-sonnet")),
+            "cli" => format!("CLI: {}", t.target_agent.as_deref().unwrap_or("agy")),
+            _ => "Auto: Jev (architect)".to_string(),
+        }).or_else(|| Some("Auto: Jev (architect)".to_string()));
+
+        let threads: Vec<ThreadRow> = threads_raw
+            .into_iter()
+            .map(|t| ThreadRow {
+                id: t.id,
+                workspace_id: t.workspace_id,
+                title: t.title,
+                target_kind: t.target_kind,
+                target_agent: t.target_agent,
+                target_model: t.target_model,
+                updated_at: t.updated_at,
+            })
+            .collect();
+
+        let chat_messages_raw = if let Some(th_id) = &active_thread_id {
+            database.list_chat_messages(th_id).unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+
+        let has_spec_context = chat_messages_raw.iter().any(|m| {
+            let lower = m.content.to_lowercase();
+            lower.contains("prd-") || lower.contains("rfc-") || lower.contains("especifica")
+        });
+
+        let chat_messages: Vec<ChatMessageRow> = chat_messages_raw
+            .into_iter()
+            .map(|m| ChatMessageRow {
+                id: m.id,
+                thread_id: m.thread_id,
+                workspace_id: m.workspace_id,
+                role: m.role,
+                agent: m.agent,
+                backend: m.backend,
+                model: m.model,
+                content: m.content,
+                created_at: m.created_at,
+            })
+            .collect();
+
         self.current = Snapshot {
             sessions: rows,
             deleted,
@@ -1661,6 +1772,13 @@ impl SnapshotStore {
             agent_default: self.agent_default.clone(),
             hosts: self.hosts.clone(),
             mux: self.mux.clone(),
+            workspaces,
+            active_workspace: Some(active_ws_id),
+            threads,
+            active_thread: active_thread_id,
+            chat_messages,
+            active_target,
+            has_spec_context,
             taken_at_ms,
             error: None,
         };

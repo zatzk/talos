@@ -176,6 +176,26 @@ impl LuaHost {
             build_automations(&self.lua, snapshot)
         })?;
         set(&table, "automations", automations)?;
+
+        let workspaces = self.group("workspaces", [epoch.snapshot, 0, 0, 0], || {
+            build_workspaces(&self.lua, snapshot)
+        })?;
+        set(&table, "workspaces", workspaces)?;
+        set(&table, "active_workspace", snapshot.active_workspace.clone())?;
+
+        let threads = self.group("threads", [epoch.snapshot, 0, 0, 0], || {
+            build_threads(&self.lua, snapshot)
+        })?;
+        set(&table, "threads", threads)?;
+        set(&table, "active_thread", snapshot.active_thread.clone())?;
+
+        let chat_messages = self.group("chat_messages", [epoch.snapshot, 0, 0, 0], || {
+            build_chat_messages(&self.lua, snapshot)
+        })?;
+        set(&table, "chat_messages", chat_messages)?;
+        set(&table, "active_target", snapshot.active_target.clone())?;
+        set(&table, "has_spec_context", snapshot.has_spec_context)?;
+
         set(&table, "taken_at_ms", snapshot.taken_at_ms)?;
         // The running release, for the header banner. v1 baked it into
         // `ui::status_bar::render_header` at compile time; a plugin cannot read
@@ -933,6 +953,72 @@ fn build_automations(lua: &Lua, snapshot: &Snapshot) -> Result<Value, String> {
             .map_err(|e| e.to_string())?;
     }
     Ok(Value::Table(automations))
+}
+
+fn build_workspaces(lua: &Lua, snapshot: &Snapshot) -> Result<Value, String> {
+    let workspaces = lua.create_table().map_err(|e| e.to_string())?;
+    for (index, row) in snapshot.workspaces.iter().enumerate() {
+        let item = lua.create_table().map_err(|e| e.to_string())?;
+        set(&item, "id", row.id.clone())?;
+        set(&item, "name", row.name.clone())?;
+        set(&item, "project_id", row.project_id.clone())?;
+        set(&item, "control_plane_path", row.control_plane_path.clone())?;
+        set(
+            &item,
+            "active_thread_id",
+            opt_lua_string(lua, row.active_thread_id.as_deref())?,
+        )?;
+        workspaces
+            .raw_set(index + 1, item)
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(Value::Table(workspaces))
+}
+
+fn build_threads(lua: &Lua, snapshot: &Snapshot) -> Result<Value, String> {
+    let threads = lua.create_table().map_err(|e| e.to_string())?;
+    for (index, row) in snapshot.threads.iter().enumerate() {
+        let item = lua.create_table().map_err(|e| e.to_string())?;
+        set(&item, "id", row.id.clone())?;
+        set(&item, "workspace_id", row.workspace_id.clone())?;
+        set(&item, "title", row.title.clone())?;
+        set(&item, "target_kind", row.target_kind.clone())?;
+        set(
+            &item,
+            "target_agent",
+            opt_lua_string(lua, row.target_agent.as_deref())?,
+        )?;
+        set(
+            &item,
+            "target_model",
+            opt_lua_string(lua, row.target_model.as_deref())?,
+        )?;
+        set(&item, "updated_at", row.updated_at)?;
+        threads
+            .raw_set(index + 1, item)
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(Value::Table(threads))
+}
+
+fn build_chat_messages(lua: &Lua, snapshot: &Snapshot) -> Result<Value, String> {
+    let messages = lua.create_table().map_err(|e| e.to_string())?;
+    for (index, row) in snapshot.chat_messages.iter().enumerate() {
+        let item = lua.create_table().map_err(|e| e.to_string())?;
+        set(&item, "id", row.id.clone())?;
+        set(&item, "thread_id", row.thread_id.clone())?;
+        set(&item, "workspace_id", row.workspace_id.clone())?;
+        set(&item, "role", row.role.clone())?;
+        set(&item, "agent", opt_lua_string(lua, row.agent.as_deref())?)?;
+        set(&item, "backend", opt_lua_string(lua, row.backend.as_deref())?)?;
+        set(&item, "model", opt_lua_string(lua, row.model.as_deref())?)?;
+        set(&item, "content", row.content.clone())?;
+        set(&item, "created_at", row.created_at)?;
+        messages
+            .raw_set(index + 1, item)
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(Value::Table(messages))
 }
 
 fn build_theme(lua: &Lua, themes: &Themes) -> Result<Value, String> {

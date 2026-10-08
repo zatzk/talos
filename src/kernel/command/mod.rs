@@ -374,6 +374,19 @@ pub enum Command {
         text: String,
         level: super::bands::Level,
     },
+    /// Talos v3 Chat dispatch & multi-calling
+    ChatSend {
+        workspace_id: String,
+        thread_id: String,
+        prompt: String,
+        target_kind: String,
+        target_agent: Option<String>,
+        target_model: Option<String>,
+    },
+    ChatApproveSpec {
+        workspace_id: String,
+        thread_id: String,
+    },
 }
 
 /// A further repository a new session spans.
@@ -454,6 +467,8 @@ impl Command {
             Command::Emit { .. } => "emit",
             Command::Action { .. } | Command::ActionTarget { .. } => "action",
             Command::Message { .. } => "message",
+            Command::ChatSend { .. } => "chat_send",
+            Command::ChatApproveSpec { .. } => "chat_approve_spec",
         }
     }
 
@@ -500,6 +515,8 @@ impl Command {
             // sentence.
             | Command::Action { .. }
             | Command::Message { .. }
+            | Command::ChatSend { .. }
+            | Command::ChatApproveSpec { .. }
             | Command::Focus { .. } => "",
         }
     }
@@ -633,6 +650,30 @@ impl Command {
                 Some(name) if !name.is_empty() => Ok(Command::Theme { name }),
                 _ => Err("command \"theme\" needs a name".to_string()),
             },
+            "chat_send" => {
+                let prompt = args.text.filter(|t| !t.trim().is_empty()).ok_or("command \"chat_send\" needs text".to_string())?;
+                let workspace_id = args.workspace.or(args.repo).unwrap_or_else(|| "default".to_string());
+                let thread_id = args.thread.or(args.target).unwrap_or_else(|| "th-main".to_string());
+                let target_kind = args.value.unwrap_or_else(|| "auto".to_string());
+                let target_agent = args.agent;
+                let target_model = args.model;
+                Ok(Command::ChatSend {
+                    workspace_id,
+                    thread_id,
+                    prompt,
+                    target_kind,
+                    target_agent,
+                    target_model,
+                })
+            }
+            "chat_approve_spec" => {
+                let workspace_id = args.workspace.or(args.repo).unwrap_or_else(|| "default".to_string());
+                let thread_id = args.thread.or(args.target).unwrap_or_else(|| "th-main".to_string());
+                Ok(Command::ChatApproveSpec {
+                    workspace_id,
+                    thread_id,
+                })
+            }
             // An explicit order names every session at once rather than one.
             "order" => {
                 if args.list.is_empty() {
@@ -937,6 +978,9 @@ pub struct Args {
     pub text: Option<String>,
     pub value: Option<String>,
     pub delta: Option<i64>,
+    pub workspace: Option<String>,
+    pub thread: Option<String>,
+    pub model: Option<String>,
     pub force: bool,
     pub flag: Option<bool>,
     /// `focus`: return to the previous pane when the named one already has focus.

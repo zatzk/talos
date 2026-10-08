@@ -261,6 +261,8 @@ fn band_state<'a>(
         session: Some("fix-osc52"),
         session_count: 3,
         automation_count: 0,
+        workspace: None,
+        target_mode: None,
         focus_label: "agent",
         message,
         progress: None,

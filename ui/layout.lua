@@ -123,7 +123,11 @@ return function(ctx)
       columns[#columns + 1] = { slot = "sessions", pct = 25, min = 20 }
     end
     columns[#columns + 1] = { slot = "center" }
-    children[#children + 1] = { axis = "horizontal", children = columns }
+    if #columns == 1 then
+      children[#children + 1] = columns[1]
+    else
+      children[#children + 1] = { axis = "horizontal", children = columns }
+    end
   end
 
   -- Search is a full-width STRIP above the bands rather than a float, and that

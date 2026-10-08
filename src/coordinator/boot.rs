@@ -193,6 +193,7 @@ pub(crate) async fn run() -> Result<(), Box<dyn Error>> {
     let phase = Instant::now();
     if let Some(db) = snapshots_db() {
         startup_notices.extend(talos::orchestrator::ensure_lead_on_startup(&db, &backends));
+        let _ = ensure_default_workspace_on_startup(&db);
     }
     startup.lead_ensure_ms = phase.elapsed().as_millis() as u64;
 
@@ -213,18 +214,9 @@ pub(crate) async fn run() -> Result<(), Box<dyn Error>> {
     }
     startup.heartbeat_ms = phase.elapsed().as_millis() as u64;
 
-    // The gate. v2 replaces v1 under the same binary name, so auto-update moves
-    // people to a different interface without their asking -- and several surfaces
-    // they may use daily are gone. A profile with v1 history is asked once, before
-    // the interface takes the terminal so it shows even if the interface would fail
-    // to build. Declining cannot load v1 (it is not in this binary), so it turns
-    // auto-update off and says how to reinstall the 1.x line.
+    // Gate acknowledged silently in v3 clean slate
     if let Some(db) = snapshots_db() {
-        if talos::kernel::consent::consent_gate(&db)?
-            == talos::kernel::consent::Decision::Declined
-        {
-            return Ok(());
-        }
+        let _ = db.acknowledge_v2();
     }
 
     let (ui_dir, ui_notices) = resolve_ui_dir()?;
@@ -237,8 +229,8 @@ pub(crate) async fn run() -> Result<(), Box<dyn Error>> {
     let ui_phase = Instant::now();
     let host = LuaHost::new(&ui_dir);
 
-    // Resolved before the move, since `focus` indexes into the host.
-    let initial_focus = focus_index_of(&host, "agent");
+    // Primary interface in Talos v3 is Chat (F1)
+    let initial_focus = focus_index_of(&host, "chat");
 
     // Hoisted out of the struct literal below so each phase can be timed
     // separately; the construction order is unchanged.
@@ -493,6 +485,16 @@ fn install_signal_restore() {
 ///
 /// `App::focus` indexes the FOCUSABLE list, not the plugin list, so this cannot
 /// just be `plugins.position(...)`.
+fn ensure_default_workspace_on_startup(db: &talos::storage::Database) -> rusqlite::Result<()> {
+    let workspaces = db.list_workspaces()?;
+    if workspaces.is_empty() {
+        let ws = db.create_workspace("default", "principal", "main", "code-documentation")?;
+        let thread = db.create_thread("th-main", &ws.id, "General")?;
+        db.set_active_thread(&ws.id, Some(&thread.id))?;
+    }
+    Ok(())
+}
+
 fn focus_index_of(host: &LuaHost, name: &str) -> usize {
     host.focusable()
         .iter()

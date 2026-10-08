@@ -1273,7 +1273,11 @@ pane = {
   on_action = function(action, args)
     -- The two that own no row, handled before the "is there a session" guard:
     -- hiding the column and undoing a delete both work on an empty list.
-    if action == "sessions.toggle_panel" then
+    if action == "sessions.open" then
+      panels.show("sessions")
+      command("focus", { text = "sessions", toggle = true })
+      return true
+    elseif action == "sessions.toggle_panel" then
       panels.toggle("sessions")
       return true
     elseif action == "sessions.undo" then

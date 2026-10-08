@@ -312,6 +312,7 @@ impl App {
             KeyCode::F(4) => "selector.toggle",
             KeyCode::Char('o') if ctrl => "selector.toggle",
             KeyCode::Char('a') if ctrl => "spec.approve_and_commit",
+            KeyCode::Char('n') if ctrl => "chat.new_thread",
             _ => return false,
         };
         self.run_kernel_action(action)
@@ -325,24 +326,47 @@ impl App {
             "kernel.focus_next" => self.cycle_focus(1),
             "view.chat" => {
                 if let Some(idx) = self.host.index_of("chat") {
+                    if let Some(pos) = self.host.focusable().iter().position(|&p| p == idx) {
+                        self.focus = pos;
+                        self.dirty = true;
+                    }
                     let _ = self.host.on_action(idx, "chat.open");
                 }
             }
             "view.board" => {
                 if let Some(idx) = self.host.index_of("kanban") {
+                    if let Some(pos) = self.host.focusable().iter().position(|&p| p == idx) {
+                        self.focus = pos;
+                        self.dirty = true;
+                    }
                     let _ = self.host.on_action(idx, "kanban.open");
                 }
             }
             "view.fleet" => {
                 if let Some(idx) = self.host.index_of("sessions") {
+                    if let Some(pos) = self.host.focusable().iter().position(|&p| p == idx) {
+                        self.focus = pos;
+                        self.dirty = true;
+                    }
                     let _ = self.host.on_action(idx, "sessions.open");
                 }
             }
             "selector.toggle" => {
+                if let Some(idx) = self.host.index_of("chat") {
+                    let _ = self.host.on_action(idx, "chat.selector_toggle");
+                }
                 self.toast("Model/Agent Selector (F4 / Ctrl+O) active");
             }
             "spec.approve_and_commit" => {
+                if let Some(idx) = self.host.index_of("chat") {
+                    let _ = self.host.on_action(idx, "chat.approve_spec");
+                }
                 self.toast("Spec Approved: Tasks ingested into Board and committed to code-documentation");
+            }
+            "chat.new_thread" => {
+                if let Some(idx) = self.host.index_of("chat") {
+                    let _ = self.host.on_action(idx, "chat.new_thread");
+                }
             }
             "kernel.perf_hud" if self.config.features().perf_hud => {
                 self.hud = !self.hud;
