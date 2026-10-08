@@ -142,7 +142,7 @@ return {
 
   keys = {
     -- alt+2: f7 is held for a pane that has not returned (tests/keymap.rs).
-    { key = "alt+2", action = "attention.open", desc = "attention", scope = "global", group = "Talos" },
+    { key = "alt+7", action = "attention.open", desc = "attention", scope = "global", group = "Talos" },
     { key = "j", action = "attention.down", desc = "next", group = "Talos" },
     { key = "k", action = "attention.up", desc = "previous", group = "Talos" },
     { key = "enter", action = "attention.open_session", desc = "open session", group = "Talos" },

@@ -152,7 +152,7 @@ fn every_kind_of_action_is_a_row() {
     // which no binding backs.
     let help = find("help.open").expect("a kernel modal is a row");
     assert_eq!(help.plugin, modals::OWNER);
-    assert_eq!(help.chords.as_deref(), Some("f1 / ctrl+g"));
+    assert_eq!(help.chords.as_deref(), Some("ctrl+g"));
     assert_eq!(find(RELOAD_ACTION).unwrap().chords.as_deref(), Some("f10"));
     assert_eq!(find(QUIT_ACTION).unwrap().chords.as_deref(), Some("ctrl+q"));
     // Not itself: opening the palette from inside it is not an action.

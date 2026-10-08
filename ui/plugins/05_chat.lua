@@ -25,33 +25,54 @@ local SELECTOR_OPTIONS = {
   { label = "🔒 Security Reviewer (@sec)", desc = "API: claude-3.7-sonnet — Auditoria OWASP e segredos", kind = "api", agent = "sec", model = "claude-3.7-sonnet" },
 }
 
-local function chat_store()
-  store.chat_state = store.chat_state or {
-    active_workspace = "default",
-    active_thread = "th-main",
-    input_field = textinput.new(""),
-    messages = {
-      {
-        role = "system",
-        sender = "⚡ Jev Engine",
-        badge = "Talos v3 Control Plane",
-        time = "Agora",
-        content = "Talos v3 pronto. Workspace ativo: principal.\nAtalhos: [F1] Chat, [F2] Board Kanban, [F3] Fleet, [F4/Ctrl+O] Seletor de Modelo, [Ctrl+A] Aprovar Spec.",
+local local_state = nil
+
+local function get_state()
+  if not local_state then
+    local_state = {
+      active_workspace = state.active_workspace or "default",
+      active_thread = state.active_thread or "th-main",
+      input_field = {
+        value = state.input_value or "",
+        cursor = state.input_cursor or 0,
       },
-    },
-    streaming = false,
-    has_spec_context = false,
-    selected_target = "Auto (Jev)",
-    target_kind = "auto",
-    target_agent = nil,
-    target_model = nil,
-    selector_open = false,
-    selector_index = 1,
-  }
-  if type(store.chat_state.input_field) ~= "table" or type(store.chat_state.input_field.value) ~= "string" then
-    store.chat_state.input_field = textinput.new("")
+      messages = {
+        {
+          role = "system",
+          sender = "⚡ Jev Engine",
+          badge = "Talos v3 Control Plane",
+          time = "Agora",
+          content = "Talos v3 pronto. Workspace ativo: principal.\nAtalhos: [F1] Chat, [F2] Board Kanban, [F3] Fleet, [F4/Ctrl+O] Seletor de Modelo, [Ctrl+A] Aprovar Spec.",
+        },
+      },
+      scroll_offset = state.scroll_offset or 0,
+      streaming = false,
+      has_spec_context = state.has_spec_context == true,
+      selected_target = state.selected_target or "Auto (Jev)",
+      target_kind = state.target_kind or "auto",
+      target_agent = state.target_agent,
+      target_model = state.target_model,
+      selector_open = state.selector_open == true,
+      selector_index = state.selector_index or 1,
+    }
   end
-  return store.chat_state
+  return local_state
+end
+
+local function save_state(s)
+  local_state = s
+  state.active_workspace = s.active_workspace
+  state.active_thread = s.active_thread
+  state.input_value = s.input_field.value
+  state.input_cursor = s.input_field.cursor
+  state.scroll_offset = s.scroll_offset
+  state.has_spec_context = s.has_spec_context
+  state.selected_target = s.selected_target
+  state.target_kind = s.target_kind
+  state.target_agent = s.target_agent
+  state.target_model = s.target_model
+  state.selector_open = s.selector_open
+  state.selector_index = s.selector_index
 end
 
 local function get_sender_style(role, sender)
@@ -73,7 +94,7 @@ local function get_sender_style(role, sender)
   return theme.accent
 end
 
-local function format_message(msg, is_last, width)
+local function format_message(msg)
   local sender_color = get_sender_style(msg.role, msg.sender)
   local header_spans = {
     { text = "● ", style = { fg = sender_color, bold = true } },
@@ -107,10 +128,10 @@ local function format_message(msg, is_last, width)
   return lines
 end
 
-local function collect_messages(state)
+local function collect_messages(s)
   local msgs = {}
   if talos and talos.chat_messages and #talos.chat_messages > 0 then
-    local active_th = state.active_thread or "th-main"
+    local active_th = s.active_thread or "th-main"
     for _, m in ipairs(talos.chat_messages) do
       if not m.thread_id or m.thread_id == active_th or active_th == "th-main" then
         local sender_name = m.agent
@@ -145,7 +166,7 @@ local function collect_messages(state)
   end
 
   if #msgs == 0 then
-    return state.messages
+    return s.messages
   end
   return msgs
 end
@@ -167,22 +188,18 @@ return {
     { key = "f1", action = "chat.open", desc = "chat view", scope = "global", group = "Talos" },
     { key = "alt+1", action = "chat.open", desc = "chat view", scope = "global", group = "Talos" },
     { key = "f4", action = "chat.selector_toggle", desc = "model selector", scope = "global", group = "Talos" },
-    { key = "ctrl+o", action = "chat.selector_toggle", desc = "model selector", group = "Chat" },
     { key = "enter", action = "chat.send", desc = "send message", group = "Chat" },
-    { key = "ctrl+n", action = "chat.new_thread", desc = "new thread", group = "Chat" },
     { key = "ctrl+a", action = "chat.approve_spec", desc = "approve spec & commit", group = "Chat" },
-    { key = "up", action = "chat.up", desc = "navigate up", group = "Chat" },
-    { key = "down", action = "chat.down", desc = "navigate down", group = "Chat" },
     { key = "esc", action = "chat.cancel", desc = "cancel selector", group = "Chat" },
   },
 
   render = function(ctx)
-    local state = chat_store()
+    local s = get_state()
     local width, height = ctx.width or 80, ctx.height or 24
     local level = chrome.level(ctx.focused)
 
     -- If selector is open, render model/agent selector modal overlay
-    if state.selector_open then
+    if s.selector_open then
       local rows = {}
       rows[#rows + 1] = {
         spans = {
@@ -192,7 +209,7 @@ return {
       rows[#rows + 1] = { spans = { { text = "", style = {} } } }
 
       for i, opt in ipairs(SELECTOR_OPTIONS) do
-        local is_sel = (i == state.selector_index)
+        local is_sel = (i == s.selector_index)
         local cursor = is_sel and " ▶ " or "   "
         local style_label = is_sel and { fg = theme.accent, bold = true } or { fg = theme.text }
         local style_desc = is_sel and { fg = theme.text } or { fg = theme.muted }
@@ -209,7 +226,7 @@ return {
       local sel_height = math.max(1, height - 5)
       local selector_widget = widgets.list({
         rows = rows,
-        selected = state.selector_index + 2,
+        selected = s.selector_index + 2,
         height = sel_height,
         fill = 1,
       })
@@ -231,19 +248,20 @@ return {
       }
     end
 
-    local display_messages = collect_messages(state)
+    local display_messages = collect_messages(s)
     local message_rows = {}
-    for i, msg in ipairs(display_messages) do
-      local formatted = format_message(msg, i == #display_messages, width)
+    for _, msg in ipairs(display_messages) do
+      local formatted = format_message(msg)
       for _, line in ipairs(formatted) do
         message_rows[#message_rows + 1] = line
       end
     end
 
     local list_height = math.max(1, height - 7)
+    local sel_pos = math.max(1, #message_rows - (s.scroll_offset or 0))
     local messages_widget = widgets.list({
       rows = message_rows,
-      selected = #message_rows,
+      selected = sel_pos,
       height = list_height,
       fill = 1,
     })
@@ -256,13 +274,14 @@ return {
         {
           type = "text",
           len = 4,
-          text = { { { text = " > ", style = { fg = theme.accent, bold = true } } } },
+          text = " > ",
+          style = { fg = theme.accent, bold = true },
         },
         {
           type = "input",
           fill = 1,
-          value = state.input_field.value or "",
-          cursor = state.input_field.cursor or 0,
+          value = s.input_field.value or "",
+          cursor = s.input_field.cursor or 0,
           placeholder = "Mensagem para o Jev / Talos (ex: @architect @qa analise a RFC-001)...",
           focused = ctx.focused == true,
           style = { fg = theme.text },
@@ -274,16 +293,16 @@ return {
       { "enter", "send" },
       { "ctrl+a", "approve spec" },
       { "f4", "selector" },
-      { "ctrl+n", "new thread" },
+      { "ctrl+t", "new thread" },
       { "f2", "board" },
       { "f3", "fleet" },
     }
 
-    local active_ws = state.active_workspace or (talos and talos.active_workspace) or "default"
-    local active_th = state.active_thread or (talos and talos.active_thread) or "th-main"
-    local has_spec = state.has_spec_context or (talos and talos.has_spec_context)
+    local active_ws = s.active_workspace or (talos and talos.active_workspace) or "default"
+    local active_th = s.active_thread or (talos and talos.active_thread) or "th-main"
+    local has_spec = s.has_spec_context or (talos and talos.has_spec_context)
 
-    local header_info = "Thread: " .. active_th .. " │ Target: " .. state.selected_target
+    local header_info = "Thread: " .. active_th .. " │ Target: " .. s.selected_target
     if has_spec then
       header_info = header_info .. " │ [Ctrl+A] Spec pronta para aprovação!"
     end
@@ -302,7 +321,7 @@ return {
   end,
 
   on_action = function(action)
-    local state = chat_store()
+    local s = get_state()
 
     if action == "chat.open" then
       command("focus", { text = NAME, toggle = true })
@@ -310,83 +329,72 @@ return {
     end
 
     if action == "chat.selector_toggle" or action == "chat.select_model" then
-      state.selector_open = not state.selector_open
+      s.selector_open = not s.selector_open
+      save_state(s)
       return true
     end
 
     if action == "chat.cancel" then
-      if state.selector_open then
-        state.selector_open = false
-        return true
-      end
-      return false
-    end
-
-    if action == "chat.up" then
-      if state.selector_open then
-        state.selector_index = math.max(1, state.selector_index - 1)
-        return true
-      end
-      return false
-    end
-
-    if action == "chat.down" then
-      if state.selector_open then
-        state.selector_index = math.min(#SELECTOR_OPTIONS, state.selector_index + 1)
+      if s.selector_open then
+        s.selector_open = false
+        save_state(s)
         return true
       end
       return false
     end
 
     if action == "chat.send" then
-      if state.selector_open then
-        local opt = SELECTOR_OPTIONS[state.selector_index]
+      if s.selector_open then
+        local opt = SELECTOR_OPTIONS[s.selector_index]
         if opt then
-          state.target_kind = opt.kind
-          state.target_agent = opt.agent
-          state.target_model = opt.model
-          state.selected_target = opt.label
-          state.selector_open = false
+          s.target_kind = opt.kind
+          s.target_agent = opt.agent
+          s.target_model = opt.model
+          s.selected_target = opt.label
+          s.selector_open = false
+          save_state(s)
           command("message", { text = "Alvo selecionado: " .. opt.label, level = "info" })
         end
         return true
       end
 
-      local val = state.input_field.value or ""
+      local val = s.input_field.value or ""
       if val:match("%S") then
-        local active_ws = state.active_workspace or (talos and talos.active_workspace) or "default"
-        local active_th = state.active_thread or (talos and talos.active_thread) or "th-main"
+        local active_ws = s.active_workspace or (talos and talos.active_workspace) or "default"
+        local active_th = s.active_thread or (talos and talos.active_thread) or "th-main"
 
         command("chat_send", {
           text = val,
           workspace = active_ws,
           thread = active_th,
-          value = state.target_kind or "auto",
-          agent = state.target_agent,
-          model = state.target_model,
+          value = s.target_kind or "auto",
+          agent = s.target_agent,
+          model = s.target_model,
         })
 
         -- Local optimistic append
-        state.messages[#state.messages + 1] = {
+        s.messages[#s.messages + 1] = {
           role = "user",
           sender = "Operador",
           time = os.date("%H:%M"),
           content = val,
         }
-        textinput.clear(state.input_field)
+        textinput.clear(s.input_field)
+        s.scroll_offset = 0
 
         local lower = val:lower()
         if lower:find("prd") or lower:find("rfc") or lower:find("especifica") then
-          state.has_spec_context = true
+          s.has_spec_context = true
         end
+        save_state(s)
       end
       return true
     end
 
     if action == "chat.new_thread" then
       local new_id = "th-" .. tostring(os.time())
-      state.active_thread = new_id
-      state.messages = {
+      s.active_thread = new_id
+      s.messages = {
         {
           role = "system",
           sender = "⚡ Jev Engine",
@@ -395,27 +403,35 @@ return {
           content = "Nova conversa iniciada: " .. new_id .. ". Digite seu objetivo.",
         },
       }
-      state.has_spec_context = false
+      s.has_spec_context = false
+      s.scroll_offset = 0
+      save_state(s)
       command("message", { text = "Nova conversa iniciada: " .. new_id, level = "info" })
       return true
     end
 
     if action == "chat.approve_spec" then
-      local active_ws = state.active_workspace or (talos and talos.active_workspace) or "default"
-      local active_th = state.active_thread or (talos and talos.active_thread) or "th-main"
+      -- If there is no pending spec, fall through to textinput so Ctrl+A functions as move cursor to beginning of line
+      if not s.has_spec_context and not (talos and talos.has_spec_context) then
+        return false
+      end
+
+      local active_ws = s.active_workspace or (talos and talos.active_workspace) or "default"
+      local active_th = s.active_thread or (talos and talos.active_thread) or "th-main"
 
       command("chat_approve_spec", {
         workspace = active_ws,
         thread = active_th,
       })
-      state.has_spec_context = false
-      state.messages[#state.messages + 1] = {
+      s.has_spec_context = false
+      s.messages[#s.messages + 1] = {
         role = "system",
         sender = "📡 Control Plane",
         badge = "git commit",
         time = os.date("%H:%M"),
         content = "Especificação aprovada com sucesso! Tarefas desmembradas no Workspace Board [F2] e commitadas em code-documentation.",
       }
+      save_state(s)
       return true
     end
 
@@ -423,31 +439,82 @@ return {
   end,
 
   on_key = function(key)
-    local state = chat_store()
-    if state.selector_open then
-      if key == "up" or key == "k" then
-        state.selector_index = math.max(1, state.selector_index - 1)
+    local s = get_state()
+    local name = key.key or ""
+
+    if s.selector_open then
+      if name == "up" or name == "k" or key.char == "k" then
+        s.selector_index = math.max(1, s.selector_index - 1)
+        save_state(s)
         return true
-      elseif key == "down" or key == "j" then
-        state.selector_index = math.min(#SELECTOR_OPTIONS, state.selector_index + 1)
+      elseif name == "down" or name == "j" or key.char == "j" then
+        s.selector_index = math.min(#SELECTOR_OPTIONS, s.selector_index + 1)
+        save_state(s)
         return true
-      elseif key == "enter" then
-        local opt = SELECTOR_OPTIONS[state.selector_index]
+      elseif name == "enter" then
+        local opt = SELECTOR_OPTIONS[s.selector_index]
         if opt then
-          state.target_kind = opt.kind
-          state.target_agent = opt.agent
-          state.target_model = opt.model
-          state.selected_target = opt.label
-          state.selector_open = false
+          s.target_kind = opt.kind
+          s.target_agent = opt.agent
+          s.target_model = opt.model
+          s.selected_target = opt.label
+          s.selector_open = false
+          save_state(s)
           command("message", { text = "Alvo selecionado: " .. opt.label, level = "info" })
         end
         return true
-      elseif key == "esc" or key == "escape" then
-        state.selector_open = false
+      elseif name == "esc" or name == "escape" then
+        s.selector_open = false
+        save_state(s)
         return true
       end
       return true
     end
-    return textinput.key(state.input_field, key)
+
+    -- Model selector toggle (Ctrl+O)
+    if key.ctrl and (name == "o" or key.char == "o") then
+      s.selector_open = not s.selector_open
+      save_state(s)
+      return true
+    end
+
+    -- New thread (Ctrl+T or Ctrl+N inside Chat)
+    if key.ctrl and (name == "t" or key.char == "t" or name == "n" or key.char == "n") then
+      local new_id = "th-" .. tostring(os.time())
+      s.active_thread = new_id
+      s.messages = {
+        {
+          role = "system",
+          sender = "⚡ Jev Engine",
+          badge = "Nova Thread",
+          time = os.date("%H:%M"),
+          content = "Nova conversa iniciada: " .. new_id .. ". Digite seu objetivo.",
+        },
+      }
+      s.has_spec_context = false
+      s.scroll_offset = 0
+      save_state(s)
+      command("message", { text = "Nova conversa iniciada: " .. new_id, level = "info" })
+      return true
+    end
+
+    -- Scroll through messages
+    if name == "pageup" or (key.ctrl and name == "u") then
+      s.scroll_offset = (s.scroll_offset or 0) + 5
+      save_state(s)
+      return true
+    elseif name == "pagedown" or (key.ctrl and name == "d") then
+      s.scroll_offset = math.max(0, (s.scroll_offset or 0) - 5)
+      save_state(s)
+      return true
+    end
+
+    local consumed = textinput.key(s.input_field, key)
+    if consumed then
+      save_state(s)
+      return true
+    end
+
+    return false
   end,
 }

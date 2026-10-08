@@ -517,9 +517,7 @@ fn every_modal_chord_v1_binds_opens_its_modal() {
     let host = host();
     let registry = registry(&host);
     for (chord, kind) in [
-        ("f1", ModalKind::Help),
         ("ctrl+g", ModalKind::Help),
-        ("f4", ModalKind::Theme),
         ("ctrl+y", ModalKind::Theme),
         ("f6", ModalKind::Settings),
         ("ctrl+,", ModalKind::Settings),
@@ -655,14 +653,14 @@ fn a_key_declared_by_an_unknown_plugin_appears_without_touching_help() {
 
 #[test]
 fn one_row_per_action_joins_its_chords_the_way_v1_spells_them() {
-    // `ctrl+g / f1`, not two unrelated rows and not the footer's compact `^G`.
+    // `f6 / ctrl+,`, not two unrelated rows and not the footer's compact `^G`.
     let host = host();
     let registry = registry(&host);
     let themes = Themes::load(None);
     let mut modals = Modals::default();
     modals.toggle(ModalKind::Help);
     let screen = modal_screen(&mut modals, &registry, &themes, 120, 90);
-    assert!(screen.contains("f1 / ctrl+g"), "{screen}");
+    assert!(screen.contains("f6 / ctrl+,"), "{screen}");
     assert!(!screen.contains("^G"), "help must not use the compact form");
 }
 

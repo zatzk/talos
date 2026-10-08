@@ -158,7 +158,7 @@ fn fire(host: &LuaHost, chord: &str) {
 /// below, in `CHORDS_AWAITING_THEIR_PANE`. They are listed rather than dropped so
 /// re-adding a pane has an obvious place to reconnect, and so the shortfall is
 /// counted rather than forgotten.
-const GLOBAL_CHORDS: [(&str, &str); 24] = [
+const GLOBAL_CHORDS: [(&str, &str); 26] = [
     ("ctrl+n", "new_session.open"),
     // Reassigned deliberately, not reused quietly: v1 spent it on the
     // automations pane, and the palette is the way *into* that pane — and every
@@ -186,9 +186,11 @@ const GLOBAL_CHORDS: [(&str, &str); 24] = [
     ("ctrl+y", "themes.open"),
     ("ctrl+g", "help.open"),
     ("ctrl+,", "settings.open"),
-    ("f4", "themes.open"),
+    ("f4", "chat.selector_toggle"),
     // F-key alternates, which reach a pane from a focused terminal.
-    ("f1", "help.open"),
+    ("f1", "chat.open"),
+    ("f2", "kanban.open"),
+    ("f3", "terminal.focus"),
     ("f6", "settings.open"),
     ("f8", "shell.open"),
     ("f9", "sessions.toggle_panel"),
@@ -202,12 +204,10 @@ const GLOBAL_CHORDS: [(&str, &str); 24] = [
 /// were reassigned on purpose, to the command palette and to renaming a session
 /// (`GLOBAL_CHORDS`): a deliberate, recorded reassignment is the one thing this
 /// list does not forbid.
-const CHORDS_AWAITING_THEIR_PANE: [(&str, &str); 7] = [
+const CHORDS_AWAITING_THEIR_PANE: [(&str, &str); 5] = [
     ("ctrl+w", "tasks"),
     ("ctrl+x", "review"),
     ("ctrl+b", "info"),
-    ("f2", "info"),
-    ("f3", "files"),
     ("f5", "tasks"),
     ("f7", "review"),
 ];

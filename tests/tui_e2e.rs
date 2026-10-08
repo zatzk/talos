@@ -152,6 +152,7 @@ impl Profile {
         cmd.env("HOME", self.path("home"));
         cmd.env("TALOS_CONFIG_DIR", self.path("config"));
         cmd.env("TALOS_DATA_DIR", self.path("data"));
+        cmd.env("TALOS_CONTROL_PLANE", "none");
         // Pinned socket, cleared owner tag, private socket directory. Run from
         // inside a talos pane, an inherited owner would make the pin read as
         // inherited and put the server on a derived socket the guard never

@@ -1714,7 +1714,8 @@ impl SnapshotStore {
         let active_thread_id = active_ws_row
             .as_ref()
             .and_then(|w| w.active_thread_id.clone())
-            .or_else(|| threads_raw.first().map(|t| t.id.clone()));
+            .or_else(|| threads_raw.first().map(|t| t.id.clone()))
+            .or_else(|| Some("th-main".to_string()));
 
         let active_th_row = threads_raw.iter().find(|t| Some(&t.id) == active_thread_id.as_ref()).cloned();
         let active_target = active_th_row.as_ref().map(|t| match t.target_kind.as_str() {
@@ -1739,7 +1740,7 @@ impl SnapshotStore {
         let chat_messages_raw = if let Some(th_id) = &active_thread_id {
             database.list_chat_messages(th_id).unwrap_or_default()
         } else {
-            Vec::new()
+            database.list_chat_messages("th-main").unwrap_or_default()
         };
 
         let has_spec_context = chat_messages_raw.iter().any(|m| {

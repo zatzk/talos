@@ -310,9 +310,6 @@ impl App {
             KeyCode::F(2) | KeyCode::Char('2') if alt => "view.board",
             KeyCode::F(3) | KeyCode::Char('3') if alt => "view.fleet",
             KeyCode::F(4) => "selector.toggle",
-            KeyCode::Char('o') if ctrl => "selector.toggle",
-            KeyCode::Char('a') if ctrl => "spec.approve_and_commit",
-            KeyCode::Char('n') if ctrl => "chat.new_thread",
             _ => return false,
         };
         self.run_kernel_action(action)
@@ -343,12 +340,12 @@ impl App {
                 }
             }
             "view.fleet" => {
-                if let Some(idx) = self.host.index_of("sessions") {
+                if let Some(idx) = self.host.index_of("agent") {
                     if let Some(pos) = self.host.focusable().iter().position(|&p| p == idx) {
                         self.focus = pos;
                         self.dirty = true;
                     }
-                    let _ = self.host.on_action(idx, "sessions.open");
+                    let _ = self.host.on_action(idx, "terminal.focus");
                 }
             }
             "selector.toggle" => {

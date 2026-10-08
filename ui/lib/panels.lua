@@ -23,7 +23,7 @@ local KEY = "panels."
 --- a *hide*, where every other panel key is a show. So the default belongs to
 --- the panel rather than to the accessor, and "unset" keeps meaning "whatever
 --- this panel starts as".
-local OPEN_AT_START = { sessions = false }
+local OPEN_AT_START = { sessions = true }
 
 --- Open state of one panel. Unset reads as the panel's start state, which for
 --- everything but the session list is closed — v1's.

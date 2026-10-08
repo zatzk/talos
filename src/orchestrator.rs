@@ -25,6 +25,9 @@ pub const LEAD_NAME: &str = "📡 Talos Mission Control";
 /// Where a control plane lives when nothing says otherwise.
 fn default_control_plane() -> Option<PathBuf> {
     if let Ok(dir) = std::env::var("TALOS_CONTROL_PLANE") {
+        if dir.is_empty() || dir == "none" || dir == "off" || dir == "0" {
+            return None;
+        }
         return Some(PathBuf::from(dir));
     }
     let submodule = Path::new(env!("CARGO_MANIFEST_DIR")).join("code-documentation");

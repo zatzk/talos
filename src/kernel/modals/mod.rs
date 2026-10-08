@@ -93,11 +93,9 @@ impl ModalKind {
 /// focused terminal passes a bare `Ctrl+<letter>` through to the agent.
 pub fn bindings() -> Vec<Binding> {
     [
-        ("f1", ModalKind::Help, "open keybindings help"),
         ("ctrl+g", ModalKind::Help, "open keybindings help"),
         ("f6", ModalKind::Settings, "open settings"),
         ("ctrl+,", ModalKind::Settings, "open settings"),
-        ("f4", ModalKind::Theme, "open theme picker"),
         ("ctrl+y", ModalKind::Theme, "open theme picker"),
         // Taken deliberately from the list of chords held for v1's panes
         // (`tests/keymap.rs`): the automations pane it was held for is one
@@ -569,7 +567,7 @@ mod tests {
     #[test]
     fn every_modal_chord_v1_binds_is_declared() {
         let declared: Vec<String> = bindings().into_iter().map(|b| b.chord).collect();
-        for chord in ["f1", "ctrl+g", "f4", "ctrl+y", "f6", "ctrl+,", "ctrl+p"] {
+        for chord in ["ctrl+g", "ctrl+y", "f6", "ctrl+,", "ctrl+p"] {
             assert!(
                 declared.iter().any(|declared| declared == chord),
                 "{chord} opens nothing"

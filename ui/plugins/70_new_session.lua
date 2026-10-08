@@ -1398,13 +1398,6 @@ return {
       scope = "global",
       group = "Sessions",
     },
-    {
-      key = "ctrl+t",
-      action = "new_session.open",
-      desc = "new thread / session",
-      scope = "global",
-      group = "Sessions",
-    },
     -- The rest are plugin-scoped, so they fire only while the flow is up. Each
     -- is declared rather than merely handled, which is what puts it in help and
     -- makes it rebindable.

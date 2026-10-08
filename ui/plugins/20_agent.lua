@@ -890,12 +890,25 @@ return {
   order = 20,
   focusable = true,
 
-  -- No `pills` here on purpose. This pane's shell view is already offered by the
-  -- tab strip on its own border, and v1's footer never carried it either — a
-  -- second affordance for one action is clutter, not discoverability. A pane that
-  -- does want an entry declares `pills = { { action, label, priority } }` beside
-  -- these keys and the action band grows a row for it.
+  pills = {
+    { action = FOCUS, label = "fleet", priority = 15 },
+  },
+
   keys = {
+    {
+      key = "f3",
+      action = FOCUS,
+      desc = "focus fleet / terminal",
+      scope = "global",
+      group = "Talos",
+    },
+    {
+      key = "alt+3",
+      action = FOCUS,
+      desc = "focus fleet / terminal",
+      scope = "global",
+      group = "Talos",
+    },
     {
       key = "ctrl+t",
       action = "shell.open",
